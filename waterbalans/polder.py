@@ -16,7 +16,8 @@ class Polder:
     
     """
 
-    def __init__(self, id, db_model="shp", db_series="xml", db_param="shp"):
+    def __init__(self, id=None, db_model="shp", db_series="xml",
+                 db_param="shp"):
         self.id = id
 
         # Store the database source types
@@ -24,32 +25,36 @@ class Polder:
         self.db_series = db_series
         self.db_param = db_param
 
-        # 1. Create the model structure
+        # Placeholder
+        self.data = pd.DataFrame()
         self.subpolders = OrderedDict()
-        self.load_model()
-
-        # 2. Load all series
-        self.series = OrderedDict()
-        self.load_series()
-
-        # 3. Load all parameters
         self.parameters = pd.DataFrame()
-        self.load_parameters()
+        self.series = OrderedDict()
 
-    def load_model(self):
+    def _load_model_data(self, fname, id=None):
+        """Method to load the data model from a file or database.
+
+        Returns
+        -------
+        data: pandas.DataFrame
+            Imported table that is used as a template to construct the model.
+
+        """
+        data = load_model(fname=fname)
+        if id:
+            self.data = data.loc[data.loc[:, "GAF"] == id]
+        else:
+            self.data = data
+        self._create_model_structure()
+
+    def _create_model_structure(self):
         """Method to import model structure description from a file or
         database.
 
         """
-        data = load_model(fname=None, id=self.id, db_model=self.db_model)
-
-        self.name = None
-        self.area = 0.0
-        self.x = 0.0
-        self.y = 0.0
-
-        for id in data["eag"]:
-            subpolder = SubPolder(id=id, polder=self)
+        for id in self.data.loc[:, "EAG"].unique():
+            df = self.data.loc[self.data.loc[:, "EAG"] == id]
+            subpolder = SubPolder(id=id, polder=self, data=df)
             self.subpolders[id] = subpolder
 
     def load_series(self):

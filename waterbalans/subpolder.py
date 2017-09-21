@@ -1,37 +1,32 @@
 """Dit bestand bevat de EAG model klasse.
 
-"""
+Raoul Collenteur, Artesia Water, September 2017
 
-from collections import OrderedDict
+"""
 
 from .buckets import *
 
 
 class SubPolder:
     def __init__(self, id, polder, data):
+        self.data = data  # Pandas dataframe with the model table
         self.id = id
         self.polder = polder  # Reference to the mother object
 
         self.buckets = OrderedDict()
-        self.load_model(data)
+        self._load_buckets(data)
 
         self.series = OrderedDict()
-        self.load_series()
+        # self.load_series()
 
-    def load_model(self, data):
+    def _load_buckets(self, data):
         """Method to load the buckets for the subpolder.
 
         """
-
-        for kind in data.keys():
-            bucket = Bucket(self)
+        for kind in data.loc[:, "TYPE_WBAL"].values:
+            df = self.data.loc[self.data.loc[:, "TYPE_WBAL"] == kind]
+            bucket = Bucket(kind=kind, polder=self, data=df)
             self.buckets[kind] = bucket
-
-        self.name = None
-
-        self.x = 0.0
-        self.y = 0.0
-        self.area = 0.0
 
     def load_series(self):
         self.series["prec"] = self.polder.series["prec"]

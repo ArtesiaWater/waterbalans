@@ -2,20 +2,33 @@
 
 """
 
-from .io import load_series
+from abc import ABC
 from collections import OrderedDict
+
 import pandas as pd
+
+from waterbalans.io import load_series
 
 
 class Bucket:
-    __doc__ = """
+    __doc__ = """Class to construct a Bucket instance from a string. 
+
+    """
+
+    def __new__(cls, kind=None, *args, **kwargs):
+        return eval(kind)(*args, **kwargs)
+
+
+class BucketBase(ABC):
+    __doc__ = """Base class from which all bucket classes inherit.
     
     """
-    def __init__(self, polder):
-        self.polder = polder  # Reference to mother object.
 
+    def __init__(self, polder=None, data=None):
+        self.polder = polder  # Reference to mother object.
+        self.data = data
         self.series = OrderedDict()
-        self.load_series()
+        # self.load_series()
 
         self.storage = pd.Series()
 
@@ -47,16 +60,16 @@ class Bucket:
         pass
 
 
-class Verhard(Bucket):
-    def __init__(self):
-        Bucket.__init__(self)
+class verhard(BucketBase):
+    def __init__(self, polder, data):
+        BucketBase.__init__(self, polder, data)
 
 
-class Onverhard(Bucket):
-    def __init__(self):
-        Bucket.__init__(self)
+class onverhard(BucketBase):
+    def __init__(self, polder, data):
+        BucketBase.__init__(self, polder, data)
 
 
-class Water(Bucket):
-    def __init__(self):
-        Bucket.__init__(self)
+class water(BucketBase):
+    def __init__(self, polder, data):
+        BucketBase.__init__(self, polder, data)
