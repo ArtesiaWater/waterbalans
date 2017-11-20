@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TimeSeries xmlns="http://www.wldelft.nl/fews/PI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.wldelft.nl/fews/PI http://fews.wldelft.nl/schemas/version1.0/pi-schemas/pi_timeseries.xsd" version="1.23" xmlns:fs="http://www.wldelft.nl/fews/fs">
+    <timeZone>1.0</timeZone>
+    <series>
+        <header>
+            <type>instantaneous</type>
+            <moduleInstanceId>Statistiek</moduleInstanceId>
+            <locationId>60038_Benedenstrooms_stuw_1</locationId>
+            <parameterId>H.meting.gem</parameterId>
+            <timeStep unit="second" multiplier="86400"/>
+            <startDate date="2000-01-01" time="00:00:00"/>
+            <endDate date="2017-01-01" time="00:00:00"/>
+            <missVal>-999.0</missVal>
+            <stationName>Oukoop, Benedenstroomspeil stuw</stationName>
+            <lat>52.203630686797226</lat>
+            <lon>4.973581975740326</lon>
+            <x>126725.0</x>
+            <y>468472.0</y>
+            <units>m/nap</units>
+        </header>
+        <event date="2016-06-24" time="00:00:00" value="-2.319" flag="0"/>
+        <event date="2016-06-25" time="00:00:00" value="-2.39" flag="0"/>
+        <event date="2016-06-26" time="00:00:00" value="-2.461" flag="0"/>
+        <event date="2016-06-27" time="00:00:00" value="-2.467" flag="0"/>
+        <event date="2016-06-28" time="00:00:00" value="-2.468" flag="0"/>
+        <event date="2016-06-29" time="00:00:00" value="-2.459" flag="0"/>
+        <event date="2016-06-30" time="00:00:00" value="-2.453" flag="0"/>
+        <event date="2016-07-01" time="00:00:00" value="-2.453" flag="0"/>
+        <event date="2016-07-02" time="00:00:00" value="-2.446" flag="0"/>
+        <event date="2016-07-03" time="00:00:00" value="-2.438" flag="0"/>
+        <event date="2016-07-04" time="00:00:00" value="-2.447" flag="0"/>
+        <event date="2016-07-05" time="00:00:00" value="-2.455" flag="0"/>
+        <event date="2016-07-06" time="00:00:00" value="-2.45" flag="0"/>
+        <event date="2016-07-07" time="00:00:00" value="-2.448" flag="0"/>
+        <event date="2016-07-08" time="00:00:00" value="-2.418" flag="0"/>
+        <event date="2016-07-09" time="00:00:00" value="-2.412" flag="0"/>
+        <event date="2016-07-10" time="00:00:00" value="-2.404" flag="0"/>
+        <event date="2016-07-11" time="00:00:00" value="-2.412" flag="0"/>
+        <event date="2016-07-12" time="00:00:00" value="-2.416" flag="0"/>
+        <event date="2016-07-13" time="00:00:00" value="-2.4" flag="0"/>
+        <event date="2016-07-14" time="00:00:00" value="-2.393" flag="0"/>
+        <event date="2016-07-15" time="00:00:00" value="-2.393" flag="0"/>
+        <event date="2016-07-16" time="00:00:00" value="-2.394" flag="0"/>
+        <event date="2016-07-17" time="00:00:00" value="-2.39" flag="0"/>
+        <event date="2016-07-18" time="00:00:00" value="-2.392" flag="0"/>
+        <event date="2016-07-19" time="00:00:00" value="-2.387" flag="0"/>
+        <event date="2016-07-20" time="00:00:00" value="-2.39" flag="0"/>
+        <event date="2016-07-21" time="00:00:00" value="-2.398" flag="0"/>
+        <event date="2016-07-22" time="00:00:00" value="-2.393" flag="0"/>
+        <event date="2016-07-23" time="00:00:00" value="-2.394" flag="0"/>
+        <event date="2016-07-24" time="00:00:00" value="-2.414" flag="0"/>
+        <event date="2016-07-25" time="00:00:00" value="-2.401" flag="0"/>
+        <event date="2016-07-26" time="00:00:00" value="-2.39" flag="0"/>
+        <event date="2016-07-27" time="00:00:00" value="-2.388" flag="0"/>
+        <event date="2016-07-28" time="00:00:00" value="-2.379" flag="0"/>
+        <event date="2016-07-29" time="00:00:00" value="-2.377" flag="0"/>
+        <event date="2016-07-30" time="00:00:00" value="-2.377" flag="0"/>
+        <event date="2016-07-31" time="00:00:00" value="-2.37" flag="0"/>
+        <event date="2016-08-19" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-08-20" time="00:00:00" value="-2.354" flag="0"/>
+        <event date="2016-08-21" time="00:00:00" value="-2.359" flag="0"/>
+        <event date="2016-08-22" time="00:00:00" value="-2.352" flag="0"/>
+        <event date="2016-08-23" time="00:00:00" value="-2.362" flag="0"/>
+        <event date="2016-08-24" time="00:00:00" value="-2.361" flag="0"/>
+        <event date="2016-08-25" time="00:00:00" value="-2.356" flag="0"/>
+        <event date="2016-08-26" time="00:00:00" value="-2.352" flag="0"/>
+        <event date="2016-08-27" time="00:00:00" value="-2.352" flag="0"/>
+        <event date="2016-08-28" time="00:00:00" value="-2.355" flag="0"/>
+        <event date="2016-08-29" time="00:00:00" value="-2.362" flag="0"/>
+        <event date="2016-08-30" time="00:00:00" value="-2.36" flag="0"/>
+        <event date="2016-08-31" time="00:00:00" value="-2.359" flag="0"/>
+        <event date="2016-09-01" time="00:00:00" value="-2.357" flag="0"/>
+        <event date="2016-09-02" time="00:00:00" value="-2.358" flag="0"/>
+        <event date="2016-09-03" time="00:00:00" value="-2.363" flag="0"/>
+        <event date="2016-09-04" time="00:00:00" value="-2.356" flag="0"/>
+        <event date="2016-09-05" time="00:00:00" value="-2.356" flag="0"/>
+        <event date="2016-09-06" time="00:00:00" value="-2.362" flag="0"/>
+        <event date="2016-09-07" time="00:00:00" value="-2.369" flag="0"/>
+        <event date="2016-09-08" time="00:00:00" value="-2.37" flag="0"/>
+        <event date="2016-09-09" time="00:00:00" value="-2.371" flag="0"/>
+        <event date="2016-09-10" time="00:00:00" value="-2.372" flag="0"/>
+        <event date="2016-09-11" time="00:00:00" value="-2.374" flag="0"/>
+        <event date="2016-09-12" time="00:00:00" value="-2.375" flag="0"/>
+        <event date="2016-09-13" time="00:00:00" value="-2.377" flag="0"/>
+        <event date="2016-09-14" time="00:00:00" value="-2.38" flag="0"/>
+        <event date="2016-09-15" time="00:00:00" value="-2.381" flag="0"/>
+        <event date="2016-09-16" time="00:00:00" value="-2.376" flag="0"/>
+        <event date="2016-09-17" time="00:00:00" value="-2.377" flag="0"/>
+        <event date="2016-09-18" time="00:00:00" value="-2.377" flag="0"/>
+        <event date="2016-09-19" time="00:00:00" value="-2.377" flag="0"/>
+        <event date="2016-09-20" time="00:00:00" value="-2.378" flag="0"/>
+        <event date="2016-09-21" time="00:00:00" value="-2.379" flag="0"/>
+        <event date="2016-09-22" time="00:00:00" value="-2.38" flag="0"/>
+        <event date="2016-09-23" time="00:00:00" value="-2.38" flag="0"/>
+        <event date="2016-09-24" time="00:00:00" value="-2.376" flag="0"/>
+        <event date="2016-09-25" time="00:00:00" value="-2.374" flag="0"/>
+        <event date="2016-09-26" time="00:00:00" value="-2.378" flag="0"/>
+        <event date="2016-09-27" time="00:00:00" value="-2.379" flag="0"/>
+        <event date="2016-09-28" time="00:00:00" value="-2.381" flag="0"/>
+        <event date="2016-09-29" time="00:00:00" value="-2.385" flag="0"/>
+        <event date="2016-09-30" time="00:00:00" value="-2.375" flag="0"/>
+        <event date="2016-10-01" time="00:00:00" value="-2.371" flag="0"/>
+        <event date="2016-10-02" time="00:00:00" value="-2.366" flag="0"/>
+        <event date="2016-10-03" time="00:00:00" value="-2.352" flag="0"/>
+        <event date="2016-10-04" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-10-05" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-10-06" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-10-07" time="00:00:00" value="-2.347" flag="0"/>
+        <event date="2016-10-08" time="00:00:00" value="-2.346" flag="0"/>
+        <event date="2016-10-09" time="00:00:00" value="-2.344" flag="0"/>
+        <event date="2016-10-10" time="00:00:00" value="-2.342" flag="0"/>
+        <event date="2016-10-11" time="00:00:00" value="-2.352" flag="0"/>
+        <event date="2016-10-12" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-10-13" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-10-14" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-10-15" time="00:00:00" value="-2.35" flag="0"/>
+        <event date="2016-10-16" time="00:00:00" value="-2.347" flag="0"/>
+        <event date="2016-10-17" time="00:00:00" value="-2.358" flag="0"/>
+        <event date="2016-10-18" time="00:00:00" value="-2.354" flag="0"/>
+        <event date="2016-10-19" time="00:00:00" value="-2.313" flag="0"/>
+        <event date="2016-10-20" time="00:00:00" value="-2.348" flag="0"/>
+        <event date="2016-10-21" time="00:00:00" value="-2.36" flag="0"/>
+        <event date="2016-10-22" time="00:00:00" value="-2.35" flag="0"/>
+        <event date="2016-10-23" time="00:00:00" value="-2.361" flag="0"/>
+        <event date="2016-10-24" time="00:00:00" value="-2.357" flag="0"/>
+        <event date="2016-10-25" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-10-26" time="00:00:00" value="-2.345" flag="0"/>
+        <event date="2016-10-27" time="00:00:00" value="-2.363" flag="0"/>
+        <event date="2016-10-28" time="00:00:00" value="-2.36" flag="0"/>
+        <event date="2016-10-29" time="00:00:00" value="-2.354" flag="0"/>
+        <event date="2016-10-30" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-10-31" time="00:00:00" value="-2.356" flag="0"/>
+        <event date="2016-11-01" time="00:00:00" value="-2.351" flag="0"/>
+        <event date="2016-11-02" time="00:00:00" value="-2.363" flag="0"/>
+        <event date="2016-11-03" time="00:00:00" value="-2.418" flag="0"/>
+        <event date="2016-11-04" time="00:00:00" value="-2.428" flag="0"/>
+        <event date="2016-11-05" time="00:00:00" value="-2.427" flag="0"/>
+        <event date="2016-11-06" time="00:00:00" value="-2.433" flag="0"/>
+        <event date="2016-11-07" time="00:00:00" value="-2.414" flag="0"/>
+        <event date="2016-11-08" time="00:00:00" value="-2.42" flag="0"/>
+        <event date="2016-11-09" time="00:00:00" value="-2.423" flag="0"/>
+        <event date="2016-11-10" time="00:00:00" value="-2.4" flag="0"/>
+        <event date="2016-11-11" time="00:00:00" value="-2.397" flag="0"/>
+        <event date="2016-11-12" time="00:00:00" value="-2.426" flag="0"/>
+        <event date="2016-11-13" time="00:00:00" value="-2.431" flag="0"/>
+        <event date="2016-11-14" time="00:00:00" value="-2.412" flag="0"/>
+        <event date="2016-11-15" time="00:00:00" value="-2.416" flag="0"/>
+        <event date="2016-11-16" time="00:00:00" value="-2.416" flag="0"/>
+        <event date="2016-11-17" time="00:00:00" value="-2.416" flag="0"/>
+        <event date="2016-11-18" time="00:00:00" value="-2.43" flag="0"/>
+        <event date="2016-11-19" time="00:00:00" value="-2.45" flag="0"/>
+        <event date="2016-11-20" time="00:00:00" value="-2.462" flag="0"/>
+        <event date="2016-11-21" time="00:00:00" value="-2.448" flag="0"/>
+        <event date="2016-11-22" time="00:00:00" value="-2.461" flag="0"/>
+        <event date="2016-11-23" time="00:00:00" value="-2.442" flag="0"/>
+        <event date="2016-11-24" time="00:00:00" value="-2.453" flag="0"/>
+        <event date="2016-11-25" time="00:00:00" value="-2.441" flag="0"/>
+        <event date="2016-11-26" time="00:00:00" value="-2.45" flag="0"/>
+        <event date="2016-11-27" time="00:00:00" value="-2.45" flag="0"/>
+        <event date="2016-11-28" time="00:00:00" value="-2.462" flag="0"/>
+        <event date="2016-11-29" time="00:00:00" value="-2.459" flag="0"/>
+        <event date="2016-11-30" time="00:00:00" value="-2.447" flag="0"/>
+        <event date="2016-12-01" time="00:00:00" value="-2.446" flag="0"/>
+        <event date="2016-12-02" time="00:00:00" value="-2.444" flag="0"/>
+        <event date="2016-12-03" time="00:00:00" value="-2.443" flag="0"/>
+        <event date="2016-12-04" time="00:00:00" value="-2.454" flag="0"/>
+        <event date="2016-12-05" time="00:00:00" value="-2.444" flag="0"/>
+        <event date="2016-12-06" time="00:00:00" value="-2.453" flag="0"/>
+        <event date="2016-12-07" time="00:00:00" value="-2.441" flag="0"/>
+        <event date="2016-12-08" time="00:00:00" value="-2.44" flag="0"/>
+        <event date="2016-12-09" time="00:00:00" value="-2.44" flag="0"/>
+        <event date="2016-12-10" time="00:00:00" value="-2.443" flag="0"/>
+        <event date="2016-12-11" time="00:00:00" value="-2.435" flag="0"/>
+        <event date="2016-12-12" time="00:00:00" value="-2.435" flag="0"/>
+        <event date="2016-12-13" time="00:00:00" value="-2.455" flag="0"/>
+        <event date="2016-12-14" time="00:00:00" value="-2.445" flag="0"/>
+        <event date="2016-12-15" time="00:00:00" value="-2.45" flag="0"/>
+        <event date="2016-12-16" time="00:00:00" value="-2.456" flag="0"/>
+        <event date="2016-12-17" time="00:00:00" value="-2.445" flag="0"/>
+        <event date="2016-12-18" time="00:00:00" value="-2.452" flag="0"/>
+        <event date="2016-12-19" time="00:00:00" value="-2.445" flag="0"/>
+        <event date="2016-12-20" time="00:00:00" value="-2.452" flag="0"/>
+        <event date="2016-12-21" time="00:00:00" value="-2.46" flag="0"/>
+        <event date="2016-12-22" time="00:00:00" value="-2.446" flag="0"/>
+        <event date="2016-12-23" time="00:00:00" value="-2.462" flag="0"/>
+        <event date="2016-12-24" time="00:00:00" value="-2.449" flag="0"/>
+        <event date="2016-12-25" time="00:00:00" value="-2.461" flag="0"/>
+        <event date="2016-12-26" time="00:00:00" value="-2.449" flag="0"/>
+        <event date="2016-12-27" time="00:00:00" value="-2.439" flag="0"/>
+        <event date="2016-12-28" time="00:00:00" value="-2.453" flag="0"/>
+        <event date="2016-12-29" time="00:00:00" value="-2.443" flag="0"/>
+        <event date="2016-12-30" time="00:00:00" value="-2.456" flag="0"/>
+        <event date="2016-12-31" time="00:00:00" value="-2.444" flag="0"/>
+        <event date="2017-01-01" time="00:00:00" value="-2.452" flag="0"/>
+    </series>
+</TimeSeries>
