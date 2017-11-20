@@ -3,12 +3,15 @@
 """
 
 from collections import OrderedDict
+from io import BytesIO
 
 import pandas as pd
 
-from .io.base import load_model
+from waterbalans.io import load_model, read_xml
+from .access import AccessServer
+from .fews import FewsServer
 from .subpolder import SubPolder
-from .timeseries import Timeseries
+from .timeseries import TimeSeries
 
 
 class Polder:
@@ -16,20 +19,69 @@ class Polder:
     
     """
 
-    def __init__(self, id=None, db_model="shp", db_series="xml",
-                 db_param="shp"):
+    def __init__(self, id=None, db_model=None, db_series=None, db_param=None):
         self.id = id
 
         # Store the database source types
         self.db_model = db_model  # model database
-        self.db_series = db_series
-        self.db_param = db_param
+        self.db_series = self._connect_fews_db(args=db_series)
+        self.db_param = self._connect_param_db(args=db_param)
 
         # Placeholder
         self.data = pd.DataFrame()
         self.subpolders = OrderedDict()
-        self.parameters = pd.DataFrame()
+        self.parameters = pd.DataFrame(columns=["pinit", "popt", "pmin",
+                                                "pmax", "pvary"])
         self.series = OrderedDict()
+
+    def _connect_fews_db(self, args):
+        """Method tpo connect to the the FEWS database.
+
+        Parameters
+        ----------
+        kwargs: dict
+            Any keyword values combination that is taken by the FewsServer
+            instance.
+
+        Returns
+        -------
+        FewsServer: waterbalans.FewsServer
+
+        """
+        if args is None:
+            args = {}
+        return FewsServer(*args)
+
+    def _connect_param_db(self, args):
+        """Method to connect to a parameters database to extract the
+        parameters.
+
+        Parameters
+        ----------
+        kwargs:
+            any parameters that are taken by the AccessServer object.
+
+        Returns
+        -------
+        AccessServer: waterbalans.AccesServer
+
+        """
+        if args is None:
+            args = {}
+        return AccessServer(*args)
+
+    def get_model_configs(self, gaf_id):
+        model_configs = self.db_param.get_model_configs(gaf_id)
+        return model_configs
+
+    def get_model_sets(self, config_id):
+        model_sets = self.db_param.get_model_sets(config_id)
+        return model_sets
+
+    def set_model_parameters(self, set_id):
+        parameters = self.db_param.get_parameters(set_id)
+        # self.parameters._update_inplace(parameters)
+        return parameters
 
     def _load_model_data(self, fname, id=None):
         """Method to load the data model from a file or database.
@@ -45,6 +97,7 @@ class Polder:
             self.data = data.loc[data.loc[:, "GAF"] == id]
         else:
             self.data = data
+
         self._create_model_structure()
 
     def _create_model_structure(self):
@@ -62,14 +115,19 @@ class Polder:
         the subpolder Objects.
 
         """
-        self.series["prec"] = Timeseries(pd.Series(), self)
-        self.series["evap"] = Timeseries(pd.Series(), self)
+        self.series["prec"] = TimeSeries(pd.Series(), self)
+        self.series["evap"] = TimeSeries(pd.Series(), self)
 
         for subpolder in self.subpolders.values():
             subpolder.load_series()
 
-    def load_parameters(self):
-        pass
+    def get_series(self, id, **kwargs):
+        kwargs.update(locationIds=id)
+        data = self.db_series.getTimeSeries(**kwargs)
+        data = BytesIO(data.encode())
+        series = read_xml(data)
+
+        return series
 
     def calculate_wb(self):
         """Method to calculate the waterbalance for the Polder.
@@ -83,15 +141,4 @@ class Polder:
     def validate_wb(self):
         """Method to validate the water balance based on the total input,
         output and the change in storage of the model for each time step.
-
-        Returns
-        -------
-
         """
-        pass
-
-    def dump_data(self):
-        pass
-
-    def dump(self):
-        pass

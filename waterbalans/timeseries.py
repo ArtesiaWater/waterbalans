@@ -4,7 +4,7 @@
 
 from pandas import Series
 
-class Timeseries(Series):
+class TimeSeries(Series):
     def __init__(self, series, polder, units="m/d"):
         Series.__init__(self)
         self.series = series
