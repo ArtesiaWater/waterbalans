@@ -80,10 +80,10 @@ class Polder:
 
     def set_model_parameters(self, set_id):
         parameters = self.db_param.get_parameters(set_id)
-        # self.parameters._update_inplace(parameters)
+        self.parameters._update_inplace(parameters)
         return parameters
 
-    def _load_model_data(self, fname, id=None):
+    def get_model_structure(self, fname, id=None):
         """Method to load the data model from a file or database.
 
         Returns
@@ -109,6 +109,18 @@ class Polder:
             df = self.data.loc[self.data.loc[:, "EAG"] == id]
             subpolder = SubPolder(id=id, polder=self, data=df)
             self.subpolders[id] = subpolder
+
+    def get_series_list(self):
+        """Method to obtain a list of measurement point id's to retrieve from
+        the Fews server.
+
+        Returns
+        -------
+        series: list
+            List of time series that are available for this GAF.
+
+        """
+        pass
 
     def load_series(self):
         """Method to import the time series in both the Polder object and
