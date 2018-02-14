@@ -28,6 +28,5 @@ def read_xml(filepath_or_buffer):
 
 
 def to_xml(data, fname):
-    #with open(fname, "wb"):
+    # with open(fname, "wb"):
     raise NotImplementedError
-

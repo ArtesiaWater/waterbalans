@@ -32,12 +32,20 @@ class BucketBase(ABC):
         self.series = pd.DataFrame()
         # self.load_series()
 
-        self.storage = pd.Series()
-        self.fluxes = pd.DataFrame()
-
         self.parameters = pd.DataFrame(columns=["name", "initial", "optimal"])
 
         self.area = area  # area in square meters
+
+        self.initialize()
+
+    def initialize(self):
+        """Method to initialize a Bucket with a clean DataFrame for the
+        fluxes and storage time series. This method is called by the init
+        and calculate_wb methods.
+
+        """
+        self.storage = pd.Series()
+        self.fluxes = pd.DataFrame()
 
     def load_series(self):
         series = dict()
@@ -66,15 +74,18 @@ class BucketBase(ABC):
 class Verhard(BucketBase):
     def __init__(self, polder, data, area=0.0):
         BucketBase.__init__(self, polder, data, area)
-
+        self.name = "Verhard"
         self.series = pd.DataFrame(columns=["p", "e", "s"])
-        self.fluxes = pd.DataFrame(columns=["q_no", "q_ui", "q_s", "q_oa"])
-        self.storage = pd.DataFrame(columns=["boven", "onder"])
-
         self.parameters = pd.DataFrame(index=["v_eq", "v_max1", "v_max2",
                                               "fmin", "fmax", "i_fac", "u_fac",
                                               "n1", "n2"],
                                        columns=["name", "initial", "optimal"])
+        self.initialize()
+
+    def initialize(self):
+        self.fluxes = pd.DataFrame(columns=["q_no", "q_ui", "q_s", "q_oa"],
+                                   dtype=float)
+        self.storage = pd.DataFrame(columns=["Upper_Storage", "Lower_Storage"])
 
     def calculate_wb(self, parameters=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
@@ -88,10 +99,12 @@ class Verhard(BucketBase):
         -------
 
         """
+        self.initialize()
 
         if parameters is None:
-            v_eq, v_max1, v_max2, fmin, fmax, i_fac, u_fac, n1, n2 \
-                = self.parameters.loc[:, "optimal"]
+            parameters = self.parameters.loc[:, "optimal"]
+
+        v_eq, v_max1, v_max2, fmin, fmax, i_fac, u_fac, n1, n2 = parameters
 
         v1 = 0.0 * n1
         v2 = 0.5 * n2
@@ -116,13 +129,15 @@ class Verhard(BucketBase):
 class Onverhard(BucketBase):
     def __init__(self, polder, data, area=0.0):
         BucketBase.__init__(self, polder, data, area)
-
-        self.series = pd.DataFrame(columns=["p", "e", "s"])
-        self.fluxes = pd.DataFrame(columns=["q_no", "q_ui", "q_s", "q_oa"])
-
+        self.name = "Onverhard"
         self.parameters = pd.DataFrame(index=["v_eq", "v_max", "fmin", "fmax",
                                               "i_fac", "u_fac", "n"],
                                        columns=["name", "initial", "optimal"])
+        self.initialize()
+
+    def initialize(self):
+        self.series = pd.DataFrame(columns=["p", "e", "s"])
+        self.fluxes = pd.DataFrame(columns=["q_no", "q_ui", "q_s", "q_oa"])
 
     def calculate_wb(self, parameters=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
@@ -136,10 +151,12 @@ class Onverhard(BucketBase):
         -------
 
         """
+        self.initialize()
 
         if parameters is None:
-            v_eq, v_max, fmin, fmax, i_fac, u_fac, n = self.parameters.loc[:,
-                                                       "optimal"]
+            parameters = self.parameters.loc[:, "optimal"]
+
+        v_eq, v_max, fmin, fmax, i_fac, u_fac, n = parameters
 
         v = 0.2 * n
         v_max = v_max * n
@@ -157,17 +174,21 @@ class Onverhard(BucketBase):
 
 class Drain(BucketBase):
     def __init__(self, polder, data, area=0.0):
-        BucketBase.__init__(polder, data, area)
+        BucketBase.__init__(self, polder, data, area)
+        self.name = "Drain"
         self.series = pd.DataFrame(columns=["p", "e", "s"], dtype=float)
-        self.fluxes = pd.DataFrame(columns=["q_no", "q_ui", "q_s", "q_oa",
-                                            "q_dr"], dtype=float)
-        self.storage = pd.DataFrame(columns=["boven", "onder"])
-
         self.parameters = pd.DataFrame(index=["v_eq", "v_max1", "v_max2",
                                               "fmin", "fmax", "i_fac",
                                               "u_fac1", "u_fac2",
                                               "n1", "n2"],
                                        columns=["name", "initial", "optimal"])
+
+        self.initialize()
+
+    def initialize(self):
+        self.fluxes = pd.DataFrame(columns=["q_no", "q_ui", "q_s", "q_oa",
+                                            "q_dr"], dtype=float)
+        self.storage = pd.DataFrame(columns=["Upper_Storage", "Lower_Storage"])
 
     @jit
     def calculate_wb(self, parameters=None, dt=1.0):
@@ -182,10 +203,12 @@ class Drain(BucketBase):
         -------
 
         """
+        self.initialize()
 
         if parameters is None:
-            v_eq, v_max1, v_max2, fmin, fmax, i_fac, u_fac1, u_fac2, n1, n2 \
-                = self.parameters.loc[:, "optimal"]
+            parameters = self.parameters.loc[:, "optimal"]
+
+        v_eq, v_max1, v_max2, fmin, fmax, i_fac, u_fac1, u_fac2, n1, n2 = parameters
 
         v1 = 0.35 * n1
         v2 = 0.15 * n2
@@ -201,9 +224,6 @@ class Drain(BucketBase):
             v1, q_oa = vol_q_oa(v1, 0.0, q_no, q_boven, v_max1, dt)
             v2, q_dr = vol_q_oa(v2, q_s, -q_boven, q_ui, v_max2, dt)
             self.storage.loc[t] = v1, v2
-            # self.fluxes.loc[
-            #     t, ["q_no", "q_ui", "q_s", "q_oa", "q_dr"]] = q_no, q_ui, \
-            #                                                   q_s, q_oa, q_dr
             self.fluxes.loc[t, ["q_no"]] = q_no
             self.fluxes.loc[t, ["q_ui"]] = q_ui
             self.fluxes.loc[t, ["q_s", ]] = q_s
@@ -214,31 +234,71 @@ class Drain(BucketBase):
 class Water(BucketBase):
     def __init__(self, polder, data, area=0.0):
         BucketBase.__init__(self, polder, data, area)
+
+        self.name = "Water"
         self.series = pd.DataFrame(columns=["p", "e", "s"], dtype=float)
+        self.parameters = pd.DataFrame(
+            index=["h_eq", "h_min", "h_max", "q_max"],
+            columns=["name", "initial", "optimal"])
 
-        self.fluxes = pd.DataFrame(columns=["q_no", "q_ui", "q_s", "q_oa",
-                                            "q_dr"], dtype=float)
-        self.storage = pd.DataFrame(columns=["boven", "onder"])
+        self.initialize()
 
-        self.parameters = pd.DataFrame(index=["v_eq", "v_max1", "v_max2",
-                                              "fmin", "fmax", "i_fac",
-                                              "u_fac1", "u_fac2",
-                                              "n1", "n2"],
-                                       columns=["name", "initial", "optimal"])
+    def initialize(self):
+        self.fluxes = pd.DataFrame(
+            columns=["q_p", "q_e", "q_s", "q_w", "q_in", "q_out"], dtype=float)
+        self.storage = pd.Series(name="Storage")
 
-    def calculate_wb(self, parameters, dt=1.0):
+    def calculate_wb(self, parameters=None, dt=1.0):
+        self.initialize()
+
+        if parameters is None:
+            parameters = self.parameters.loc[:, "optimal"]
+
+        h_eq, h_min, h_max, q_max = parameters
+
         # 1. Add incoming fluxes from other buckets
-        for bucket in self.polder.values():
-            fluxes = bucket.fluxes.loc[:, ["q_ui", "q_oa"]]
-            self.fluxes = self.fluxes.add(fluxes)  # Add values element wise?
+        for bucket in self.polder.buckets.values():
+            if bucket.name == "Water":
+                pass
+            else:
+                names = ["q_ui", "q_oa", "q_dr"]
+                names = [name for name in names if
+                         name in bucket.fluxes.columns]
+                fluxes = bucket.fluxes.loc[:, names] * -bucket.area
+                fluxes.columns = [name + "_" + bucket.name for name in names]
+                self.fluxes = self.fluxes.join(fluxes, how="outer")
 
         # 2. calculate water bucket specific fluxes
-        p, e, s = self.series.loc[:, ["p", "e", "s"]]
-        e = to_penman(e)
-        self.fluxes.loc[:, "q_no"] = p - e
-        self.fluxes.loc[:, "q_s"] = calc_q_s(s, dt)
+        self.fluxes.loc[:, "q_p"] = self.series.loc[:, "p"] * self.area
+        self.fluxes.loc[:, "q_e"] = -to_penman(
+            self.series.loc[:, "e"]) * self.area
+        self.fluxes.loc[:, "q_s"] = calc_q_s(self.series.loc[:, "s"],
+                                             dt) * self.area
+        self.fluxes.loc[:, "q_w"] = -self.series.loc[:, "w"] * self.area
 
-        # for t, s in self.series.loc[:, ["s"]].iterrows():
+        h = h_eq * self.area
+        h_min = h_min * self.area
+        h_max = h_max * self.area
+
+        # 3. Calculate the fluxes coming in and going out.
+        for t, flux in self.fluxes.iterrows():
+            q_tot = flux.sum()
+
+            # Calculate the outgoing flux
+            if h + q_tot > h_max:
+                q_out = min(q_max, h_max - h - q_tot)
+                q_in = 0.0
+            elif h + q_tot < h_min:
+                q_in = h_min - h - q_tot
+                q_out = 0.0
+            else:
+                q_out = 0.0
+                q_in = 0.0
+
+            h = h + q_in + q_out + q_tot
+            self.fluxes.loc[t, "q_in"] = q_in
+            self.fluxes.loc[t, "q_out"] = q_out
+            self.storage.loc[t] = h
 
 
 @jit
@@ -274,7 +334,6 @@ def calc_q_ui(v, i_fac, u_fac, v_eq, dt=1.0):
     else:
         q = (v * -u_fac) / dt
     return q
-
 
 
 @jit

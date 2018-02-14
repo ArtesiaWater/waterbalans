@@ -10,21 +10,20 @@ import pandas as pd
 from waterbalans.io import load_model, read_xml
 from .access import AccessServer
 from .fews import FewsServer
-from .subpolder import SubPolder
+from .eag import Eag
 from .timeseries import TimeSeries
 
 
-class Polder:
-    __doc__ = """The Polder class is the main object for a waterbalance.
+class Gaf:
+    __doc__ = """The Gaf class is the main object for a waterbalance.
     
     """
-
     def __init__(self, id=None, db_model=None, db_series=None, db_param=None):
         self.id = id
 
         # Store the database source types
         self.db_model = db_model  # model database
-        self.db_series = self._connect_fews_db(args=db_series)
+        #self.db_series = self._connect_fews_db(args=db_series)
         self.db_param = self._connect_param_db(args=db_param)
 
         # Placeholder
@@ -107,7 +106,7 @@ class Polder:
         """
         for id in self.data.loc[:, "EAG"].unique():
             df = self.data.loc[self.data.loc[:, "EAG"] == id]
-            subpolder = SubPolder(id=id, polder=self, data=df)
+            subpolder = Eag(id=id, polder=self, data=df)
             self.subpolders[id] = subpolder
 
     def get_series_list(self):
@@ -123,7 +122,7 @@ class Polder:
         pass
 
     def load_series(self):
-        """Method to import the time series in both the Polder object and
+        """Method to import the time series in both the Gaf object and
         the subpolder Objects.
 
         """
@@ -142,7 +141,7 @@ class Polder:
         return series
 
     def calculate_wb(self):
-        """Method to calculate the waterbalance for the Polder.
+        """Method to calculate the waterbalance for the Gaf.
 
         Returns
         -------

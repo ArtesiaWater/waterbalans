@@ -7,9 +7,7 @@ is established. This prevents the creation of unlimited server connections.
 """
 import pandas as pd
 from zeep import Client
-from io import BytesIO
 
-from waterbalans.io import read_xml
 from waterbalans.utils import Singleton
 
 WSDL = "http://localhost:8081/FewsPiService/fewspiservice?wsdl"

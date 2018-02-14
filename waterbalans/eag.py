@@ -8,7 +8,8 @@ from .buckets import *
 from collections import OrderedDict
 
 
-class SubPolder:
+class Eag:
+
     def __init__(self, id, polder, data):
         self.data = data  # Pandas dataframe with the model table
         self.id = id
