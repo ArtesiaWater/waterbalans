@@ -28,10 +28,13 @@ class Gaf:
 
         # Placeholder
         self.data = pd.DataFrame()
-        self.subpolders = OrderedDict()
+        self.eags = OrderedDict()
         self.parameters = pd.DataFrame(columns=["pinit", "popt", "pmin",
                                                 "pmax", "pvary"])
         self.series = OrderedDict()
+
+    def add_eag(self, eag):
+        self.eags[eag.name] = eag
 
     def _connect_fews_db(self, args):
         """Method tpo connect to the the FEWS database.
@@ -106,8 +109,8 @@ class Gaf:
         """
         for id in self.data.loc[:, "EAG"].unique():
             df = self.data.loc[self.data.loc[:, "EAG"] == id]
-            subpolder = Eag(id=id, polder=self, data=df)
-            self.subpolders[id] = subpolder
+            eag = Eag(id=id, gaf=self, data=df, name=id)
+            self.eags[id] = eag
 
     def get_series_list(self):
         """Method to obtain a list of measurement point id's to retrieve from
@@ -129,8 +132,8 @@ class Gaf:
         self.series["prec"] = TimeSeries(pd.Series(), self)
         self.series["evap"] = TimeSeries(pd.Series(), self)
 
-        for subpolder in self.subpolders.values():
-            subpolder.load_series()
+        for subpolder in self.eags.values():
+            subpolder.load_series_from_eag()
 
     def get_series(self, id, **kwargs):
         kwargs.update(locationIds=id)
@@ -140,16 +143,19 @@ class Gaf:
 
         return series
 
-    def calculate_wb(self):
+    def simulate(self):
         """Method to calculate the waterbalance for the Gaf.
 
         Returns
         -------
 
         """
-        pass
+        for eag in self.eags.values():
+            print("Simulating the waterbalance for EAG: %s" %eag.name)
+            eag.simulate()
 
-    def validate_wb(self):
+    def validate(self):
         """Method to validate the water balance based on the total input,
         output and the change in storage of the model for each time step.
         """
+        pass

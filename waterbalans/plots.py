@@ -19,3 +19,16 @@ class Plot():
         """
 
         raise NotImplementedError
+
+
+class Eag_Plots:
+    def __init__(self, eag):
+        self.eag = eag
+
+    def bucket(self, name, freq="M"):
+        bucket = self.eag.buckets[name]
+        plotdata = bucket.fluxes.astype(float).resample(freq).mean()
+        ax = plotdata.plot.bar(stacked=True, width=1)
+        xticks = ax.axes.get_xticks()
+        ax.set_xticks([i for i in range(0, 244, 12)])
+        ax.set_xticklabels([i for i in range(1996, 2017, 1)])
