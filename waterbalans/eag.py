@@ -27,8 +27,9 @@ class Eag:
         else:
             self.series = series
 
-        self.parameters = pd.DataFrame(columns=["pinit", "popt", "pmin",
-                                                "pmax", "pvary"])
+        self.parameters = pd.DataFrame(columns=["bucket", "pname", "pinit",
+                                                "popt", "pmin", "pmax",
+                                                "pvary"])
 
         # Add functionality from other modules
         self.plot = Eag_Plots(self)
@@ -46,26 +47,42 @@ class Eag:
         """
         self.buckets[bucket.name] = bucket
 
-    def _load_buckets(self, data):
-        """Method to load the buckets for the subpolder.
+    def add_water(self, water, replace=False):
+        """
+
+        Parameters
+        ----------
+        water: waterbalans WaterBase instance
+
+        replace: bool
+            force replace of the water object.
 
         """
-        for kind in data.loc[:, "TYPE_WBAL"].values:
-            df = self.data.loc[self.data.loc[:, "TYPE_WBAL"] == kind]
-            bucket = Bucket(kind=kind, polder=self, data=df)
-            self.buckets[kind] = bucket
+        self.water = water
 
     def load_series(self):
         self.series["prec"] = self.gaf.series["prec"]
         self.series["evap"] = self.gaf.series["prec"]
 
     def get_init_parameters(self):
-        pass
+        """Method to obtain the parameters from the Buckets
+
+        Returns
+        -------
+
+        """
+        parameters = self.parameters
+        for name, bucket in self.buckets.items():
+            p = bucket.parameters
+            p.loc[:, "bucket"] = name
+            parameters = parameters.append(p, ignore_index=True)
+
+        return parameters
 
     def get_parameters(self):
         pass
 
-    def simulate(self, tmin=None, tmax=None):
+    def simulate(self, parameters=None, tmin=None, tmax=None):
         """Method to validate the water balance based on the total input,
         output and the change in storage of the model for each time step.
 
@@ -73,6 +90,11 @@ class Eag:
         -------
 
         """
-        for bucket in self.buckets.values():
-            print("Simulating the waterbalance for bucket: %s" % bucket.name)
-            bucket.simulate(tmin=tmin, tmax=tmax)
+        if parameters is None:
+            parameters = self.get_init_parameters()
+
+        for name, bucket in self.buckets.items():
+            p = parameters.loc[parameters.bucket == name, "popt"]
+
+            print("Simulating the waterbalance for bucket: %s" % name)
+            bucket.simulate(parameters=p.values, tmin=tmin, tmax=tmax)

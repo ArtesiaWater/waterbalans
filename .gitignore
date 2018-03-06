@@ -96,3 +96,10 @@ ENV/
 .idea/workspace.xml
 .idea/workspace.xml
 *.iml
+.idea/*iml
+.idea/misc.xml
+.idea/waterbalans.iml
+.idea/workspace.xml
+.idea/workspace.xml
+.idea/waterbalans.iml
+.idea/misc.xml
