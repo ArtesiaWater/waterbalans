@@ -45,7 +45,7 @@ class Eag:
             Replace a bucket if a bucket with this name already exists
 
         """
-        self.buckets[bucket.name] = bucket
+        self.buckets[bucket.id] = bucket
 
     def add_water(self, water, replace=False):
         """
@@ -74,7 +74,7 @@ class Eag:
         parameters = self.parameters
         for name, bucket in self.buckets.items():
             p = bucket.parameters
-            p.loc[:, "bucket"] = name
+            p.loc[:, "BakjeID"] = name
             parameters = parameters.append(p, ignore_index=True)
 
         return parameters
@@ -93,8 +93,13 @@ class Eag:
         if parameters is None:
             parameters = self.get_init_parameters()
 
-        for name, bucket in self.buckets.items():
-            p = parameters.loc[parameters.bucket == name, "popt"]
+        for id, bucket in self.buckets.items():
+            p = parameters.loc[parameters.loc[:, "BakjeID"] == id,
+                               "DefaultWaarde"]
 
-            print("Simulating the waterbalance for bucket: %s" % name)
+            print("Simulating the waterbalance for bucket: %s" % id)
             bucket.simulate(parameters=p.values, tmin=tmin, tmax=tmax)
+
+        p = parameters.loc[parameters.loc[:, "BakjeID"] == self.water.id,
+                           "DefaultWaarde"]
+        self.water.simulate(parameters=p.values, tmin=tmin, tmax=tmax)

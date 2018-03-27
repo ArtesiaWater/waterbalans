@@ -4,9 +4,9 @@ access database.
 """
 import pyodbc
 
-from waterbalans.utils import Singleton
 from pandas import DataFrame
-from numpy import nan
+
+from waterbalans.utils import Singleton
 
 
 class AccessServer(metaclass=Singleton):

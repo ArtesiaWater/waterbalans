@@ -1,14 +1,16 @@
-from .utils import makkink_to_penman
 from abc import ABC
 
 import pandas as pd
+
+from .utils import makkink_to_penman
+
 
 class WaterBase(ABC):
     __doc__ = """Base class from which all bucket classes inherit.
 
     """
 
-    def __init__(self, eag=None, series=None, area=0.0):
+    def __init__(self, id=None, eag=None, series=None, area=0.0):
         self.eag = eag  # Reference to mother object.
         self.series = pd.DataFrame()
 
@@ -49,7 +51,7 @@ class WaterBase(ABC):
 
         for name in ["seepage"]:
             pass
-            #series[name] = load_series(name)
+            # series[name] = load_series(name)
 
         return series
 
@@ -68,8 +70,11 @@ class WaterBase(ABC):
 
 
 class Water(WaterBase):
-    def __init__(self, eag, series, area=0.0):
-        WaterBase.__init__(self, eag, series, area)
+    def __init__(self, id, eag, series, area=0.0):
+        WaterBase.__init__(self, id, eag, series, area)
+        self.id = id
+        self.eag = eag
+
         self.name = "Water"
 
         self.parameters = pd.DataFrame(index=["h_eq", "h_min", "h_max",
@@ -84,30 +89,28 @@ class Water(WaterBase):
         if parameters is None:
             parameters = self.parameters.loc[:, "popt"]
 
-        h_eq, h_min, h_max, h_bottom, q_in_max, q_out_max = parameters
+        hTarget, h_min, hMax, h_bottom, QInMax, QOutMax = \
+            parameters.loc[['hTarget', 'h_min', 'hMax', 'h_bottom', 'QInMax',
+                            'QOutMax']]
 
         # 1. Add incoming fluxes from other buckets
         for bucket in self.eag.buckets.values():
-            if bucket.name == "Water":
-                pass
-            else:
-                names = ["q_ui", "q_oa", "q_dr"]
-                names = [name for name in names if
-                         name in bucket.fluxes.columns]
-                fluxes = bucket.fluxes.loc[:, names] * -bucket.area
-                fluxes.columns = [name + "_" + bucket.name for name in names]
-                self.fluxes = self.fluxes.join(fluxes, how="outer")
+            names = ["q_ui", "q_oa", "q_dr"]
+            names = [name for name in names if name in bucket.fluxes.columns]
+            fluxes = bucket.fluxes.loc[:, names] * -bucket.area
+            fluxes.columns = [name + "_" + str(bucket.id) for name in names]
+            self.fluxes = self.fluxes.join(fluxes, how="outer")
 
         # 2. calculate water bucket specific fluxes
         series = self.series.multiply(self.area)
-       # TODO add series to fluxes without knowing the amount of series up front
+        # TODO add series to fluxes without knowing the amount of series up front
         series.loc[:, "e"] = -makkink_to_penman(series.loc[:, "e"])
         self.fluxes = self.fluxes.join(series, how="outer")
 
         h_min = h_min * self.area
-        h_max = h_max * self.area
+        hMax = hMax * self.area
 
-        h = [h_eq * self.area]
+        h = [hTarget * self.area]
         q_in = []
         q_out = []
 
@@ -116,8 +119,8 @@ class Water(WaterBase):
         # 3. Calculate the fluxes coming in and going out.
         for q_tot in q_totals.values:
             # Calculate the outgoing flux
-            if h[-1] + q_tot > h_max:
-                q_out.append(min(q_out_max, h_max - h[-1] - q_tot))
+            if h[-1] + q_tot > hMax:
+                q_out.append(min(QOutMax, hMax - h[-1] - q_tot))
                 q_in.append(0.0)
             elif h[-1] + q_tot < h_min:
                 q_in.append(h_min - h[-1] - q_tot)
@@ -130,4 +133,3 @@ class Water(WaterBase):
 
         self.storage = pd.Series(data=h[1:], index=self.fluxes.index)
         self.fluxes = self.fluxes.assign(q_in=q_in, q_out=q_out)
-

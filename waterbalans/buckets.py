@@ -23,7 +23,8 @@ class BucketBase(ABC):
     
     """
 
-    def __init__(self, eag=None, series=None, area=0.0):
+    def __init__(self, id=None, eag=None, series=None, area=0.0):
+        self.id = id
         self.eag = eag  # Reference to mother object.
         self.series = pd.DataFrame()
 
@@ -83,8 +84,8 @@ class BucketBase(ABC):
 
 
 class Verhard(BucketBase):
-    def __init__(self, eag, series, area=0.0):
-        BucketBase.__init__(self, eag, series, area)
+    def __init__(self, id, eag, series, area=0.0):
+        BucketBase.__init__(self, id, eag, series, area)
         self.name = "Verhard"
 
         self.parameters = pd.DataFrame(index=["v_eq", "v_max1", "v_max2",
@@ -112,14 +113,18 @@ class Verhard(BucketBase):
         if parameters is None:
             parameters = self.parameters.loc[:, "popt"]
 
-        v_eq, v_max1, v_max2, v_init1, v_init2, fmin, fmax, i_fac, u_fac, n1, \
-        n2 = parameters
+        VMax_1, VMax_2, VInit_1, VInit_2, EFacMin, EFacMax, RFacIn, RFacOut, \
+        por_1, por_2 = parameters.loc[
+            ['VMax_1', 'VMax_2', 'VInit_1', 'VInit_2', 'EFacMin', 'EFacMax',
+             'RFacIn', 'RFacOut', 'por_1', 'por_2']]
 
-        v_max1 = v_max1 * n1
-        v_max2 = v_max2 * n2
+        v_eq = 0.0
 
-        v1 = [v_init1 * n1]
-        v2 = [v_init2 * n2]
+        VMax_1 = VMax_1 * por_1
+        VMax_2 = VMax_2 * por_2
+
+        v1 = [VInit_1 * por_1]
+        v2 = [VInit_2 * por_2]
         q_no = []
         q_ui = []
         q_s = []
@@ -127,16 +132,14 @@ class Verhard(BucketBase):
 
         for t, pes in self.series.iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, v1[-1], v_eq, fmin, fmax, dt))
-            q_ui.append(calc_q_ui(v2[-1], i_fac, u_fac, v_eq, dt))
+            q_no.append(calc_q_no(p, e, v1[-1], v_eq, EFacMin, EFacMax, dt))
+            q_ui.append(calc_q_ui(v2[-1], RFacIn, RFacOut, v_eq, dt))
             q_s.append(s)
-            v, q = vol_q_oa(v1[-1], 0.0, q_no[-1], 0.0, v_max1, dt)
+            v, q = vol_q_oa(v1[-1], 0.0, q_no[-1], 0.0, VMax_1, dt)
             # The completely random choice to create a waterbalance rest term?
-            if v < 0.0:
-                v = 0.0
-            v1.append(v)
+            v1.append(max(0.0, v))
             q_oa.append(q)
-            v, q_del = vol_q_oa(v2[-1], q_s[-1], 0.0, q_ui[-1], v_max2, dt)
+            v, q_del = vol_q_oa(v2[-1], q_s[-1], 0.0, q_ui[-1], VMax_2, dt)
             v2.append(v)
 
         self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s,
@@ -147,8 +150,8 @@ class Verhard(BucketBase):
 
 
 class Onverhard(BucketBase):
-    def __init__(self, eag, series, area=0.0):
-        BucketBase.__init__(self, eag, series, area)
+    def __init__(self, id, eag, series, area=0.0):
+        BucketBase.__init__(self, id, eag, series, area)
         self.name = "Onverhard"
 
         self.parameters = pd.DataFrame(index=["v_eq", "v_max", "v_init",
@@ -175,11 +178,15 @@ class Onverhard(BucketBase):
         if parameters is None:
             parameters = self.parameters.loc[:, "popt"]
 
-        v_eq, v_max, v_init, fmin, fmax, i_fac, u_fac, n = parameters
+        VMax, VInit, EFacMin, EFacMin, RFacIn, RFacOut, por = parameters.loc[
+            ['VMax', 'VInit', 'EFacMin', 'EFacMin', 'RFacIn', 'RFacOut',
+             'por']]
 
-        v_max = v_max * n
+        VMax = VMax * por
 
-        v = [v_init * n]
+        v_eq = 0.0
+
+        v = [VInit * por]
         q_no = []
         q_ui = []
         q_s = []
@@ -187,10 +194,10 @@ class Onverhard(BucketBase):
 
         for t, pes in self.series.iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, v[-1], v_eq, fmin, fmax, dt))
-            q_ui.append(calc_q_ui(v[-1], i_fac, u_fac, v_eq, dt))
+            q_no.append(calc_q_no(p, e, v[-1], v_eq, EFacMin, EFacMin, dt))
+            q_ui.append(calc_q_ui(v[-1], RFacIn, RFacOut, v_eq, dt))
             q_s.append(s)
-            v1, q = vol_q_oa(v[-1], q_s[-1], q_no[-1], q_ui[-1], v_max, dt)
+            v1, q = vol_q_oa(v[-1], q_s[-1], q_no[-1], q_ui[-1], VMax, dt)
             v.append(v1)
             q_oa.append(q)
 
@@ -200,8 +207,8 @@ class Onverhard(BucketBase):
 
 
 class Drain(BucketBase):
-    def __init__(self, eag, series, area=0.0):
-        BucketBase.__init__(self, eag, series, area)
+    def __init__(self, id, eag, series, area=0.0):
+        BucketBase.__init__(self, id, eag, series, area)
         self.name = "Drain"
 
         self.parameters = pd.DataFrame(index=["v_eq", "v_max1", "v_max2",
@@ -229,14 +236,19 @@ class Drain(BucketBase):
         if parameters is None:
             parameters = self.parameters.loc[:, "popt"]
 
-        v_eq, v_max1, v_max2, v_init1, v_init2, fmin, fmax, i_fac, u_fac1, \
-        u_fac2, n1, n2 = parameters
+        VMax_1, VMax_2, VMax_1, VMax_2, EFacMin, EFacMax, RFacIn_1, \
+        RFacOut_1, RFacOut_2, por_1, por_2 = \
+            parameters.loc[
+                ['VMax_1', 'VMax_2', 'VMax_1', 'VMax_2', 'EFacMin', 'EFacMax',
+                 'RFacIn_1', 'RFacOut_1', 'RFacOut_2', 'por_1', 'por_2']]
 
-        v_max1 = v_max1 * n1
-        v_max2 = v_max2 * n2
+        v_eq = 0.0
 
-        v1 = [v_init1 * n1]
-        v2 = [v_init2 * n2]
+        VMax_1 = VMax_1 * por_1
+        VMax_2 = VMax_2 * por_2
+
+        v1 = [VMax_1 * por_1]
+        v2 = [VMax_2 * por_2]
         q_no = []
         q_ui = []
         q_s = []
@@ -245,14 +257,14 @@ class Drain(BucketBase):
 
         for t, pes in self.series.iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, v1[-1], v_eq, fmin, fmax, dt))
-            q_boven = calc_q_ui(v1[-1], i_fac, u_fac1, v_eq, dt)
-            q_ui.append(calc_q_ui(v2[-1], i_fac, u_fac2, v_eq, dt))
+            q_no.append(calc_q_no(p, e, v1[-1], v_eq, EFacMin, EFacMax, dt))
+            q_boven = calc_q_ui(v1[-1], RFacIn_1, RFacOut_2, v_eq, dt)
+            q_ui.append(calc_q_ui(v2[-1], RFacIn_1, RFacOut_2, v_eq, dt))
             q_s.append(s)
-            v, q = vol_q_oa(v1[-1], 0.0, q_no[-1], q_boven, v_max1, dt)
+            v, q = vol_q_oa(v1[-1], 0.0, q_no[-1], q_boven, VMax_1, dt)
             v1.append(v)
             q_oa.append(q)
-            v, q = vol_q_oa(v2[-1], q_s[-1], -q_boven, q_ui[-1], v_max2, dt)
+            v, q = vol_q_oa(v2[-1], q_s[-1], -q_boven, q_ui[-1], VMax_2, dt)
             v2.append(v)
             q_dr.append(q)
 
