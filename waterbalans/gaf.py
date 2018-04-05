@@ -9,28 +9,37 @@ import pandas as pd
 
 from waterbalans.io import load_model, read_xml
 from .access import AccessServer
-from .fews import FewsServer
 from .eag import Eag
+from .fews import FewsServer
 from .timeseries import TimeSeries
 
 
 class Gaf:
-    __doc__ = """The Gaf class is the main object for a waterbalance.
-    
+    """The Gaf class is the main object for a waterbalance.
+
+    Parameters
+    ----------
+    id: int
+        Integer id for the Gaf.
+
+
     """
+
     def __init__(self, id=None, db_model=None, db_series=None, db_param=None):
         self.id = id
 
         # Store the database source types
         self.db_model = db_model  # model database
-        #self.db_series = self._connect_fews_db(args=db_series)
+        # self.db_series = self._connect_fews_db(args=db_series)
         self.db_param = self._connect_param_db(args=db_param)
 
         # Placeholder
         self.data = pd.DataFrame()
         self.eags = OrderedDict()
-        self.parameters = pd.DataFrame(columns=["pinit", "popt", "pmin",
+        self.parameters = pd.DataFrame(columns=["eag", "bucket", "pname",
+                                                "pinit", "popt", "pmin",
                                                 "pmax", "pvary"])
+
         self.series = OrderedDict()
 
     def add_eag(self, eag):
@@ -151,7 +160,7 @@ class Gaf:
 
         """
         for eag in self.eags.values():
-            print("Simulating the waterbalance for EAG: %s" %eag.name)
+            print("Simulating the waterbalance for EAG: %s" % eag.name)
             eag.simulate()
 
     def validate(self):

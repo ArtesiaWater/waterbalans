@@ -65,7 +65,7 @@ class BucketBase(ABC):
 
         for name in ["seepage"]:
             pass
-            # series[name] = load_series(name)
+            # series[name] = load_series_from_gaf(name)
 
         return series
 
@@ -88,20 +88,18 @@ class Verhard(BucketBase):
         BucketBase.__init__(self, id, eag, series, area)
         self.name = "Verhard"
 
-        self.parameters = pd.DataFrame(index=["v_eq", "v_max1", "v_max2",
-                                              "v_init1", "v_init2", "fmin",
-                                              "fmax", "i_fac", "u_fac",
-                                              "n1", "n2"],
-                                       columns=["pname", "pinit", "popt",
-                                                "pmin", "pmax", "pvary"])
+        self.parameters = pd.DataFrame(
+            index=['VMax_1', 'VMax_2', 'VInit_1', 'VInit_2', 'EFacMin_1',
+                   'EFacMax_1', 'RFacIn_2', 'RFacOut_2', 'por_1', 'por_2'],
+            columns=["pname", "pinit", "popt", "pmin", "pmax", "pvary"])
         self.parameters.loc[:, "pname"] = self.parameters.index
 
-    def simulate(self, parameters=None, tmin=None, tmax=None, dt=1.0):
+    def simulate(self, params, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
         Parameters
         ----------
-        parameters
+        params
         dt
 
         Returns
@@ -110,13 +108,9 @@ class Verhard(BucketBase):
         """
         self.initialize(tmin=tmin, tmax=tmax)
 
-        if parameters is None:
-            parameters = self.parameters.loc[:, "popt"]
-
-        VMax_1, VMax_2, VInit_1, VInit_2, EFacMin, EFacMax, RFacIn, RFacOut, \
-        por_1, por_2 = parameters.loc[
-            ['VMax_1', 'VMax_2', 'VInit_1', 'VInit_2', 'EFacMin', 'EFacMax',
-             'RFacIn', 'RFacOut', 'por_1', 'por_2']]
+        # Get parameters
+        VMax_1, VMax_2, VInit_1, VInit_2, EFacMin_1, EFacMax_1, RFacIn_2, \
+        RFacOut_2, por_1, por_2 = params.loc[self.parameters.index]
 
         v_eq = 0.0
 
@@ -132,8 +126,9 @@ class Verhard(BucketBase):
 
         for t, pes in self.series.iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, v1[-1], v_eq, EFacMin, EFacMax, dt))
-            q_ui.append(calc_q_ui(v2[-1], RFacIn, RFacOut, v_eq, dt))
+            q_no.append(
+                calc_q_no(p, e, v1[-1], v_eq, EFacMin_1, EFacMax_1, dt))
+            q_ui.append(calc_q_ui(v2[-1], RFacIn_2, RFacOut_2, v_eq, dt))
             q_s.append(s)
             v, q = vol_q_oa(v1[-1], 0.0, q_no[-1], 0.0, VMax_1, dt)
             # The completely random choice to create a waterbalance rest term?
@@ -154,19 +149,18 @@ class Onverhard(BucketBase):
         BucketBase.__init__(self, id, eag, series, area)
         self.name = "Onverhard"
 
-        self.parameters = pd.DataFrame(index=["v_eq", "v_max", "v_init",
-                                              "fmin", "fmax", "i_fac",
-                                              "u_fac", "n"],
-                                       columns=["pname", "pinit", "popt",
-                                                "pmin", "pmax", "pvary"])
+        self.parameters = pd.DataFrame(
+            index=['VMax_1', 'VInit_1', 'EFacMin_1', 'EFacMax_1', 'RFacIn_1',
+                   'RFacOut_1', 'por_1'],
+            columns=["pname", "pinit", "popt", "pmin", "pmax", "pvary"])
         self.parameters.loc[:, "pname"] = self.parameters.index
 
-    def simulate(self, parameters=None, tmin=None, tmax=None, dt=1.0):
+    def simulate(self, params, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
         Parameters
         ----------
-        parameters
+        params
         dt
 
         Returns
@@ -175,18 +169,15 @@ class Onverhard(BucketBase):
         """
         self.initialize(tmin=tmin, tmax=tmax)
 
-        if parameters is None:
-            parameters = self.parameters.loc[:, "popt"]
+        # Get parameters
+        VMax_1, VInit_1, EFacMin_1, EFacMax_1, RFacIn_1, RFacOut_1, por_1 = \
+            params.loc[self.parameters.index]
 
-        VMax, VInit, EFacMin, EFacMin, RFacIn, RFacOut, por = parameters.loc[
-            ['VMax', 'VInit', 'EFacMin', 'EFacMin', 'RFacIn', 'RFacOut',
-             'por']]
-
-        VMax = VMax * por
+        VMax_1 = VMax_1 * por_1
 
         v_eq = 0.0
 
-        v = [VInit * por]
+        v = [VInit_1 * por_1]
         q_no = []
         q_ui = []
         q_s = []
@@ -194,10 +185,10 @@ class Onverhard(BucketBase):
 
         for t, pes in self.series.iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, v[-1], v_eq, EFacMin, EFacMin, dt))
-            q_ui.append(calc_q_ui(v[-1], RFacIn, RFacOut, v_eq, dt))
+            q_no.append(calc_q_no(p, e, v[-1], v_eq, EFacMin_1, EFacMax_1, dt))
+            q_ui.append(calc_q_ui(v[-1], RFacIn_1, RFacOut_1, v_eq, dt))
             q_s.append(s)
-            v1, q = vol_q_oa(v[-1], q_s[-1], q_no[-1], q_ui[-1], VMax, dt)
+            v1, q = vol_q_oa(v[-1], q_s[-1], q_no[-1], q_ui[-1], VMax_1, dt)
             v.append(v1)
             q_oa.append(q)
 
@@ -211,20 +202,19 @@ class Drain(BucketBase):
         BucketBase.__init__(self, id, eag, series, area)
         self.name = "Drain"
 
-        self.parameters = pd.DataFrame(index=["v_eq", "v_max1", "v_max2",
-                                              "v_init1", "v_init2",
-                                              "fmin", "fmax", "i_fac",
-                                              "u_fac1", "u_fac2", "n1", "n2"],
-                                       columns=["pname", "pinit", "popt",
-                                                "pmin", "pmax", "pvary"])
+        self.parameters = pd.DataFrame(
+            index=['VMax_1', 'VMax_2', 'VInit_1', 'VInit_2', 'EFacMin_1',
+                   'EFacMax_1', 'RFacIn_2', 'RFacOut_1', 'RFacOut_2', 'por_1',
+                   'por_2'],
+            columns=["pname", "pinit", "popt", "pmin", "pmax", "pvary"])
         self.parameters.loc[:, "pname"] = self.parameters.index
 
-    def simulate(self, parameters=None, tmin=None, tmax=None, dt=1.0):
+    def simulate(self, params, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
         Parameters
         ----------
-        parameters
+        params
         dt
 
         Returns
@@ -233,22 +223,18 @@ class Drain(BucketBase):
         """
         self.initialize(tmin=tmin, tmax=tmax)
 
-        if parameters is None:
-            parameters = self.parameters.loc[:, "popt"]
-
-        VMax_1, VMax_2, VMax_1, VMax_2, EFacMin, EFacMax, RFacIn_1, \
+        # Get parameters
+        VMax_1, VMax_2, VInit_1, VInit_2, EFacMin_1, EFacMax_1, RFacIn_2, \
         RFacOut_1, RFacOut_2, por_1, por_2 = \
-            parameters.loc[
-                ['VMax_1', 'VMax_2', 'VMax_1', 'VMax_2', 'EFacMin', 'EFacMax',
-                 'RFacIn_1', 'RFacOut_1', 'RFacOut_2', 'por_1', 'por_2']]
+            params.loc[self.parameters.index]
 
         v_eq = 0.0
 
         VMax_1 = VMax_1 * por_1
         VMax_2 = VMax_2 * por_2
 
-        v1 = [VMax_1 * por_1]
-        v2 = [VMax_2 * por_2]
+        v1 = [VInit_1 * por_1]
+        v2 = [VInit_2 * por_2]
         q_no = []
         q_ui = []
         q_s = []
@@ -257,9 +243,9 @@ class Drain(BucketBase):
 
         for t, pes in self.series.iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, v1[-1], v_eq, EFacMin, EFacMax, dt))
-            q_boven = calc_q_ui(v1[-1], RFacIn_1, RFacOut_2, v_eq, dt)
-            q_ui.append(calc_q_ui(v2[-1], RFacIn_1, RFacOut_2, v_eq, dt))
+            q_no.append(calc_q_no(p, e, v1[-1], v_eq, EFacMin_1, EFacMax_1, dt))
+            q_boven = calc_q_ui(v1[-1], RFacIn_2, RFacOut_2, v_eq, dt)
+            q_ui.append(calc_q_ui(v2[-1], RFacIn_2, RFacOut_2, v_eq, dt))
             q_s.append(s)
             v, q = vol_q_oa(v1[-1], 0.0, q_no[-1], q_boven, VMax_1, dt)
             v1.append(v)

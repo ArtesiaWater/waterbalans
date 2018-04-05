@@ -52,7 +52,7 @@ e.add_bucket(b)
 
 gaf.add_eag(e)
 params = pd.read_excel("data\parameters.xlsx", sheet_name="2501-01")
-e.simulate(parameters=params)
+e.simulate(params=params)
 
 # # Laad de parameters in voor een bepaalde gaf en model
 # configs = wb.get_model_configs(gaf_id=2501)  # Levert een lijst met id's op.

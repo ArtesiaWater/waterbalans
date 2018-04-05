@@ -51,7 +51,7 @@ class WaterBase(ABC):
 
         for name in ["seepage"]:
             pass
-            # series[name] = load_series(name)
+            # series[name] = load_series_from_gaf(name)
 
         return series
 
@@ -74,24 +74,23 @@ class Water(WaterBase):
         WaterBase.__init__(self, id, eag, series, area)
         self.id = id
         self.eag = eag
-
         self.name = "Water"
 
-        self.parameters = pd.DataFrame(index=["h_eq", "h_min", "h_max",
-                                              "q_max"],
+        self.parameters = pd.DataFrame(index=['hTarget_1', 'hMin_1',
+                                              'hMax_1', 'hBottom_1',
+                                              'QInMax_1', 'QOutMax_1'],
                                        columns=["pname", "pinit", "popt",
                                                 "pmin", "pmax", "pvary"])
         self.parameters.loc[:, "pname"] = self.parameters.index
 
-    def simulate(self, parameters=None, tmin=None, tmax=None, dt=1.0):
+    def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
 
-        if parameters is None:
-            parameters = self.parameters.loc[:, "popt"]
+        if params is None:
+            params = self.parameters.loc[:, "popt"]
 
-        hTarget, h_min, hMax, h_bottom, QInMax, QOutMax = \
-            parameters.loc[['hTarget', 'h_min', 'hMax', 'h_bottom', 'QInMax',
-                            'QOutMax']]
+        hTarget_1, hMin_1, hMax_1, hBottom_1, QInMax_1, QOutMax_1 = \
+            params.loc[self.parameters.index]
 
         # 1. Add incoming fluxes from other buckets
         for bucket in self.eag.buckets.values():
@@ -107,10 +106,10 @@ class Water(WaterBase):
         series.loc[:, "e"] = -makkink_to_penman(series.loc[:, "e"])
         self.fluxes = self.fluxes.join(series, how="outer")
 
-        h_min = h_min * self.area
-        hMax = hMax * self.area
+        hMin_1 = hMin_1 * self.area
+        hMax_1 = hMax_1 * self.area
 
-        h = [hTarget * self.area]
+        h = [hTarget_1 * self.area]
         q_in = []
         q_out = []
 
@@ -119,11 +118,11 @@ class Water(WaterBase):
         # 3. Calculate the fluxes coming in and going out.
         for q_tot in q_totals.values:
             # Calculate the outgoing flux
-            if h[-1] + q_tot > hMax:
-                q_out.append(min(QOutMax, hMax - h[-1] - q_tot))
+            if h[-1] + q_tot > hMax_1:
+                q_out.append(min(QOutMax_1, hMax_1 - h[-1] - q_tot))
                 q_in.append(0.0)
-            elif h[-1] + q_tot < h_min:
-                q_in.append(h_min - h[-1] - q_tot)
+            elif h[-1] + q_tot < hMin_1:
+                q_in.append(hMin_1 - h[-1] - q_tot)
                 q_out.append(0.0)
             else:
                 q_out.append(0.0)
