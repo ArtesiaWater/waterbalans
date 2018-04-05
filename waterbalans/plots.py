@@ -4,6 +4,7 @@ Author: R.A. Collenteur, Artesia Water, 2017-11-20
 
 """
 
+
 class Plot():
     def __init__(self, waterbalans):
         self.wb = waterbalans

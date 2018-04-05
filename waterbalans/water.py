@@ -1,5 +1,6 @@
 from abc import ABC
 
+import numpy as np
 import pandas as pd
 
 from .utils import makkink_to_penman
@@ -12,12 +13,10 @@ class WaterBase(ABC):
 
     def __init__(self, id=None, eag=None, series=None, area=0.0):
         self.eag = eag  # Reference to mother object.
-        self.series = pd.DataFrame()
 
-        if series is None:
-            self.load_series_from_eag()
-        else:
-            self.series = series
+        self.series = pd.DataFrame()
+        self.series = self.series.append(series)
+        self.load_series_from_eag()
 
         self.parameters = pd.DataFrame(columns=["bucket", "pname", "pinit",
                                                 "popt", "pmin", "pmax",
@@ -45,15 +44,8 @@ class WaterBase(ABC):
         self.storage = pd.DataFrame(index=index, dtype=float)
 
     def load_series_from_eag(self):
-        series = dict()
-        series["prec"] = self.eag.series["prec"]
-        series["evap"] = self.eag.series["evap"]
-
-        for name in ["seepage"]:
-            pass
-            # series[name] = load_series_from_gaf(name)
-
-        return series
+        self.series["p"] = self.eag.series["p"]
+        self.series["e"] = self.eag.series["e"]
 
     def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
         pass
@@ -70,6 +62,21 @@ class WaterBase(ABC):
 
 
 class Water(WaterBase):
+    """Water bucket used in the Eag class.
+
+    The Water bucket is where all fluxes of the other buckets come together.
+
+    Parameters
+    ----------
+    id: int
+        id of the waterbucket.
+    eag: waterbalans.Eag
+        The eag the water bucket belongs to.
+    series: list of pandas.Series or pandas.DataFrame
+        ??? Not yet sure how this is gonna work.
+
+    """
+
     def __init__(self, id, eag, series, area=0.0):
         WaterBase.__init__(self, id, eag, series, area)
         self.id = id
@@ -82,6 +89,8 @@ class Water(WaterBase):
                                        columns=["pname", "pinit", "popt",
                                                 "pmin", "pmax", "pvary"])
         self.parameters.loc[:, "pname"] = self.parameters.index
+
+        self.eag.add_water(self)
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
@@ -130,5 +139,8 @@ class Water(WaterBase):
 
             h.append(h[-1] + q_in[-1] + q_out[-1] + q_tot)
 
-        self.storage = pd.Series(data=h[1:], index=self.fluxes.index)
+        self.storage = pd.Series(data=np.array(h[1:]) - hBottom_1 * self.area,
+                                 index=self.fluxes.index)
+        self.level = pd.Series(data=np.array(h[1:]) / self.area,
+                               index=self.fluxes.index)
         self.fluxes = self.fluxes.assign(q_in=q_in, q_out=q_out)

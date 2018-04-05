@@ -22,7 +22,6 @@ class Gaf:
     id: int
         Integer id for the Gaf.
 
-
     """
 
     def __init__(self, id=None, db_model=None, db_series=None, db_param=None):

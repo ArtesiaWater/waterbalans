@@ -26,12 +26,10 @@ class BucketBase(ABC):
     def __init__(self, id=None, eag=None, series=None, area=0.0):
         self.id = id
         self.eag = eag  # Reference to mother object.
-        self.series = pd.DataFrame()
 
-        if series is None:
-            self.load_series_from_eag()
-        else:
-            self.series = series
+        self.series = pd.DataFrame()
+        self.series = self.series.append(series)
+        self.load_series_from_eag()
 
         self.parameters = pd.DataFrame(columns=["bucket", "pname", "pinit",
                                                 "popt", "pmin", "pmax",
@@ -59,15 +57,10 @@ class BucketBase(ABC):
         self.storage = pd.DataFrame(index=index, dtype=float)
 
     def load_series_from_eag(self):
-        series = dict()
-        series["prec"] = self.eag.series["prec"]
-        series["evap"] = self.eag.series["evap"]
 
-        for name in ["seepage"]:
-            pass
-            # series[name] = load_series_from_gaf(name)
+        self.series["p"] = self.eag.series["p"]
+        self.series["e"] = self.eag.series["e"]
 
-        return series
 
     def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
         pass
@@ -93,6 +86,9 @@ class Verhard(BucketBase):
                    'EFacMax_1', 'RFacIn_2', 'RFacOut_2', 'por_1', 'por_2'],
             columns=["pname", "pinit", "popt", "pmin", "pmax", "pvary"])
         self.parameters.loc[:, "pname"] = self.parameters.index
+
+        # Add bucket to the eag
+        self.eag.add_bucket(self)
 
     def simulate(self, params, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
@@ -155,6 +151,9 @@ class Onverhard(BucketBase):
             columns=["pname", "pinit", "popt", "pmin", "pmax", "pvary"])
         self.parameters.loc[:, "pname"] = self.parameters.index
 
+        # Add bucket to the eag
+        self.eag.add_bucket(self)
+
     def simulate(self, params, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
@@ -209,6 +208,9 @@ class Drain(BucketBase):
             columns=["pname", "pinit", "popt", "pmin", "pmax", "pvary"])
         self.parameters.loc[:, "pname"] = self.parameters.index
 
+        # Add bucket to the eag
+        self.eag.add_bucket(self)
+
     def simulate(self, params, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
@@ -243,7 +245,8 @@ class Drain(BucketBase):
 
         for t, pes in self.series.iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, v1[-1], v_eq, EFacMin_1, EFacMax_1, dt))
+            q_no.append(
+                calc_q_no(p, e, v1[-1], v_eq, EFacMin_1, EFacMax_1, dt))
             q_boven = calc_q_ui(v1[-1], RFacIn_2, RFacOut_2, v_eq, dt)
             q_ui.append(calc_q_ui(v2[-1], RFacIn_2, RFacOut_2, v_eq, dt))
             q_s.append(s)

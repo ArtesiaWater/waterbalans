@@ -14,67 +14,50 @@ data = pd.read_csv("data\\2501_reeksen.csv", index_col="Date",
 data.index = excel2datetime(data.index, freq="D")
 
 # Create a polder instance
-gaf = wb.Gaf()
 
 series = pd.DataFrame()
 series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
-e = wb.Eag(gaf=gaf, name="2501-EAG-1", series=series)
+e = wb.Eag(id=250101, name="2501-EAG-1", series=series)
 
 # Water
 series = pd.DataFrame()
-series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
-series["s"] = 0.0508394 * 1e-3
-series["w"] = -0.1190455 * 1e-3
-series["x"] = 3000.0 / 502900
+series["s"] = pd.Series(0.0508394 * 1e-3, index=e.series.index)
+series["w"] = pd.Series(-0.1190455 * 1e-3, index=e.series.index)
+series["x"] = pd.Series(3000.0 / 502900, index=e.series.index)
 b = wb.Water(id=1, eag=e, series=series, area=502900)
-e.add_water(b)
 
 # Verhard
 series = pd.DataFrame()
-series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
 series["s"] = 0.0
 b = wb.Verhard(id=2, eag=e, series=series, area=102894)
-e.add_bucket(b)
 
 # Gedraineerd
 series = pd.DataFrame()
-series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
 series["s"] = 0.0
 b = wb.Drain(id=3, eag=e, series=series, area=0)
-e.add_bucket(b)
 
 # Onverhard: >0 & <= 0.5 kwel
 series = pd.DataFrame()
-series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
 series["s"] = 0.087185 * 1e-3
 b = wb.Onverhard(id=4, eag=e, series=series, area=1840576)
-e.add_bucket(b)
 
 # Onverhard: >-0.4306 & <= 0 weinig wegzijging
 series = pd.DataFrame()
-series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
 series["s"] = to_summer_winter(-0.122533 * 1e-3, -0.163377 * 1e-3, "04-01",
-                               "10-01", series.index)
+                               "10-01", e.series.index)
 b = wb.Onverhard(id=5, eag=e, series=series, area=766779)
-e.add_bucket(b)
 
 # Onverhard: >-1 & <=-0.4306 meer wegzijging
 series = pd.DataFrame()
-series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
 series["s"] = to_summer_winter(-0.534395 * 1e-3, -0.712527 * 1e-3, "04-01",
-                               "10-01", series.index)
+                               "10-01", e.series.index)
 b = wb.Onverhard(id=6, eag=e, series=series, area=520862)
-e.add_bucket(b)
 
 # Onverhard: <=-1.26 veel wegzijging
 series = pd.DataFrame()
-series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
 series["s"] = to_summer_winter(-1.160258 * 1e-3, -1.547010 * 1e-3, "04-01",
-                               "10-01", series.index)
+                               "10-01", e.series.index)
 b = wb.Onverhard(id=7, eag=e, series=series, area=0)
-e.add_bucket(b)
-
-gaf.add_eag(e)
 
 params = pd.read_excel("data\\2501_01_parameters.xlsx")
 e.simulate(params=params)
@@ -115,4 +98,6 @@ fluxes["afstroming"] = q_afstroom.sum(axis=1)
 fluxes["drain"] = 0
 #
 
-fluxes.resample("M").mean().plot.bar(stacked=True)
+fluxes.loc["2010":"2015"].resample("M").mean().plot.bar(stacked=True)
+
+
