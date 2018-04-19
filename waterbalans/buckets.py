@@ -61,7 +61,6 @@ class BucketBase(ABC):
         self.series["p"] = self.eag.series["p"]
         self.series["e"] = self.eag.series["e"]
 
-
     def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
         pass
 
@@ -120,7 +119,7 @@ class Verhard(BucketBase):
         q_s = []
         q_oa = []
 
-        for t, pes in self.series.iterrows():
+        for t, pes in self.series.loc[:, ["p", "e", "s"]].iterrows():
             p, e, s = pes
             q_no.append(
                 calc_q_no(p, e, v1[-1], v_eq, EFacMin_1, EFacMax_1, dt))
@@ -182,7 +181,7 @@ class Onverhard(BucketBase):
         q_s = []
         q_oa = []
 
-        for t, pes in self.series.iterrows():
+        for t, pes in self.series.loc[:, ["p", "e", "s"]].iterrows():
             p, e, s = pes
             q_no.append(calc_q_no(p, e, v[-1], v_eq, EFacMin_1, EFacMax_1, dt))
             q_ui.append(calc_q_ui(v[-1], RFacIn_1, RFacOut_1, v_eq, dt))
@@ -243,7 +242,7 @@ class Drain(BucketBase):
         q_oa = []
         q_dr = []
 
-        for t, pes in self.series.iterrows():
+        for t, pes in self.series.loc[:, ["p", "e", "s"]].iterrows():
             p, e, s = pes
             q_no.append(
                 calc_q_no(p, e, v1[-1], v_eq, EFacMin_1, EFacMax_1, dt))

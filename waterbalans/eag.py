@@ -135,3 +135,43 @@ class Eag:
         p.set_index(p.loc[:, "Code"] + "_" +
                     p.loc[:, "LaagVolgorde"].astype(str), inplace=True)
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
+
+    def aggregate_fluxes(self):
+        d = {
+            "p": "neerslag",
+            "e": "verdamping",
+            "s": "kwel",
+            "w": "wegzijging",
+            "x": "inlaat",
+            "q_out": "uitlaat",
+            "q_oa_2": "verhard",  # Verhard: q_oa van Verhard bakje
+        }
+
+        fluxes = self.water.fluxes.loc[:, d.keys()]
+        fluxes = fluxes.rename(columns=d)
+
+        # Uitspoeling: alle positieve q_ui fluxes uit alle verhard en onverhard
+        names = ["q_ui_" + str(id) for id in self.buckets.keys() if
+                 self.buckets[id].name
+                 in ["Verhard", "Onverhard"]]
+        q_uitspoel = self.water.fluxes.loc[:, names]
+        q_uitspoel[q_uitspoel < 0] = 0
+        fluxes["uitspoeling"] = q_uitspoel.sum(axis=1)
+
+        # Intrek: alle negatieve q_ui fluxes uit alle bakjes
+        names = ["q_ui_" + str(id) for id in self.buckets.keys()]
+        q_intrek = self.water.fluxes.loc[:, names]
+        q_intrek[q_intrek > 0] = 0
+        fluxes["intrek"] = q_intrek.sum(axis=1)
+
+        # Oppervlakkige afstroming: q_oa van Onverharde bakjes
+        names = ["q_oa_" + str(id) for id in self.buckets.keys() if
+                 self.buckets[id].name
+                 == "Onverhard"]
+        q_afstroom = self.water.fluxes.loc[:, names]
+        fluxes["afstroming"] = q_afstroom.sum(axis=1)
+
+        # Gedraineerd: q_oa - positieve q_ui van Drain
+        fluxes["drain"] = 0
+
+        return fluxes

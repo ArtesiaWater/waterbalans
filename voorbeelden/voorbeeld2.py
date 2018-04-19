@@ -23,22 +23,23 @@ e = wb.Eag(id=250101, name="2501-EAG-1", series=series)
 series = pd.DataFrame()
 series["s"] = pd.Series(0.0508394 * 1e-3, index=e.series.index)
 series["w"] = pd.Series(-0.1190455 * 1e-3, index=e.series.index)
-series["x"] = pd.Series(3000.0 / 502900, index=e.series.index)
+series["x"] = to_summer_winter(6000.0 / 502900, 3000.0 / 502900, "04-01",
+                               "10-01", e.series.index)
 b = wb.Water(id=1, eag=e, series=series, area=502900)
 
 # Verhard
 series = pd.DataFrame()
-series["s"] = 0.0
+series["s"] = pd.Series(0.0 * 1e-3, e.series.index)
 b = wb.Verhard(id=2, eag=e, series=series, area=102894)
 
 # Gedraineerd
 series = pd.DataFrame()
-series["s"] = 0.0
+series["s"] = pd.Series(0.0, e.series.index)
 b = wb.Drain(id=3, eag=e, series=series, area=0)
 
 # Onverhard: >0 & <= 0.5 kwel
 series = pd.DataFrame()
-series["s"] = 0.087185 * 1e-3
+series["s"] = pd.Series(0.087185 * 1e-3, e.series.index)
 b = wb.Onverhard(id=4, eag=e, series=series, area=1840576)
 
 # Onverhard: >-0.4306 & <= 0 weinig wegzijging
@@ -62,42 +63,43 @@ b = wb.Onverhard(id=7, eag=e, series=series, area=0)
 params = pd.read_excel("data\\2501_01_parameters.xlsx")
 e.simulate(params=params)
 
-d = {
-    "p": "neerslag",
-    "e": "verdamping",
-    "s": "kwel",
-    "w": "wegzijging",
-    "x": "maalstaat",
-    "q_out": "uitlaat",
-    "q_oa_2": "verhard",  # Verhard: q_oa van Verhard bakje
-}
-
-fluxes = e.water.fluxes.loc[:, d.keys()]
-fluxes = fluxes.rename(columns=d)
-
-# Uitspoeling: alle positieve q_ui fluxes uit alle verhard en onverhard
-names = ["q_ui_" + str(id) for id in e.buckets.keys() if e.buckets[id].name
-         in ["Verhard", "Onverhard"]]
-q_uitspoel = e.water.fluxes.loc[:, names]
-q_uitspoel[q_uitspoel < 0] = 0
-fluxes["uitspoeling"] = q_uitspoel.sum(axis=1)
-
-# Intrek: alle negatieve q_ui fluxes uit alle bakjes
-names = ["q_ui_" + str(id) for id in e.buckets.keys()]
-q_intrek = e.water.fluxes.loc[:, names]
-q_intrek[q_intrek > 0] = 0
-fluxes["intrek"] = q_intrek.sum(axis=1)
-
-# Oppervlakkige afstroming: q_oa van Onverharde bakjes
-names = ["q_oa_" + str(id) for id in e.buckets.keys() if e.buckets[id].name
-         == "Onverhard"]
-q_afstroom = e.water.fluxes.loc[:, names]
-fluxes["afstroming"] = q_afstroom.sum(axis=1)
-
-# Gedraineerd: q_oa - positieve q_ui van Drain
-fluxes["drain"] = 0
+fluxes = e.aggregate_fluxes()
 #
-
 fluxes.loc["2010":"2015"].resample("M").mean().plot.bar(stacked=True)
 
+# Bereken de chloride concentratie
+C_init = 90
+V_init = 170986
+Mass = pd.Series(index=fluxes.index)
+M = C_init * V_init
+C_out = C_init
 
+# Som van de uitgaande fluxen: wegzijging, intrek, uitlaat
+V_out = fluxes.loc[:, ["intrek", "uitlaat", "wegzijging"]].sum(axis=1)
+
+c = {
+    "neerslag": 6,
+    "kwel": 400,
+    "verhard": 10,
+    "riolering": 100,
+    "drain": 70,
+    "uitspoeling": 70,
+    "afstroming": 35,
+    "inlaat": 100
+}
+names = ["neerslag", "kwel", "verhard", "drain",
+         "uitspoeling", "afstroming", "inlaat"]
+c = [c[name] for name in names]
+
+for t in fluxes.index:
+    M_in =  fluxes.loc[t, names].multiply(c).sum()
+
+    M_out = V_out.loc[t] * C_out
+
+    M = M + M_in + M_out
+
+    Mass.loc[t] = M
+    C_out = M / e.water.storage.loc[t]
+
+(Mass/e.water.storage).plot()
+(Mass/e.water.storage).head()
