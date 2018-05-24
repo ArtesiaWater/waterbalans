@@ -123,6 +123,8 @@ class Eag:
 
         """
 
+        self.parameters = params
+
         for id, bucket in self.buckets.items():
             p = params.loc[params.loc[:, "Bakjes_ID"] == id]
             p.set_index(p.loc[:, "Code"] + "_" +
@@ -137,6 +139,15 @@ class Eag:
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
     def aggregate_fluxes(self):
+        """Method to aggregate fluxes to those used for visualisation.
+
+        Returns
+        -------
+        fluxes: pandas.DataFrame
+            Pandas DataFrame with the fluxes. The column names denote the
+            fluxes.
+
+        """
         d = {
             "p": "neerslag",
             "e": "verdamping",
@@ -152,8 +163,7 @@ class Eag:
 
         # Uitspoeling: alle positieve q_ui fluxes uit alle verhard en onverhard
         names = ["q_ui_" + str(id) for id in self.buckets.keys() if
-                 self.buckets[id].name
-                 in ["Verhard", "Onverhard"]]
+                 self.buckets[id].name in ["Verhard", "Onverhard"]]
         q_uitspoel = self.water.fluxes.loc[:, names]
         q_uitspoel[q_uitspoel < 0] = 0
         fluxes["uitspoeling"] = q_uitspoel.sum(axis=1)
@@ -166,8 +176,7 @@ class Eag:
 
         # Oppervlakkige afstroming: q_oa van Onverharde bakjes
         names = ["q_oa_" + str(id) for id in self.buckets.keys() if
-                 self.buckets[id].name
-                 == "Onverhard"]
+                 self.buckets[id].name == "Onverhard"]
         q_afstroom = self.water.fluxes.loc[:, names]
         fluxes["afstroming"] = q_afstroom.sum(axis=1)
 
@@ -175,3 +184,71 @@ class Eag:
         fluxes["drain"] = 0
 
         return fluxes
+
+    def calculate_chloride_concentration(self):
+        """Calculate the chloride concentratation in the water bucket.
+
+        Returns
+        -------
+        C: pandas.Series
+            Pandas Series of the chloride concentration in the Water bucket.
+
+        """
+        fluxes = self.aggregate_fluxes()
+        Mass = pd.Series(index=fluxes.index)
+
+        # TODO: Dit zijn in feite parameters
+        C_params = {
+            "neerslag": 6,
+            "kwel": 400,
+            "verhard": 10,
+            "drain": 70,
+            "uitspoeling": 70,
+            "afstroming": 35,
+            "inlaat": 100
+        }
+        C_params = pd.Series(C_params)
+        C_init = 90
+
+        # Bereken de initiele chloride massa
+        hTarget = self.parameters.loc[self.parameters.loc[:, "Code"] ==
+                                      "hTarget", "Waarde"].values[0]
+        hBottom = self.parameters.loc[self.parameters.loc[:, "Code"] ==
+                                      "hBottom", "Waarde"].values[0]
+
+        V_init = (hTarget - hBottom) * self.water.area
+        M = C_init * V_init
+        C_out = C_init
+
+        # Som van de uitgaande fluxen: wegzijging, intrek, uitlaat
+        V_out = fluxes.loc[:, ["intrek", "uitlaat", "wegzijging"]].sum(axis=1)
+
+        for t in fluxes.index:
+            M_in = fluxes.loc[t, C_params.index].multiply(C_params).sum()
+
+            M_out = V_out.loc[t] * C_out
+
+            M = M + M_in + M_out
+
+            Mass.loc[t] = M
+            C_out = M / self.water.storage.loc[t]
+
+        C = Mass / self.water.storage
+
+        return C
+
+    def calculate_fractions(self):
+        """Method to calculate the fractions.
+
+        Returns
+        -------
+        frac: pandas.DataFrame
+            pandas DataFrame with the fractions.
+
+        """
+        fluxes = self.aggregate_fluxes()
+        frac = pd.DataFrame(index=fluxes.index)
+
+        #Volume (Totaal_uit
+
+        return frac

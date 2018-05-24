@@ -14,7 +14,6 @@ data = pd.read_csv("data\\2501_reeksen.csv", index_col="Date",
 data.index = excel2datetime(data.index, freq="D")
 
 # Create a polder instance
-
 series = pd.DataFrame()
 series[["p", "e"]] = data.loc[:, ["Abcoude", "Schiphol (V)"]] * 1e-3
 e = wb.Eag(id=250101, name="2501-EAG-1", series=series)
@@ -63,43 +62,16 @@ b = wb.Onverhard(id=7, eag=e, series=series, area=0)
 params = pd.read_excel("data\\2501_01_parameters.xlsx")
 e.simulate(params=params)
 
+# Calculate and plot the fluxes as a bar plot
 fluxes = e.aggregate_fluxes()
-#
 fluxes.loc["2010":"2015"].resample("M").mean().plot.bar(stacked=True)
 
-# Bereken de chloride concentratie
-C_init = 90
-V_init = 170986
-Mass = pd.Series(index=fluxes.index)
-M = C_init * V_init
-C_out = C_init
+# Calculate and plot the
+C = e.calculate_chloride_concentration()
+C.plot()
 
-# Som van de uitgaande fluxen: wegzijging, intrek, uitlaat
-V_out = fluxes.loc[:, ["intrek", "uitlaat", "wegzijging"]].sum(axis=1)
 
-c = {
-    "neerslag": 6,
-    "kwel": 400,
-    "verhard": 10,
-    "riolering": 100,
-    "drain": 70,
-    "uitspoeling": 70,
-    "afstroming": 35,
-    "inlaat": 100
-}
-names = ["neerslag", "kwel", "verhard", "drain",
-         "uitspoeling", "afstroming", "inlaat"]
-c = [c[name] for name in names]
+def create_eag(id, name, series=None):
+    eag = wb.Eag(id=id, name=name, series=series)
 
-for t in fluxes.index:
-    M_in =  fluxes.loc[t, names].multiply(c).sum()
-
-    M_out = V_out.loc[t] * C_out
-
-    M = M + M_in + M_out
-
-    Mass.loc[t] = M
-    C_out = M / e.water.storage.loc[t]
-
-(Mass/e.water.storage).plot()
-(Mass/e.water.storage).head()
+    return eag
