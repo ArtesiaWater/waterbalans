@@ -9,7 +9,7 @@ import waterbalans as wb
 from waterbalans.utils import excel2datetime, to_summer_winter
 
 # Import some test time series
-data = pd.read_csv("data\\2501_reeksen.csv", index_col="Date",
+data = pd.read_csv("data\\2501_01_reeksen.csv", index_col="Date",
                    infer_datetime_format=True, dayfirst=True)
 data.index = excel2datetime(data.index, freq="D")
 
@@ -32,9 +32,9 @@ series["s"] = pd.Series(0.0 * 1e-3, e.series.index)
 b = wb.Verhard(id=2, eag=e, series=series, area=102894)
 
 # Gedraineerd
-series = pd.DataFrame()
-series["s"] = pd.Series(0.0, e.series.index)
-b = wb.Drain(id=3, eag=e, series=series, area=0)
+# series = pd.DataFrame()
+# series["s"] = pd.Series(0.0, e.series.index)
+# b = wb.Drain(id=3, eag=e, series=series, area=0)
 
 # Onverhard: >0 & <= 0.5 kwel
 series = pd.DataFrame()
@@ -53,12 +53,7 @@ series["s"] = to_summer_winter(-0.534395 * 1e-3, -0.712527 * 1e-3, "04-01",
                                "10-01", e.series.index)
 b = wb.Onverhard(id=6, eag=e, series=series, area=520862)
 
-# Onverhard: <=-1.26 veel wegzijging
-series = pd.DataFrame()
-series["s"] = to_summer_winter(-1.160258 * 1e-3, -1.547010 * 1e-3, "04-01",
-                               "10-01", e.series.index)
-b = wb.Onverhard(id=7, eag=e, series=series, area=0)
-
+#%% Bereken de waterbalans en plot
 params = pd.read_excel("data\\2501_01_parameters.xlsx")
 e.simulate(params=params)
 
@@ -69,9 +64,3 @@ fluxes.loc["2010":"2015"].resample("M").mean().plot.bar(stacked=True)
 # Calculate and plot the
 C = e.calculate_chloride_concentration()
 C.plot()
-
-
-def create_eag(id, name, series=None):
-    eag = wb.Eag(id=id, name=name, series=series)
-
-    return eag

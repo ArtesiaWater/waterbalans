@@ -18,9 +18,7 @@ class WaterBase(ABC):
         self.series = self.series.append(series)
         self.load_series_from_eag()
 
-        self.parameters = pd.DataFrame(columns=["bucket", "pname", "pinit",
-                                                "popt", "pmin", "pmax",
-                                                "pvary"])
+        self.parameters = pd.DataFrame(columns=["Waarde"])
         self.area = area  # area in square meters
 
     def initialize(self, tmin=None, tmax=None):
@@ -44,8 +42,13 @@ class WaterBase(ABC):
         self.storage = pd.DataFrame(index=index, dtype=float)
 
     def load_series_from_eag(self):
-        self.series["p"] = self.eag.series["p"]
-        self.series["e"] = self.eag.series["e"]
+        if self.eag is None:
+            return
+
+        if "prec" in self.eag.series.columns:
+            self.series["prec"] = self.eag.series["prec"]
+        if "evap" in self.eag.series.columns:
+            self.series["evap"] = self.eag.series["evap"]
 
     def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
         pass
@@ -83,23 +86,21 @@ class Water(WaterBase):
         self.eag = eag
         self.name = "Water"
 
-        self.parameters = pd.DataFrame(index=['hTarget_1', 'hMin_1',
-                                              'hMax_1', 'hBottom_1',
-                                              'QInMax_1', 'QOutMax_1'],
-                                       columns=["pname", "pinit", "popt",
-                                                "pmin", "pmax", "pvary"])
-        self.parameters.loc[:, "pname"] = self.parameters.index
+        self.parameters = pd.DataFrame(
+            data=[0, 0, 0, 0, 0, 0],
+            index=['hTarget_1', 'hMin_1', 'hMax_1',
+                   'hBottom_1', 'QInMax_1', 'QOutMax_1'],
+            columns=["Waarde"])
 
         self.eag.add_water(self)
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
 
-        if params is None:
-            params = self.parameters.loc[:, "popt"]
-
+        # Get parameters
+        self.parameters.update(params)
         hTarget_1, hMin_1, hMax_1, hBottom_1, QInMax_1, QOutMax_1 = \
-            params.loc[self.parameters.index]
+            self.parameters.loc[:, "Waarde"]
 
         # 1. Add incoming fluxes from other buckets
         for bucket in self.eag.buckets.values():
@@ -112,7 +113,7 @@ class Water(WaterBase):
         # 2. calculate water bucket specific fluxes
         series = self.series.multiply(self.area)
         # TODO add series to fluxes without knowing the amount of series up front
-        series.loc[:, "e"] = -makkink_to_penman(series.loc[:, "e"])
+        series.loc[:, "e"] = -makkink_to_penman(series.loc[:, "evap"])
         self.fluxes = self.fluxes.join(series, how="outer")
 
         hMin_1 = hMin_1 * self.area

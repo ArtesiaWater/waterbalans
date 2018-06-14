@@ -1,0 +1,8 @@
+,EAG_ID,EAG_Code,Bakjes_ID,Bakjes_Omschrijving,Bakjes_PyCode,Opp_Waarde
+1,1884,2501-EAG-1,6559,Verhard_>0 & <= 0.5 kwel,Verhard,43547
+2,1884,2501-EAG-1,6560,Onverhard_>0 & <= 0.5 kwel,Onverhard,1840576
+3,1884,2501-EAG-1,6561,Verhard_>-0.4306 & <= 0 weinig wegzijging,Verhard,47023
+4,1884,2501-EAG-1,6562,Onverhard_>-0.4306 & <= 0 weinig wegzijging,Onverhard,766779
+5,1884,2501-EAG-1,6563,Verhard_>-1 & <=-0.4306 meer wegzijging,Verhard,12323
+6,1884,2501-EAG-1,6564,Onverhard_>-1 & <=-0.4306 meer wegzijging,Onverhard,520862
+7,1884,2501-EAG-1,6565,Waterbak,Water,502900

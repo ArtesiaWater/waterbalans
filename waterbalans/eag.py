@@ -45,9 +45,7 @@ class Eag:
         else:
             self.series = series
 
-        self.parameters = pd.DataFrame(columns=["bucket", "pname", "pinit",
-                                                "popt", "pmin", "pmax",
-                                                "pvary"])
+        self.parameters = pd.DataFrame(columns=["Waarde"])
 
         # Add functionality from other modules
         self.plot = Eag_Plots(self)
@@ -124,18 +122,16 @@ class Eag:
         """
 
         self.parameters = params
+        self.parameters.set_index(self.parameters.loc[:, "Code"] + "_" +
+            self.parameters.loc[:, "LaagVolgorde"].astype(str), inplace=True)
 
         for id, bucket in self.buckets.items():
             p = params.loc[params.loc[:, "Bakjes_ID"] == id]
-            p.set_index(p.loc[:, "Code"] + "_" +
-                        p.loc[:, "LaagVolgorde"].astype(str), inplace=True)
 
             print("Simulating the waterbalance for bucket: %s" % id)
             bucket.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
         p = params.loc[params.loc[:, "Bakjes_ID"] == self.water.id]
-        p.set_index(p.loc[:, "Code"] + "_" +
-                    p.loc[:, "LaagVolgorde"].astype(str), inplace=True)
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
     def aggregate_fluxes(self):
@@ -160,6 +156,12 @@ class Eag:
 
         fluxes = self.water.fluxes.loc[:, d.keys()]
         fluxes = fluxes.rename(columns=d)
+
+        # Verhard: q_oa van alle Verhard bakjes
+        names = ["q_oa_" + str(id) for id in self.buckets.keys() if
+                 self.buckets[id].name == "Verhard"]
+        q_verhard = self.water.fluxes.loc[:, names]
+        fluxes["verhard"] = q_verhard.sum(axis=1)
 
         # Uitspoeling: alle positieve q_ui fluxes uit alle verhard en onverhard
         names = ["q_ui_" + str(id) for id in self.buckets.keys() if
@@ -249,6 +251,6 @@ class Eag:
         fluxes = self.aggregate_fluxes()
         frac = pd.DataFrame(index=fluxes.index)
 
-        #Volume (Totaal_uit
+        #Volume + Totaal_uit
 
         return frac
