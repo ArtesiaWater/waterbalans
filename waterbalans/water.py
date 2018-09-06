@@ -45,10 +45,10 @@ class WaterBase(ABC):
         if self.eag is None:
             return
 
-        if "prec" in self.eag.series.columns:
-            self.series["prec"] = self.eag.series["prec"]
-        if "evap" in self.eag.series.columns:
-            self.series["evap"] = self.eag.series["evap"]
+        if "Neerslag" in self.eag.series.columns:
+            self.series["Neerslag"] = self.eag.series["Neerslag"]
+        if "Verdamping" in self.eag.series.columns:
+            self.series["Verdamping"] = self.eag.series["Verdamping"]
 
     def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
         pass
@@ -113,7 +113,7 @@ class Water(WaterBase):
         # 2. calculate water bucket specific fluxes
         series = self.series.multiply(self.area)
         # TODO add series to fluxes without knowing the amount of series up front
-        series.loc[:, "e"] = -makkink_to_penman(series.loc[:, "evap"])
+        series.loc[:, "e"] = -makkink_to_penman(series.loc[:, "Verdamping"])
         self.fluxes = self.fluxes.join(series, how="outer")
 
         hMin_1 = hMin_1 * self.area

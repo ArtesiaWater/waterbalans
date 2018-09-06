@@ -1,0 +1,8 @@
+"";"EAGID";"EAGCode";"BakjeID";"BakjeOmschrijving";"BakjePyCode";"OppWaarde"
+"1";2019;"2501-EAG-1";7024;"Verhard_>0 & <= 0.5 kwel";"Verhard";43547
+"2";2019;"2501-EAG-1";7025;"Onverhard_>0 & <= 0.5 kwel";"Onverhard";1840576
+"3";2019;"2501-EAG-1";7026;"Verhard_>-0.4306 & <= 0 weinig wegzijging";"Verhard";47023
+"4";2019;"2501-EAG-1";7027;"Onverhard_>-0.4306 & <= 0 weinig wegzijging";"Onverhard";766779
+"5";2019;"2501-EAG-1";7028;"Verhard_>-1 & <=-0.4306 meer wegzijging";"Verhard";12323
+"6";2019;"2501-EAG-1";7029;"Onverhard_>-1 & <=-0.4306 meer wegzijging";"Onverhard";520862
+"7";2019;"2501-EAG-1";7030;"Waterbak";"Water";502900

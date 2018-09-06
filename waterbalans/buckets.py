@@ -64,17 +64,17 @@ class BucketBase(ABC):
         self.storage = pd.DataFrame(index=index, dtype=float)
 
     def load_series_from_eag(self):
-        """Method to automatically load precipitation and evaporation from
+        """Method to automatically load Neerslagipitation and Verdampingoration from
         for the eag if available.
 
         """
         if self.eag is None:
             return
 
-        if "prec" in self.eag.series.columns:
-            self.series["prec"] = self.eag.series["prec"]
-        if "evap" in self.eag.series.columns:
-            self.series["evap"] = self.eag.series["evap"]
+        if "Neerslag" in self.eag.series.columns:
+            self.series["Neerslag"] = self.eag.series["Neerslag"]
+        if "Verdamping" in self.eag.series.columns:
+            self.series["Verdamping"] = self.eag.series["Verdamping"]
 
     def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
@@ -123,7 +123,8 @@ class Verhard(BucketBase):
         q_s = []
         q_oa = []
 
-        for t, pes in self.series.loc[:, ["prec", "evap", "seep"]].iterrows():
+        for t, pes in self.series.loc[:,
+                      ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
             p, e, s = pes
             q_no.append(
                 calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
@@ -154,7 +155,6 @@ class Onverhard(BucketBase):
                    'RFacIn_1', 'RFacOut_1', 'por_1'],
             columns=["Waarde"])
 
-
     def simulate(self, params, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
@@ -183,7 +183,8 @@ class Onverhard(BucketBase):
         q_s = []
         q_oa = []
 
-        for t, pes in self.series.loc[:, ["prec", "evap", "seep"]].iterrows():
+        for t, pes in self.series.loc[:,
+                      ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
             p, e, s = pes
             q_no.append(calc_q_no(p, e, h[-1], hEq, EFacMin_1, EFacMax_1, dt))
             q_ui.append(calc_q_ui(h[-1], RFacIn_1, RFacOut_1, hEq, dt))
@@ -209,7 +210,6 @@ class Drain(BucketBase):
                    'por_2'],
             columns=["Waarde"])
         self.parameters.loc[:, "pname"] = self.parameters.index
-
 
     def simulate(self, params, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
@@ -243,7 +243,8 @@ class Drain(BucketBase):
         q_oa = []
         q_dr = []
 
-        for t, pes in self.series.loc[:, ["prec", "evap", "seep"]].iterrows():
+        for t, pes in self.series.loc[:,
+                      ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
             p, e, s = pes
             q_no.append(
                 calc_q_no(p, e, v1[-1], v_eq, EFacMin_1, EFacMax_1, dt))
@@ -265,29 +266,29 @@ class Drain(BucketBase):
 
 
 def calc_q_no(p, e, h, hEq, EFacMin, EFacMax, dt=1.0):
-    """Method to calculate the precipitation excess.
+    """Method to calculate the Neerslagipitation excess.
 
     Parameters
     ----------
     p: float
-        Precipitation.
+        Neerslagipitation.
     e: float
-        Evaporation.
+        Verdampingoration.
     h: float
         Waterlevel.
     hEq: float
         Waterlevel equilibrium.
     EFacMin: float
-        Minimum evaporation factor.
+        Minimum Verdampingoration factor.
     EFacMax: float
-        Maximum evaporation factor.
+        Maximum Verdampingoration factor.
     dt: float
         Timestep, not used right now.
 
     Returns
     -------
     q: float
-        Precipitation excess.
+        Neerslagipitation excess.
 
     """
     if h < hEq:
@@ -342,7 +343,7 @@ def vol_q_oa(v, q_s, q_no, q_ui, hMax, dt=1.0):
     q_s: float
         seepage flux
     q_no: float
-        precipitation excess flux
+        Neerslagipitation excess flux
     q_ui: float
         ... flux
     hMax: float

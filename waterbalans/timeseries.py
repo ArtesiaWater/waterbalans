@@ -1,24 +1,123 @@
-"""This file contains the TimeSeries class.
+"""This file contains the function to create timeseries used in the
+waterbalance.
+
+Auteur: R.A. Collenteur, Artesia Water
 
 """
+from hkvfewspy.io.fewspi import pi
+from pandas import date_range, Series, DataFrame, Timestamp
 
-from pandas import Series
+pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
 
-class TimeSeries(Series):
-    def __init__(self, series, polder, units="m/d"):
-        Series.__init__(self)
-        self.series = series
-        self.polder = polder
-        self.units = units
 
-    def flux(self):
-        """
+def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
+    """Method that return a time series downloaded from fews or constructed
+    from it parameters.
 
-        Returns
-        -------
-        flux: pandas.Series
-            Flux voor the series
+    Parameters
+    ----------
+    name: str
+        Name of the returned series.
+    kind: str
+        String used to determine the kind of time series. Options are:
+        "FEWS", "Constant" and "ValueSeries".
+    data: pandas.DataFrame
+    tmin: str or pandas.Timestamp, optional
+        str or pandas Timestamp with the end date. Default is '2010-01-01
+        00:00:00'
+    tmax: str or pandas.Timestamp, optional
+        str or pandas Timestamp with the end date. Default is today.
+    freq: str, optional
+        string with the desired frequency, not really supported now. Default
+        is "D" (Daily).
 
-        """
-        flux = self.series.multiply(self.polder.area)
-        return flux
+    Returns
+    -------
+    series: pandas.Series
+
+    Notes
+    -----
+
+    """
+    if tmin is None:
+        tmin = Timestamp("2010")
+    if tmax is None:
+        tmax = Timestamp.today()
+    else:
+        tmax = Timestamp(tmax)
+    # Download a timeseries from FEWS
+    if kind == "FEWS":
+        locationId = data.loc[:, "WaardeAlfa"].values[0]
+        if isinstance(data, DataFrame):
+            data = data.iloc[0]
+        moduleInstanceId, parameterId = data.loc[["moduleInstanceId",
+                                                  "parameterId"]]
+
+        params = dict(
+            moduleInstanceIds=[moduleInstanceId],
+            parameterIds=[parameterId],
+            locationIds=[locationId],
+            startTime=tmin,
+            endTime=tmax,
+            clientTimeZone='Europe/Amsterdam',
+            forecastSearchCount=1,
+            convertDatum='false',
+            useDisplayUnits='false',
+            showThresholds='true',
+            omitMissing='false',
+            onlyHeaders='false',
+            onlyManualEdits='false',
+            showStatistics='false',
+            ensembleId='',
+            importFromExternalDataSource='false',
+            showEnsembleMemberIds='false',
+            version='1.22'
+        )
+        df, _ = pi.getTimeSeries(params, setFormat='df')
+
+    #  If a constant timeseries is required
+    elif kind == "Constant":
+        value = data.loc[:, "Waarde"].values[0] * 1e-3
+        tindex = date_range(tmin, tmax, freq=freq)
+        series = Series(value, index=tindex)
+
+    # If a alternating time series is required (e.g. summer/winter level)
+    elif kind == "ValueSeries":
+        df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
+        tindex = date_range(tmin, tmax, freq=freq)
+        series = create_block_series(df, tindex) * 1e-3
+    else:
+        return print("kind {} not supported".format(kind))
+
+    series.name = name
+
+    return series
+
+
+def create_block_series(data, tindex):
+    """Method that returns a series with alternating values, for example a
+    summer and winter level.
+
+    Parameters
+    ----------
+    data: pandas.DataFrame
+        DataFrame containing the columns "StartDag" and "Waarde". Where the
+        starting day (StartDag) is structured as dd-mm (01-12, 1st of
+        december).
+    tindex: pandas.DatetimeIndex
+        Datetimeindex to use as the index of the series that are returned.
+
+    Returns
+    -------
+    series: pandas.Series
+        The constructed block series
+
+    """
+    series = Series(index=tindex)
+    for t, val in data.iterrows():
+        day, month = [int(x) for x in t.split("-")]
+        mask = (series.index.month == month) & (series.index.day == day)
+        series.loc[mask] = val.values[0]
+
+    series.fillna(method="ffill", inplace=True)
+    return series

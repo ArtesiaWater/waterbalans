@@ -29,8 +29,12 @@ setup(
         'Programming Language :: Python :: 3'
     ],
     platforms='Windows, Mac OS-X',
-    install_requires=['numpy>=1.12', 'matplotlib>=2.0', "pyodbc",
-                      'pandas>=0.20', 'scipy>=0.19', 'xmltodict', 'zeep'],
+    install_requires=['numpy>=1.12',
+                      'matplotlib>=2.0',
+                      'pandas>=0.20',
+                      'scipy>=0.19',
+                      'xmltodict',
+                      'hkvfewspy>=0.2.3'],
     packages=find_packages(exclude=[]),
     include_package_data=True,
 )

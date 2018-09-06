@@ -8,10 +8,8 @@ from io import BytesIO
 import pandas as pd
 
 from waterbalans.io import load_model, read_xml
-from .access import AccessServer
+from waterbalans.oud.access import AccessServer
 from .eag import Eag
-from .fews import FewsServer
-from .timeseries import TimeSeries
 
 
 class Gaf:
@@ -21,6 +19,10 @@ class Gaf:
     ----------
     id: int
         Integer id for the Gaf.
+
+    Notes
+    -----
+    Gebieden-AfvoerGebieden
 
     """
 
@@ -137,8 +139,8 @@ class Gaf:
         the subpolder Objects.
 
         """
-        self.series["prec"] = TimeSeries(pd.Series(), self)
-        self.series["evap"] = TimeSeries(pd.Series(), self)
+        self.series["prec"] = pd.Series()
+        self.series["evap"] = pd.Series()
 
         for subpolder in self.eags.values():
             subpolder.load_series_from_eag()

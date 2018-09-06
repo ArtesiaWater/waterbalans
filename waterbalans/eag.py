@@ -90,8 +90,8 @@ class Eag:
         provided.
 
         """
-        self.series["prec"] = self.gaf.series["prec"]
-        self.series["evap"] = self.gaf.series["prec"]
+        self.series["Neerslag"] = self.gaf.series["Neerslag"]
+        self.series["Verdamping"] = self.gaf.series["Neerslag"]
 
     def get_init_parameters(self):
         """Method to obtain the parameters from the Buckets
@@ -123,15 +123,16 @@ class Eag:
 
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "Code"] + "_" +
-            self.parameters.loc[:, "LaagVolgorde"].astype(str), inplace=True)
+                                  self.parameters.loc[:,
+                                  "LaagVolgorde"].astype(str), inplace=True)
 
         for id, bucket in self.buckets.items():
-            p = params.loc[params.loc[:, "Bakjes_ID"] == id]
+            p = params.loc[params.loc[:, "BakjeID"] == id]
 
             print("Simulating the waterbalance for bucket: %s" % id)
             bucket.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
-        p = params.loc[params.loc[:, "Bakjes_ID"] == self.water.id]
+        p = params.loc[params.loc[:, "BakjeID"] == self.water.id]
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
     def aggregate_fluxes(self):
@@ -145,10 +146,10 @@ class Eag:
 
         """
         d = {
-            "p": "neerslag",
-            "e": "verdamping",
-            "s": "kwel",
-            "w": "wegzijging",
+            "Neerslag": "neerslag",
+            "Verdamping": "verdamping",
+            "Qkwel": "kwel",
+            "Qwegz": "wegzijging",
             "x": "inlaat",
             "q_out": "uitlaat",
             "q_oa_2": "verhard",  # Verhard: q_oa van Verhard bakje
@@ -210,7 +211,7 @@ class Eag:
             "inlaat": 100
         }
         C_params = pd.Series(C_params)
-        C_init = 90
+        Cl_init = 90
 
         # Bereken de initiele chloride massa
         hTarget = self.parameters.loc[self.parameters.loc[:, "Code"] ==
@@ -219,8 +220,8 @@ class Eag:
                                       "hBottom", "Waarde"].values[0]
 
         V_init = (hTarget - hBottom) * self.water.area
-        M = C_init * V_init
-        C_out = C_init
+        M = Cl_init * V_init
+        C_out = Cl_init
 
         # Som van de uitgaande fluxen: wegzijging, intrek, uitlaat
         V_out = fluxes.loc[:, ["intrek", "uitlaat", "wegzijging"]].sum(axis=1)
@@ -251,6 +252,6 @@ class Eag:
         fluxes = self.aggregate_fluxes()
         frac = pd.DataFrame(index=fluxes.index)
 
-        #Volume + Totaal_uit
+        # Volume + Totaal_uit
 
         return frac

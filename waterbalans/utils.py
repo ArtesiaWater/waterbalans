@@ -56,11 +56,3 @@ def makkink_to_penman(e):
     for i in range(1, 13):
         e[e.index.month == i] /= penman[i - 1]
     return e
-
-def to_summer_winter(h_summer, h_winter, t_summer, t_winter, tindex):
-    s = Series(h_summer, index=tindex)
-    month_winter, day_winter = [int(t) for t in t_winter.split("-")]
-    month_summer, day_summer = [int(t) for t in t_summer.split("-")]
-    s.loc[(s.index.month >= month_winter) | (
-            s.index.month < month_summer)] = h_winter
-    return s

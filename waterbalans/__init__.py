@@ -1,6 +1,7 @@
-from .gaf import Gaf
-from .eag import Eag
 from .buckets import Verhard, Onverhard, Drain
-from .water import Water
+from .create import create_eag
+from .eag import Eag
+from .gaf import Gaf
 from .io import *
-from .access import AccessServer
+from .timeseries import get_series
+from .water import Water
