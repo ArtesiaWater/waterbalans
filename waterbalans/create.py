@@ -28,9 +28,9 @@ def create_eag(id, name, buckets, gaf=None, series=None):
 
     # Voeg bakjes toe
     for _, bucket in buckets.iterrows():
-        kind = bucket.loc["BakjePyCode"]
+        kind = bucket.loc["Bakjes_PyCode"]
         id = bucket.loc["BakjeID"]
-        area = bucket.loc["OppWaarde"]
+        area = bucket.loc["Opp_Waarde"]
         if kind == "Water":
             Water(id=id, eag=eag, series=series, area=area)
         else:

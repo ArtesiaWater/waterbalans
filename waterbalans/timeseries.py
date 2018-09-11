@@ -4,7 +4,7 @@ waterbalance.
 Auteur: R.A. Collenteur, Artesia Water
 
 """
-from hkvfewspy.io.fewspi import pi
+from hkvfewspy import pi
 from pandas import date_range, Series, DataFrame, Timestamp
 
 pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
@@ -39,19 +39,21 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     -----
 
     """
+    print(name)
     if tmin is None:
         tmin = Timestamp("2010")
+    else:
+        tmin = Timestamp(tmin)
     if tmax is None:
         tmax = Timestamp.today()
     else:
         tmax = Timestamp(tmax)
     # Download a timeseries from FEWS
     if kind == "FEWS":
-        locationId = data.loc[:, "WaardeAlfa"].values[0]
+        data = data.loc[:, "WaardeAlfa"].values[0]
         if isinstance(data, DataFrame):
             data = data.iloc[0]
-        moduleInstanceId, parameterId = data.loc[["moduleInstanceId",
-                                                  "parameterId"]]
+        moduleInstanceId, locationId, parameterId, _ = data.split("|")
 
         params = dict(
             moduleInstanceIds=[moduleInstanceId],
@@ -73,11 +75,22 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
             showEnsembleMemberIds='false',
             version='1.22'
         )
-        df, _ = pi.getTimeSeries(params, setFormat='df')
+        query = pi.setQueryParameters(prefill_defaults=True)
+        query.query["onlyManualEdits"] = False
+        query.parameterIds([parameterId])
+        query.moduleInstanceIds([moduleInstanceId])
+        query.locationIds([locationId])
+        query.startTime(tmin)
+        query.endTime(tmax)
+        query.clientTimeZone('Europe/Amsterdam')
+
+        df, _ = pi.getTimeSeries(query, setFormat='df')
+        df.reset_index(inplace=True)
+        series = df.loc[:, ["date", "value"]].set_index("date")
 
     #  If a constant timeseries is required
     elif kind == "Constant":
-        value = data.loc[:, "Waarde"].values[0] * 1e-3
+        value = float(data.loc[:, "Waarde"].values[0]) * 1e-3
         tindex = date_range(tmin, tmax, freq=freq)
         series = Series(value, index=tindex)
 
@@ -117,7 +130,7 @@ def create_block_series(data, tindex):
     for t, val in data.iterrows():
         day, month = [int(x) for x in t.split("-")]
         mask = (series.index.month == month) & (series.index.day == day)
-        series.loc[mask] = val.values[0]
+        series.loc[mask] = float(val.values[0])
 
     series.fillna(method="ffill", inplace=True)
     return series

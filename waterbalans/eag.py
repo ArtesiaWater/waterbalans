@@ -124,7 +124,7 @@ class Eag:
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "Code"] + "_" +
                                   self.parameters.loc[:,
-                                  "LaagVolgorde"].astype(str), inplace=True)
+                                  "Laagvolgorde"].astype(str), inplace=True)
 
         for id, bucket in self.buckets.items():
             p = params.loc[params.loc[:, "BakjeID"] == id]
