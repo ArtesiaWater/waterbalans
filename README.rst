@@ -7,7 +7,7 @@ Auteur: R.A. Collenteur, Artesia Water 2018
 
 .. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png?raw=true
    :height: 100px
-   :width: 200px
+   :width: 100px
 
 Installatie
 ===========
