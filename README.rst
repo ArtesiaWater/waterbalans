@@ -5,11 +5,9 @@ Deze repository bevat het Waternet Waterbalansen model, zoals uitgewerkt door Ma
 
 Auteur: R.A. Collenteur, Artesia Water 2018
 
-
-.. image:: https://raw.githubusercontent.com/ArtesiaWater/waterbalans/master/logo.png?token=ALfi354pFyK6W7soAlD9doVWTSDyTQUeks5azyq6wA%3D%3D
+.. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png?raw=true
    :height: 100px
    :width: 200px
-
 
 Installatie
 ===========
@@ -25,7 +23,7 @@ Installatie vereisten
 =====================
 - Python 3.6 installatie (bij voorkeur Anaconda https://www.anaconda.com/download/)
 
-Project Group
+Project Groep
 =============
 
 - Maarten Wensing (Projectleider)
