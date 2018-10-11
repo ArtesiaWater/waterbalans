@@ -2,11 +2,12 @@ from datetime import datetime
 
 import pandas as pd
 
-from hkvfewspy import pi
+from hkvfewspy import Pi
 
 startTime = datetime(2017, 1, 29)
 endTime = datetime(2018, 6, 1)
 
+pi = Pi()
 pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
 
 lijst = pd.read_csv("fews/waterbalans.txt", sep=";", header=None,
@@ -15,7 +16,7 @@ lijst = pd.read_csv("fews/waterbalans.txt", sep=";", header=None,
 
 warning = {}
 
-for _, row in lijst.iterrows():
+for _, row in lijst.head().iterrows():
     moduleInstanceId, parameterId, locationId = row.loc[["moduleInstanceId",
                                                          "parameterId",
                                                          "locationId"]]
@@ -31,7 +32,7 @@ for _, row in lijst.iterrows():
     query.clientTimeZone('Europe/Amsterdam')
 
     try:
-        df, entry = pi.getTimeSeries(query, setFormat='df')
+        df = pi.getTimeSeries(query, setFormat='df')
         df.reset_index(inplace=True)
         df = df.loc[:, ["date", "value"]].set_index("date")
         df.value.plot()

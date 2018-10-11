@@ -1,6 +1,6 @@
 """Dit bestand bevat de EAG model klasse.
 
-Raoul Collenteur, Artesia Water, September 2017
+Raoul Collenteur, Artesia Water, September 2018
 
 """
 
@@ -35,8 +35,9 @@ class Eag:
         self.id = id
         self.name = name
 
-        # Add some data
+        # Container for all the buckets
         self.buckets = OrderedDict()
+        # Eag attribute containing the water bucket
         self.water = None
 
         # This will be for future use when series are provided.
@@ -68,7 +69,7 @@ class Eag:
             self.buckets[bucket.id] = bucket
 
     def add_water(self, water, replace=False):
-        """Adds a water bucket to the model. This is the "place" where all
+        """Adds a water bucket to the model. This is the bucket where all
         fluxes of an EAG come together.
 
         Parameters
@@ -136,7 +137,8 @@ class Eag:
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
     def aggregate_fluxes(self):
-        """Method to aggregate fluxes to those used for visualisation.
+        """Method to aggregate fluxes to those used for visualisation in the
+        Excel Waterbalance.
 
         Returns
         -------
@@ -150,7 +152,7 @@ class Eag:
             "Verdamping": "verdamping",
             "Qkwel": "kwel",
             "Qwegz": "wegzijging",
-            "x": "inlaat",
+            "Inlaat": "inlaat",
             "q_out": "uitlaat",
             "q_oa_2": "verhard",  # Verhard: q_oa van Verhard bakje
         }
@@ -188,8 +190,14 @@ class Eag:
 
         return fluxes
 
-    def calculate_chloride_concentration(self):
+    def calculate_chloride_concentration(self, params=None):
         """Calculate the chloride concentratation in the water bucket.
+
+        Parameters
+        ----------
+        params: pandas.DataFrame
+            Pandas DataFrame containing the parameters, similar to the
+            simulate method.
 
         Returns
         -------

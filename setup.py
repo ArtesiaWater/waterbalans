@@ -34,7 +34,7 @@ setup(
                       'pandas>=0.20',
                       'scipy>=0.19',
                       'xmltodict',
-                      'hkvfewspy>=0.2.3'],
+                      'hkvfewspy>=0.5.9'],
     packages=find_packages(exclude=[]),
     include_package_data=True,
 )

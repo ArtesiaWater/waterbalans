@@ -113,7 +113,8 @@ class Water(WaterBase):
         # 2. calculate water bucket specific fluxes
         series = self.series.multiply(self.area)
         # TODO add series to fluxes without knowing the amount of series up front
-        series.loc[:, "e"] = -makkink_to_penman(series.loc[:, "Verdamping"])
+        series.loc[:, "Verdamping"] = -makkink_to_penman(series.loc[:,"Verdamping"])
+        series.loc[:, "Qwegz"] = -series.loc[:, "Qwegz"]
         self.fluxes = self.fluxes.join(series, how="outer")
 
         hMin_1 = hMin_1 * self.area
@@ -122,7 +123,6 @@ class Water(WaterBase):
         h = [hTarget_1 * self.area]
         q_in = []
         q_out = []
-
         q_totals = self.fluxes.sum(axis=1)
 
         # 3. Calculate the fluxes coming in and going out.

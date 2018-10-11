@@ -23,6 +23,11 @@ def create_eag(id, name, buckets, gaf=None, series=None):
     eag: waterbalans.Eag instance
         Instance of the Eag class.
 
+    Notes
+    -----
+
+
+
     """
     eag = Eag(id=id, name=name, gaf=gaf, series=series)
 

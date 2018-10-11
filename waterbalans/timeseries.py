@@ -4,9 +4,10 @@ waterbalance.
 Auteur: R.A. Collenteur, Artesia Water
 
 """
-from hkvfewspy import pi
-from pandas import date_range, Series, DataFrame, Timestamp
 
+from hkvfewspy import Pi
+from pandas import date_range, Series, DataFrame, Timestamp
+pi = Pi()
 pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
 
 
@@ -39,7 +40,6 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     -----
 
     """
-    print(name)
     if tmin is None:
         tmin = Timestamp("2010")
     else:
@@ -55,26 +55,6 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
             data = data.iloc[0]
         moduleInstanceId, locationId, parameterId, _ = data.split("|")
 
-        params = dict(
-            moduleInstanceIds=[moduleInstanceId],
-            parameterIds=[parameterId],
-            locationIds=[locationId],
-            startTime=tmin,
-            endTime=tmax,
-            clientTimeZone='Europe/Amsterdam',
-            forecastSearchCount=1,
-            convertDatum='false',
-            useDisplayUnits='false',
-            showThresholds='true',
-            omitMissing='false',
-            onlyHeaders='false',
-            onlyManualEdits='false',
-            showStatistics='false',
-            ensembleId='',
-            importFromExternalDataSource='false',
-            showEnsembleMemberIds='false',
-            version='1.22'
-        )
         query = pi.setQueryParameters(prefill_defaults=True)
         query.query["onlyManualEdits"] = False
         query.parameterIds([parameterId])
@@ -84,7 +64,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         query.endTime(tmax)
         query.clientTimeZone('Europe/Amsterdam')
 
-        df, _ = pi.getTimeSeries(query, setFormat='df')
+        df = pi.getTimeSeries(query, setFormat='df')
         df.reset_index(inplace=True)
         series = df.loc[:, ["date", "value"]].set_index("date")
 

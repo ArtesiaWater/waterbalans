@@ -5,3 +5,4 @@ from .gaf import Gaf
 from .io import *
 from .timeseries import get_series
 from .water import Water
+from .utils import *
