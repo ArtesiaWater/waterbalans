@@ -1,6 +1,8 @@
 ;EAGID;EAGCode;BakjeID;Laagvolgorde;ClusterType;ReeksType;ParamType;Waarde;WaardeAlfa;StartDag;EAGReeksWaardeID;BakjeReeksWaardeID;LaagReeksWaardeID
-0;16088;2501-EAG-1;15412;-9999;Inlaat;Flux;ValueSeries;11,930801352157487;;01-04;18367;-9999;-9999
-1;16088;2501-EAG-1;15412;-9999;Inlaat;Flux;ValueSeries;5,965400676078743;;01-10;18368;-9999;-9999
+0;16088;2501-EAG-1;-9999;-9999;Inlaat;Flux;ValueSeries;3000;;01-04;18367;-9999;-9999
+1;16088;2501-EAG-1;-9999;-9999;Inlaat;Flux;ValueSeries;6000;;01-10;18368;-9999;-9999
+2;16088;2501-EAG-1;-9999;-9999;Verdamping;Flux;FEWS;;ImportCAW|66002_VerdampingCAL|E.metingcal|-999.0;;18424;-9999;-9999
+3;16088;2501-EAG-1;-9999;-9999;Neerslag;Flux;FEWS;;ImportCAW|66011cal|P.meting.dagcal|-999.0;;18425;-9999;-9999
 4;16088;2501-EAG-1;-9999;-9999;Peil;Flux;FEWS;;Statistiek|99999T010_West|H.meting.gem|-999.0;;18426;-9999;-9999
 5;16088;2501-EAG-1;15412;-9999;ClVerhard;Cl;;10;;;-9999;74;-9999
 6;16088;2501-EAG-1;15412;-9999;ClRiolering;Cl;;100;;;-9999;75;-9999

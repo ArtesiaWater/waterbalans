@@ -103,3 +103,4 @@ ENV/
 .idea/workspace.xml
 .idea/waterbalans.iml
 .idea/misc.xml
+.ini

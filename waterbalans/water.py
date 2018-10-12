@@ -27,6 +27,8 @@ class WaterBase(ABC):
         and simulate methods.
 
         """
+        self.load_series_from_eag()
+
         if tmin is None:
             tmin = self.series.index.min()
         else:

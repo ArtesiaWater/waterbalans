@@ -4,7 +4,7 @@
 import pandas as pd
 import xmltodict
 
-from waterbalans.io.decorators import filepath_or_buffer
+from waterbalans.oud.io import filepath_or_buffer
 
 
 @filepath_or_buffer

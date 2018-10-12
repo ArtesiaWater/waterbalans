@@ -8,6 +8,7 @@ from collections import OrderedDict
 
 from .buckets import *
 from .plots import Eag_Plots
+from .timeseries import get_series
 
 
 class Eag:
@@ -86,28 +87,46 @@ class Eag:
         else:
             self.water = water
 
+    def add_series(self, series, tmin="2000", tmax="2015", freq="D"):
+        """Method to add timeseries based on a pandas DataFrame.
+
+        Parameters
+        ----------
+        series: pandas.DataFrame
+        tmin: str or pandas.Timestamp, optional
+        tmax: str or pandas.Timestamp, optional
+        freq: str
+
+        Notes
+        -----
+
+        Examples
+        --------
+        series = pd.read_csv("data\\reeks_16088_2501-EAG-1.csv", delimiter=";",
+                      decimal=",")
+        eag.add_series(series)
+
+        """
+        for id, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
+            BakjeID, ClusterType, ParamType = id
+            series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
+            if BakjeID in self.buckets.keys():
+                self.buckets[BakjeID].series[ClusterType] = series
+            elif BakjeID == self.water.id:
+                self.water.series[ClusterType] = series
+            elif BakjeID == -9999:
+                self.series[ClusterType] = series
+
     def load_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
         provided.
 
-        """
-        self.series["Neerslag"] = self.gaf.series["Neerslag"]
-        self.series["Verdamping"] = self.gaf.series["Neerslag"]
 
-    def get_init_parameters(self):
-        """Method to obtain the parameters from the Buckets
-
-        Returns
-        -------
 
         """
-        parameters = self.parameters
-        for name, bucket in self.buckets.items():
-            p = bucket.parameters
-            p.loc[:, "BakjeID"] = name
-            parameters = parameters.append(p, ignore_index=True)
-
-        return parameters
+        raise NotImplementedError
+        # self.series["Neerslag"] = self.gaf.series["Neerslag"]
+        # self.series["Verdamping"] = self.gaf.series["Verdamping"]
 
     def simulate(self, params, tmin=None, tmax=None):
         """Method to validate the water balance based on the total input,
@@ -121,7 +140,6 @@ class Eag:
         tmax: str or pandas.Timestamp
 
         """
-
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "Code"] + "_" +
                                   self.parameters.loc[:,
@@ -135,6 +153,7 @@ class Eag:
 
         p = params.loc[params.loc[:, "BakjeID"] == self.water.id]
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
+        print("Simulation succesfully completed.")
 
     def aggregate_fluxes(self):
         """Method to aggregate fluxes to those used for visualisation in the
@@ -257,9 +276,10 @@ class Eag:
             pandas DataFrame with the fractions.
 
         """
-        fluxes = self.aggregate_fluxes()
-        frac = pd.DataFrame(index=fluxes.index)
-
-        # Volume + Totaal_uit
-
-        return frac
+        raise NotImplementedError
+        # fluxes = self.aggregate_fluxes()
+        # frac = pd.DataFrame(index=fluxes.index)
+        #
+        # # Volume + Totaal_uit
+        #
+        # return frac

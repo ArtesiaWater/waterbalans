@@ -7,6 +7,7 @@ Auteur: R.A. Collenteur, Artesia Water
 
 from hkvfewspy import Pi
 from pandas import date_range, Series, DataFrame, Timestamp
+
 pi = Pi()
 pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
 
@@ -67,6 +68,12 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         df = pi.getTimeSeries(query, setFormat='df')
         df.reset_index(inplace=True)
         series = df.loc[:, ["date", "value"]].set_index("date")
+        series = series.tz_localize(None)  # Remove timezone from FEWS series
+        series = series.astype(float)
+        series.index = series.index.round("D")
+        series = series.squeeze()
+
+        # TODO check units
 
     #  If a constant timeseries is required
     elif kind == "Constant":
@@ -78,7 +85,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     elif kind == "ValueSeries":
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
         tindex = date_range(tmin, tmax, freq=freq)
-        series = create_block_series(df, tindex) * 1e-3
+        series = create_block_series(df, tindex) * 1e-3  # TODO Hardcoded?
     else:
         return print("kind {} not supported".format(kind))
 

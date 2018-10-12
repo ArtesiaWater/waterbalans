@@ -38,7 +38,6 @@ class BucketBase(ABC):
 
         self.series = pd.DataFrame()
         self.series = self.series.append(series)
-        self.load_series_from_eag()
 
         self.parameters = pd.DataFrame(columns=["Waarde"])
         self.area = area  # area in square meters
@@ -49,6 +48,8 @@ class BucketBase(ABC):
         and simulate methods.
 
         """
+        self.load_series_from_eag()
+
         if tmin is None:
             tmin = self.series.index.min()
         else:
@@ -59,7 +60,7 @@ class BucketBase(ABC):
         else:
             tmax = pd.Timestamp(tmax)
 
-        index = self.series[tmin:tmax].index
+        index = self.series[tmin:tmax].dropna().index
         self.fluxes = pd.DataFrame(index=index, dtype=float)
         self.storage = pd.DataFrame(index=index, dtype=float)
 
@@ -123,19 +124,24 @@ class Verhard(BucketBase):
         q_s = []
         q_oa = []
 
-        for t, pes in self.series.loc[:,
-                      ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
+        series = self.series.loc[self.fluxes.index]
+
+        for _, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
             p, e, s = pes
+
+            # Bereken de waterbalans in laag 1
             q_no.append(
                 calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
-            q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
-            q_s.append(s)
-            v, q = vol_q_oa(h_1[-1], 0.0, q_no[-1], 0.0, hMax_1, dt)
+            h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], 0.0, hMax_1, dt)
             # The completely random choice to create a waterbalance rest term?
-            h_1.append(max(0.0, v))
+            h_1.append(max(0.0, h)) # TODO is dit logisch?
             q_oa.append(q)
-            v, q_del = vol_q_oa(h_2[-1], q_s[-1], 0.0, q_ui[-1], hMax_2, dt)
-            h_2.append(v)
+
+            # Bereken de waterbalans in laag 2
+            q_s.append(s) # TODO kan er helemaal uit
+            q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
+            h, _ = calc_h_q_oa(h_2[-1], s, 0.0, q_ui[-1], hMax_2, dt)
+            h_2.append(h)
 
         self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s,
                                          q_oa=q_oa)
@@ -177,25 +183,26 @@ class Onverhard(BucketBase):
 
         hEq = 0.0
 
-        h = [hInit_1 * por_1]
+        h_1 = [hInit_1 * por_1]
         q_no = []
         q_ui = []
         q_s = []
         q_oa = []
 
-        for t, pes in self.series.loc[:,
-                      ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
+        series = self.series.loc[self.fluxes.index]
+
+        for t, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, h[-1], hEq, EFacMin_1, EFacMax_1, dt))
-            q_ui.append(calc_q_ui(h[-1], RFacIn_1, RFacOut_1, hEq, dt))
+            q_no.append(calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
+            q_ui.append(calc_q_ui(h_1[-1], RFacIn_1, RFacOut_1, hEq, dt))
             q_s.append(s)
-            v1, q = vol_q_oa(h[-1], q_s[-1], q_no[-1], q_ui[-1], hMax_1, dt)
-            h.append(v1)
+            h, q = calc_h_q_oa(h_1[-1], s, q_no[-1], q_ui[-1], hMax_1, dt)
+            h_1.append(h)
             q_oa.append(q)
 
         self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s,
                                          q_oa=q_oa)
-        self.storage = self.storage.assign(Storage=h[1:])
+        self.storage = self.storage.assign(Storage=h_1[1:])
 
 
 class Drain(BucketBase):
@@ -226,43 +233,45 @@ class Drain(BucketBase):
         self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
+        # TODO check if VInit/Vmax/Vmin are L^3 or L
         VMax_1, VMax_2, VInit_1, VInit_2, EFacMin_1, EFacMax_1, RFacIn_2, \
         RFacOut_1, RFacOut_2, por_1, por_2 = \
             params.loc[self.parameters.index]
 
-        v_eq = 0.0
+        hEq = 0.0
 
         VMax_1 = VMax_1 * por_1
         VMax_2 = VMax_2 * por_2
 
-        v1 = [VInit_1 * por_1]
-        v2 = [VInit_2 * por_2]
+        h_1 = [VInit_1 * por_1]
+        h_2 = [VInit_2 * por_2]
         q_no = []
         q_ui = []
         q_s = []
         q_oa = []
         q_dr = []
 
-        for t, pes in self.series.loc[:,
-                      ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
+        series = self.series.loc[self.fluxes.index]
+
+        for t, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
             p, e, s = pes
             q_no.append(
-                calc_q_no(p, e, v1[-1], v_eq, EFacMin_1, EFacMax_1, dt))
-            q_boven = calc_q_ui(v1[-1], RFacIn_2, RFacOut_2, v_eq, dt)
-            q_ui.append(calc_q_ui(v2[-1], RFacIn_2, RFacOut_2, v_eq, dt))
+                calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
+            q_boven = calc_q_ui(h_1[-1], RFacIn_2, RFacOut_2, hEq, dt)
+            q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
             q_s.append(s)
-            v, q = vol_q_oa(v1[-1], 0.0, q_no[-1], q_boven, VMax_1, dt)
-            v1.append(v)
+            h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], q_boven, VMax_1, dt)
+            h_1.append(h)
             q_oa.append(q)
-            v, q = vol_q_oa(v2[-1], q_s[-1], -q_boven, q_ui[-1], VMax_2, dt)
-            v2.append(v)
+            h, q = calc_h_q_oa(h_2[-1], s, -q_boven, q_ui[-1], VMax_2, dt)
+            h_2.append(h)
             q_dr.append(q)
 
         self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s,
                                          q_oa=q_oa, q_dr=q_dr)
 
-        self.storage = self.storage.assign(Upper_Storage=v1[1:],
-                                           Lower_Storage=v2[1:])
+        self.storage = self.storage.assign(Upper_Storage=h_1[1:],
+                                           Lower_Storage=h_2[1:])
 
 
 def calc_q_no(p, e, h, hEq, EFacMin, EFacMax, dt=1.0):
@@ -326,6 +335,7 @@ def calc_q_ui(h, RFacIn, RFacOut, hEq, dt=1.0):
     waterlevel (h) times the factor for the ingoing fluxea.
 
     """
+    # TODO minus sign could/should be in parameter
     if h < hEq:
         q_ui = (h * -RFacIn) / dt
     else:
@@ -333,12 +343,12 @@ def calc_q_ui(h, RFacIn, RFacOut, hEq, dt=1.0):
     return q_ui
 
 
-def vol_q_oa(v, q_s, q_no, q_ui, hMax, dt=1.0):
-    """Method to calculate the storage and the q_oa flux.
+def calc_h_q_oa(h, q_s, q_no, q_ui, hMax, dt=1.0):
+    """Method to calculate the storage h and the flux q_oa.
 
     Parameters
     ----------
-    v: float
+    h: float
         storage at previous time step (t-1)
     q_s: float
         seepage flux
@@ -359,11 +369,11 @@ def vol_q_oa(v, q_s, q_no, q_ui, hMax, dt=1.0):
         outgoing flux
 
     """
-    v_p = v + (q_s + q_ui + q_no) / dt
-    if v_p > hMax:
-        v = hMax
-        q_oa = (hMax - v_p) / dt
+    h_p = h + (q_s + q_ui + q_no) / dt  # h_potential
+    if h_p > hMax:
+        h = hMax
+        q_oa = (hMax - h_p) / dt
     else:
-        v = v_p
+        h = h_p
         q_oa = 0.0
-    return v, q_oa
+    return h, q_oa

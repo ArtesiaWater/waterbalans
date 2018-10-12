@@ -2,6 +2,7 @@ from .eag import Eag
 from .water import Water
 from .buckets import Bucket
 
+
 def create_eag(id, name, buckets, gaf=None, series=None):
     """Method to create an instance of EAG.
 

@@ -21,7 +21,6 @@ for id, df in reeksen.groupby(["BakjeID", "ClusterType", "ParamType"]):
         e.water.series[ParamCode] = series
     elif BakjeID == -9999:
         e.series[ParamCode] = series
-    series.plot()
 
 params = pd.read_csv("data\\param_16088_2501-EAG-1.csv", delimiter=";",
                      decimal=",")

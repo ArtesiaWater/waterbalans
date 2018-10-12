@@ -7,7 +7,7 @@ from io import BytesIO
 
 import pandas as pd
 
-from waterbalans.io import load_model, read_xml
+from waterbalans.oud.io import load_model, read_xml
 from waterbalans.oud.access import AccessServer
 from .eag import Eag
 
