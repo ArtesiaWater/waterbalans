@@ -89,18 +89,6 @@ ENV/
 
 # Rope project settings
 .ropeproject
-.idea/workspace.xml
-.idea/vcs.xml
-.idea/workspace.xml
-.idea/workspace.xml
-.idea/workspace.xml
-.idea/workspace.xml
-*.iml
-.idea/*iml
-.idea/misc.xml
-.idea/waterbalans.iml
-.idea/workspace.xml
-.idea/workspace.xml
-.idea/waterbalans.iml
-.idea/misc.xml
-.ini
+.idea/
+
+.vscode/
