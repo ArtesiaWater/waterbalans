@@ -7,6 +7,7 @@ Auteur: R.A. Collenteur, Artesia Water
 
 from hkvfewspy import Pi
 from pandas import date_range, Series, DataFrame, Timestamp
+import numpy as np
 
 pi = Pi()
 pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
@@ -73,7 +74,12 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         series.index = series.index.round("D")
         series = series.squeeze()
 
-        # TODO check units
+        # Delete nan-values (-999) (could be moved to fewspy)
+        series.replace(-999.0, np.nan, inplace=True)
+        
+        # check units, TODO, check if others need to be fixed?
+        if name in ["Verdamping", "Neerslag"]:
+            series = series.divide(1e3)
 
     #  If a constant timeseries is required
     elif kind == "Constant":

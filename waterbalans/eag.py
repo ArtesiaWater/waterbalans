@@ -173,10 +173,10 @@ class Eag:
             "Qwegz": "wegzijging",
             "Inlaat": "inlaat",
             "q_out": "uitlaat",
-            "q_oa_2": "verhard",  # Verhard: q_oa van Verhard bakje
+            "q_oa": "verhard",  # Verhard: q_oa van Verhard bakje
         }
 
-        fluxes = self.water.fluxes.loc[:, d.keys()]
+        fluxes = self.water.fluxes.reindex(columns=d.keys())
         fluxes = fluxes.rename(columns=d)
 
         # Verhard: q_oa van alle Verhard bakjes
@@ -238,7 +238,7 @@ class Eag:
             "inlaat": 100
         }
         C_params = pd.Series(C_params)
-        Cl_init = 90
+        Cl_init = 90.
 
         # Bereken de initiele chloride massa
         hTarget = self.parameters.loc[self.parameters.loc[:, "Code"] ==

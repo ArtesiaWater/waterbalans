@@ -65,7 +65,7 @@ class BucketBase(ABC):
         self.storage = pd.DataFrame(index=index, dtype=float)
 
     def load_series_from_eag(self):
-        """Method to automatically load Neerslagipitation and Verdampingoration from
+        """Method to automatically load Precipitation and Evaporation from
         for the eag if available.
 
         """
@@ -133,6 +133,7 @@ class Verhard(BucketBase):
             q_no.append(
                 calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
             h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], 0.0, hMax_1, dt)
+            
             # The completely random choice to create a waterbalance rest term?
             h_1.append(max(0.0, h)) # TODO is dit logisch?
             q_oa.append(q)
@@ -275,29 +276,29 @@ class Drain(BucketBase):
 
 
 def calc_q_no(p, e, h, hEq, EFacMin, EFacMax, dt=1.0):
-    """Method to calculate the Neerslagipitation excess.
+    """Method to calculate the Precipitation excess.
 
     Parameters
     ----------
     p: float
-        Neerslagipitation.
+        Precipitation.
     e: float
-        Verdampingoration.
+        Evaporation.
     h: float
         Waterlevel.
     hEq: float
         Waterlevel equilibrium.
     EFacMin: float
-        Minimum Verdampingoration factor.
+        Minimum Evaporation factor.
     EFacMax: float
-        Maximum Verdampingoration factor.
+        Maximum Evaporation factor.
     dt: float
         Timestep, not used right now.
 
     Returns
     -------
     q: float
-        Neerslagipitation excess.
+        Precipitation excess.
 
     """
     if h < hEq:
@@ -353,7 +354,7 @@ def calc_h_q_oa(h, q_s, q_no, q_ui, hMax, dt=1.0):
     q_s: float
         seepage flux
     q_no: float
-        Neerslagipitation excess flux
+        Precipitation excess flux
     q_ui: float
         ... flux
     hMax: float

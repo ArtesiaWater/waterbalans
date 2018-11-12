@@ -90,7 +90,7 @@ class Water(WaterBase):
 
         self.parameters = pd.DataFrame(
             data=[0, 0, 0, 0, 0, 0],
-            index=['hTarget_1', 'hMin_1', 'hMax_1',
+            index=['hTarget_1', 'hTargetMin_1', 'hTargetMax_1',
                    'hBottom_1', 'QInMax_1', 'QOutMax_1'],
             columns=["Waarde"])
 
@@ -101,7 +101,7 @@ class Water(WaterBase):
 
         # Get parameters
         self.parameters.update(params)
-        hTarget_1, hMin_1, hMax_1, hBottom_1, QInMax_1, QOutMax_1 = \
+        hTarget_1, hTargetMin_1, hTargetMax_1, hBottom_1, QInMax_1, QOutMax_1 = \
             self.parameters.loc[:, "Waarde"]
 
         # 1. Add incoming fluxes from other buckets
@@ -119,10 +119,11 @@ class Water(WaterBase):
         series.loc[:, "Qwegz"] = -series.loc[:, "Qwegz"]
         self.fluxes = self.fluxes.join(series, how="outer")
 
-        hMin_1 = hMin_1 * self.area
-        hMax_1 = hMax_1 * self.area
+        # TODO: check if this is correct!!
+        hTargetMin_1 = (hTarget_1 - hTargetMin_1 - hBottom_1) * self.area
+        hTargetMax_1 = (hTargetMax_1 + hTarget_1 - hBottom_1) * self.area
 
-        h = [hTarget_1 * self.area]
+        h = [(hTarget_1 - hBottom_1) * self.area]
         q_in = []
         q_out = []
         q_totals = self.fluxes.sum(axis=1)
@@ -130,11 +131,11 @@ class Water(WaterBase):
         # 3. Calculate the fluxes coming in and going out.
         for q_tot in q_totals.values:
             # Calculate the outgoing flux
-            if h[-1] + q_tot > hMax_1:
-                q_out.append(min(QOutMax_1, hMax_1 - h[-1] - q_tot))
+            if h[-1] + q_tot > hTargetMax_1:
+                q_out.append(min(QOutMax_1, hTargetMax_1 - h[-1] - q_tot))
                 q_in.append(0.0)
-            elif h[-1] + q_tot < hMin_1:
-                q_in.append(hMin_1 - h[-1] - q_tot)
+            elif h[-1] + q_tot < hTargetMin_1:
+                q_in.append(hTargetMin_1 - h[-1] - q_tot)
                 q_out.append(0.0)
             else:
                 q_out.append(0.0)
@@ -142,8 +143,8 @@ class Water(WaterBase):
 
             h.append(h[-1] + q_in[-1] + q_out[-1] + q_tot)
 
-        self.storage = pd.Series(data=np.array(h[1:]) - hBottom_1 * self.area,
+        self.storage = pd.Series(data=np.array(h[1:]),
                                  index=self.fluxes.index)
-        self.level = pd.Series(data=np.array(h[1:]) / self.area,
+        self.level = pd.Series(data=np.array(h[1:]) / self.area + hBottom_1,
                                index=self.fluxes.index)
         self.fluxes = self.fluxes.assign(q_in=q_in, q_out=q_out)
