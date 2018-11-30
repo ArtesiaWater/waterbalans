@@ -94,4 +94,6 @@ ENV/
 .vscode/
 
 *.ini
-*.ini
+
+
+waterbalans/desktop.ini
