@@ -6,7 +6,7 @@ Auteur: R.A. Collenteur, Artesia Water
 """
 
 from hkvfewspy import Pi
-from pandas import date_range, Series, DataFrame, Timestamp
+from pandas import date_range, Series, DataFrame, Timestamp, Timedelta
 import numpy as np
 
 pi = Pi()
@@ -71,7 +71,9 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         series = df.loc[:, ["date", "value"]].set_index("date")
         series = series.tz_localize(None)  # Remove timezone from FEWS series
         series = series.astype(float)
-        series.index = series.index.round("D")
+        # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden. 
+        if np.any(series.index.hour != 9):
+            series.index = series.index.floor(freq="D") - Timedelta(days=1)
         series = series.squeeze()
 
         # Delete nan-values (-999) (could be moved to fewspy)

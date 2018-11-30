@@ -143,8 +143,32 @@ class Water(WaterBase):
 
             h.append(h[-1] + q_in[-1] + q_out[-1] + q_tot)
 
-        self.storage = pd.Series(data=np.array(h[1:]),
-                                 index=self.fluxes.index)
-        self.level = pd.Series(data=np.array(h[1:]) / self.area + hBottom_1,
-                               index=self.fluxes.index)
+        index_with_startday = pd.DatetimeIndex([self.fluxes.index[0] - pd.Timedelta(days=1)]).union(self.fluxes.index)
+        self.storage = pd.Series(data=np.array(h),
+                                 index=index_with_startday)
+        self.level = pd.Series(data=np.array(h) / self.area + hBottom_1,
+                               index=index_with_startday)
         self.fluxes = self.fluxes.assign(q_in=q_in, q_out=q_out)
+
+    def validate(self, return_wb_series=False):
+        """Method to validate the water balance based on the total input,
+        output and the change in storage of the model for each time step.
+
+        Returns
+        -------
+
+        """
+        if not hasattr(self, "fluxes"):
+            raise AttributeError("No attribute 'fluxes'. Run simulate first")
+        
+        wb = pd.DataFrame(index=self.fluxes.index, columns=["DeltaS", "DeltaQ"])
+
+        wb.loc[:, "DeltaS"] = self.storage.diff(periods=1)
+        wb.loc[:, "DeltaQ"] = self.fluxes.sum(axis=1)
+
+        wb["Water balance"] = wb.loc[:, "DeltaS"] - wb.loc[:, "DeltaQ"]
+
+        if return_wb_series:
+            return wb
+        else:
+            return np.allclose(wb["Water balance"].dropna(), 0.0)

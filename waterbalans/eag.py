@@ -171,9 +171,9 @@ class Eag:
             "Verdamping": "verdamping",
             "Qkwel": "kwel",
             "Qwegz": "wegzijging",
-            "Inlaat": "inlaat",
-            "q_out": "uitlaat",
             "q_oa": "verhard",  # Verhard: q_oa van Verhard bakje
+            "q_in": "berekende inlaat",
+            "q_out": "berekende uitlaat"
         }
 
         fluxes = self.water.fluxes.reindex(columns=d.keys())
@@ -203,6 +203,10 @@ class Eag:
                  self.buckets[id].name == "Onverhard"]
         q_afstroom = self.water.fluxes.loc[:, names]
         fluxes["afstroming"] = q_afstroom.sum(axis=1)
+
+        # Berekende in en uitlaat
+        fluxes["berekende inlaat"] = self.water.fluxes["q_in"]
+        fluxes["berekende uitlaat"] = self.water.fluxes["q_out"]
 
         # Gedraineerd: q_oa - positieve q_ui van Drain
         fluxes["drain"] = 0
@@ -235,7 +239,7 @@ class Eag:
             "drain": 70,
             "uitspoeling": 70,
             "afstroming": 35,
-            "inlaat": 100
+            "berekende inlaat": 100
         }
         C_params = pd.Series(C_params)
         Cl_init = 90.
@@ -250,8 +254,8 @@ class Eag:
         M = Cl_init * V_init
         C_out = Cl_init
 
-        # Som van de uitgaande fluxen: wegzijging, intrek, uitlaat
-        V_out = fluxes.loc[:, ["intrek", "uitlaat", "wegzijging"]].sum(axis=1)
+        # Som van de uitgaande fluxen: wegzijging, intrek, berekende uitlaat
+        V_out = fluxes.loc[:, ["intrek", "berekende uitlaat", "wegzijging"]].sum(axis=1)
 
         for t in fluxes.index:
             M_in = fluxes.loc[t, C_params.index].multiply(C_params).sum()

@@ -7,6 +7,7 @@
 from abc import ABC
 
 import pandas as pd
+import numpy as np
 
 
 class Bucket:
@@ -126,7 +127,12 @@ class Verhard(BucketBase):
 
         series = self.series.loc[self.fluxes.index]
 
-        for _, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
+        # test if columns are present!
+        if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
+            print("Warning: {} not in series. Assumed equal to 0!".format( {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+
+        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
+                                     fill_value=0.0).iterrows():
             p, e, s = pes
 
             # Bereken de waterbalans in laag 1
@@ -192,7 +198,12 @@ class Onverhard(BucketBase):
 
         series = self.series.loc[self.fluxes.index]
 
-        for t, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
+        # test if columns are present!
+        if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
+            print("Warning: {} not in series. Assumed equal to 0!".format( {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+
+        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
+                                     fill_value=0.0).iterrows():
             p, e, s = pes
             q_no.append(calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
             q_ui.append(calc_q_ui(h_1[-1], RFacIn_1, RFacOut_1, hEq, dt))
@@ -234,10 +245,15 @@ class Drain(BucketBase):
         self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
+        # test if columns are present!
+        if not set(params.index).issubset(self.parameters.index):
+            print("Warning: {} not in series. Assumed equal to np.NaN!".format( set(self.parameters.index) - set(params.index)))
+
         # TODO check if VInit/Vmax/Vmin are L^3 or L
         VMax_1, VMax_2, VInit_1, VInit_2, EFacMin_1, EFacMax_1, RFacIn_2, \
         RFacOut_1, RFacOut_2, por_1, por_2 = \
-            params.loc[self.parameters.index]
+            params.reindex(index=self.parameters.index)
+        
 
         hEq = 0.0
 
@@ -254,7 +270,12 @@ class Drain(BucketBase):
 
         series = self.series.loc[self.fluxes.index]
 
-        for t, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
+        # test if columns are present!
+        if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
+            print("Warning: {} not in series. Assumed equal to 0!".format( {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+
+        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
+                                     fill_value=0.0).iterrows():
             p, e, s = pes
             q_no.append(
                 calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
@@ -273,6 +294,22 @@ class Drain(BucketBase):
 
         self.storage = self.storage.assign(Upper_Storage=h_1[1:],
                                            Lower_Storage=h_2[1:])
+
+
+class MengRiool(BucketBase):
+    def __init__(self, id, eag, series, area=0.0):
+        BucketBase.__init__(self, id, eag, series, area)
+        self.name = "MengRiool"
+
+    def simulate(self, params, tmin, tmax, dt=1.0):
+        self.initialize(tmin=tmin, tmax=tmax)
+
+        # TODO calculate MengRiool flux:
+        series = pd.DataFrame(index=self.series["Neerslag"].index,
+                              data=np.zeros(self.series.shape[0]),
+                              columns=["q_dr"])
+        self.fluxes = self.fluxes.assign(q_dr=series)
+        self.storage = self.storage.assign(Storage=0)
 
 
 def calc_q_no(p, e, h, hEq, EFacMin, EFacMax, dt=1.0):

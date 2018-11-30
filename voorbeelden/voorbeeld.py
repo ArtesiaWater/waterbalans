@@ -35,7 +35,7 @@ e.simulate(params=params, tmin="2000", tmax="2015-12-31")
 
 # Calculate and plot the fluxes as a bar plot
 fluxes = e.aggregate_fluxes()
-fluxes.loc["2010": "2015"].resample("M").mean().plot.bar(stacked=True)
+fluxes.loc["2010":"2015"].resample("M").mean().plot.bar(stacked=True, width=1)
 
 # Calculate and plot the chloride concentration
 C = e.calculate_chloride_concentration()
