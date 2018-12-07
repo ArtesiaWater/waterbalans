@@ -27,10 +27,14 @@ Project Groep
 =============
 
 - Maarten Wensing (Projectleider)
-- Pytrik Graafstra (Conceptueel overzicht)
 - Jan Willem Voort (Gebruiker)
-- Ben Staring (FEWS)
 - Laura Moria (Gebruiker)
 - Maarten Ouboter (Maker Excel-balans)
-- Raoul Collenteur (Python Programmeur)
+- Davíd Brakenhoff (Python Programmeur)
+- Ben Staring (FEWS)
 - Stefan Fritz (GIS)
+
+Niet langer betrokken maar veel belangrijk werk verricht in de eerste fase:
+
+- Pytrik Graafstra (Conceptueel overzicht)
+- Raoul Collenteur (Python Programmeur)
