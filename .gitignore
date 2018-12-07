@@ -95,5 +95,4 @@ ENV/
 
 *.ini
 
-
-waterbalans/desktop.ini
+./waterbalans/desktop.ini

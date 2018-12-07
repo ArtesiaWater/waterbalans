@@ -1,7 +1,12 @@
 """This file contains practical classes and methods for use throughout the "Waterbalans" model.
 
 """
+import os
+import numpy as np
+import pandas as pd
 from pandas import to_datetime, to_timedelta, Series
+import matplotlib.pyplot as plt
+from pastas.read import KnmiStation
 
 class Singleton(type):
     _instances = {}
@@ -57,3 +62,41 @@ def makkink_to_penman(e):
     for i in range(1, 13):
         e.loc[e.index.month == i] = e.loc[e.index.month == i] / penman[i - 1]
     return e
+
+def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
+    """Calculate Combined Sewer Overflow timeseries based 
+    on hourly precipitation series.
+    
+    Parameters
+    ----------
+    prec : pd.Series
+        hourly precipitation
+    Bmax : float
+        maximum storage capacity in meters
+    POCmax : float
+        maximum pump (over) capacity
+    alphasmooth : float, optional
+        factor for exponential smoothing (the default is 0.1)
+    
+    Returns
+    -------
+    pd.Series
+        timeseries of combined sewer overflows (cso)
+    
+    """
+
+    p_smooth = prec.ewm(alpha=alphasmooth, adjust=False).mean()
+    b = p_smooth.copy()
+    poc = p_smooth.copy()
+    cso = p_smooth.copy()
+    vol = p_smooth.copy()
+
+    for i in range(1, len(p_smooth.index)):
+        vol.iloc[i] = p_smooth.iloc[i] + b.iloc[i-1] - poc.iloc[i-1]
+        b.iloc[i] = np.min([vol.iloc[i], Bmax])
+        poc.iloc[i] = np.min([b.iloc[i], POCmax])
+        cso.iloc[i] = np.max([vol.iloc[i] - Bmax, 0.0])
+
+    cso_daily = cso.resample("D").sum()
+    
+    return cso_daily

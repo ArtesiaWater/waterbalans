@@ -106,7 +106,7 @@ class Water(WaterBase):
 
         # 1. Add incoming fluxes from other buckets
         for bucket in self.eag.buckets.values():
-            names = ["q_ui", "q_oa", "q_dr"]
+            names = ["q_ui", "q_oa", "q_dr", "q_cso"]
             names = [name for name in names if name in bucket.fluxes.columns]
             fluxes = bucket.fluxes.loc[:, names] * -bucket.area
             fluxes.columns = [name + "_" + str(bucket.id) for name in names]

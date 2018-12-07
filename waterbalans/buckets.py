@@ -5,9 +5,11 @@
 """
 
 from abc import ABC
-
+import warnings
 import pandas as pd
 import numpy as np
+from .utils import calculate_cso
+from pastas.read import KnmiStation
 
 
 class Bucket:
@@ -130,7 +132,7 @@ class Verhard(BucketBase):
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
             print("Warning: {} not in series. Assumed equal to 0!".format( {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
-
+            
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
                                      fill_value=0.0).iterrows():
             p, e, s = pes
@@ -248,6 +250,7 @@ class Drain(BucketBase):
         # test if columns are present!
         if not set(params.index).issubset(self.parameters.index):
             print("Warning: {} not in series. Assumed equal to np.NaN!".format( set(self.parameters.index) - set(params.index)))
+            # warnings.warn("{0} is missing parameters for bucket {1}!".format(self.eag.name, self.name))
 
         # TODO check if VInit/Vmax/Vmin are L^3 or L
         VMax_1, VMax_2, VInit_1, VInit_2, EFacMin_1, EFacMax_1, RFacIn_2, \
@@ -272,7 +275,8 @@ class Drain(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            print("Warning: {} not in series. Assumed equal to 0!".format( {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+            print("Warning: {} not in series. Assumed equal to 0!".format({"Neerslag", "Verdamping", "Qkwel"} - 
+                                                                          set(series.columns)))
 
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
                                      fill_value=0.0).iterrows():
@@ -300,16 +304,45 @@ class MengRiool(BucketBase):
     def __init__(self, id, eag, series, area=0.0):
         BucketBase.__init__(self, id, eag, series, area)
         self.name = "MengRiool"
+        self.parameters = pd.DataFrame(
+            data=[240, 5e-3, 0.5e-3],
+            index=['KNMIStation', 'Bmax', 'POCmax'],
+            columns=["Waarde"])
 
     def simulate(self, params, tmin, tmax, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
 
-        # TODO calculate MengRiool flux:
-        series = pd.DataFrame(index=self.series["Neerslag"].index,
-                              data=np.zeros(self.series.shape[0]),
-                              columns=["q_dr"])
-        self.fluxes = self.fluxes.assign(q_dr=series)
-        self.storage = self.storage.assign(Storage=0)
+        # get params
+        self.parameters.update(params)
+
+        knmistn = int(self.parameters.at["KNMIStation", "Waarde"])
+        Bmax = self.parameters.at["Bmax", "Waarde"]
+        POCmax = self.parameters.at["POCmax", "Waarde"]
+
+        # See if cached version is available, otherwise calculate 
+        # Note caching has risks if Bmax and POCmax change! 
+        # And also if a different period is calculated!
+        try:
+            print("Try picking up CSO timeseries from pickle...")
+            ts_cso = pd.read_pickle(r"G:/My Drive/k/01-Projecten/17026004_WATERNET_Waterbalansen/05pyfiles/{0:g}_cso_timeseries.pklz".format(knmistn),
+                                    compression="zip")
+            ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
+            print("Success!")
+        except FileNotFoundError:
+            print("Failed, calculating CSO series... Downloading hourly KNMI data for station {}".format(knmistn))
+            prec = KnmiStation.download(stns=[knmistn], interval="hour", start=tmin, end=tmax, vars="RH")
+            print("Download succeeded, calculating series...")
+            ts_cso = calculate_cso(prec.data.RH, Bmax, POCmax, alphasmooth=0.1)
+            print("Success! (Pickling series for future use.)")
+            ts_cso.to_pickle(r"G:/My Drive/k/01-Projecten/17026004_WATERNET_Waterbalansen/05pyfiles/{0:g}_cso_timeseries.pklz".format(knmistn), 
+                             compression="zip")
+
+        series = pd.DataFrame(index=ts_cso.index,
+                              data=-1.*ts_cso.values,
+                              columns=["q_cso"])
+
+        self.fluxes = self.fluxes.assign(q_cso=series)
+        self.storage = self.storage.assign(Storage=0.)
 
 
 def calc_q_no(p, e, h, hEq, EFacMin, EFacMax, dt=1.0):

@@ -192,8 +192,9 @@ class Eag:
         q_uitspoel[q_uitspoel < 0] = 0
         fluxes["uitspoeling"] = q_uitspoel.sum(axis=1)
 
-        # Intrek: alle negatieve q_ui fluxes uit alle bakjes
-        names = ["q_ui_" + str(id) for id in self.buckets.keys()]
+        # Intrek: alle negatieve q_ui fluxes uit alle bakjes behalve MengRiool
+        names = ["q_ui_" + str(id) for id in self.buckets.keys() if
+                 self.buckets[id].name != "MengRiool"]
         q_intrek = self.water.fluxes.loc[:, names]
         q_intrek[q_intrek > 0] = 0
         fluxes["intrek"] = q_intrek.sum(axis=1)
@@ -203,6 +204,12 @@ class Eag:
                  self.buckets[id].name == "Onverhard"]
         q_afstroom = self.water.fluxes.loc[:, names]
         fluxes["afstroming"] = q_afstroom.sum(axis=1)
+
+        # Combined Sewer Overflow: q_cso van MengRiool bakjes
+        names = ["q_cso_" + str(id) for id in self.buckets.keys() if
+                 self.buckets[id].name == "MengRiool"]
+        q_cso = self.water.fluxes.loc[:, names]
+        fluxes["q_cso"] = q_cso.sum(axis=1)
 
         # Berekende in en uitlaat
         fluxes["berekende inlaat"] = self.water.fluxes["q_in"]
