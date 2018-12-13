@@ -30,6 +30,8 @@ e.add_series(reeksen)
 # Simuleer de waterbalans
 params = pd.read_csv("data\\param_19578_2501-EAG-1.csv", delimiter=";",
                      decimal=",")
+params.rename(columns={"ParamCode": "Code"}, inplace=True)
+params["Waarde"] = pd.to_numeric(params.Waarde)
 
 e.simulate(params=params, tmin="2000", tmax="2015-12-31")
 
