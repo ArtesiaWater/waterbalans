@@ -52,9 +52,16 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         tmax = Timestamp(tmax)
     # Download a timeseries from FEWS
     if kind == "FEWS":
-        data = data.loc[:, "WaardeAlfa"].values[0]
+        
+        # Note: this selects only the first entry if there are multiple
         if isinstance(data, DataFrame):
+            data = data.loc[:, "WaardeAlfa"]
+            if len(data) > 1:
+                print("Warning! Multiple series found, selecting "
+                    "first one ({}) and continuing".format(data.iloc[0]))
             data = data.iloc[0]
+        else:
+            data = data.loc["WaardeAlfa"].values[0]
         moduleInstanceId, locationId, parameterId, _ = data.split("|")
 
         query = pi.setQueryParameters(prefill_defaults=True)

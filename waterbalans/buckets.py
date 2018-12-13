@@ -225,10 +225,10 @@ class Drain(BucketBase):
         self.name = "Drain"
 
         self.parameters = pd.DataFrame(
-            data=[],  # TODO Vul de waarden in
-            index=['VMax_1', 'VMax_2', 'VInit_1', 'VInit_2', 'EFacMin_1',
-                   'EFacMax_1', 'RFacIn_2', 'RFacOut_1', 'RFacOut_2', 'por_1',
-                   'por_2'],
+            data=[0.7, 0.3, 0.35, 0.3, 0.75, 1.0, 0.5, 0.0, 0.001, 0.001, 0.3, 0.3], 
+            index=['hMax_1', 'hMax_2', 'hInit_1', 'hInit_2', 
+                   'EFacMin_1', 'EFacMax_1', 'RFacIn_1', 'RFacIn_2', 
+                   'RFacOut_1', 'RFacOut_2', 'por_1', 'por_2'],
             columns=["Waarde"])
         self.parameters.loc[:, "pname"] = self.parameters.index
 
@@ -253,18 +253,18 @@ class Drain(BucketBase):
             # warnings.warn("{0} is missing parameters for bucket {1}!".format(self.eag.name, self.name))
 
         # TODO check if VInit/Vmax/Vmin are L^3 or L
-        VMax_1, VMax_2, VInit_1, VInit_2, EFacMin_1, EFacMax_1, RFacIn_2, \
+        hMax_1, hMax_2, hInit_1, hInit_2, EFacMin_1, EFacMax_1, RFacIn_1, RFacIn_2, \
         RFacOut_1, RFacOut_2, por_1, por_2 = \
             params.reindex(index=self.parameters.index)
         
 
         hEq = 0.0
 
-        VMax_1 = VMax_1 * por_1
-        VMax_2 = VMax_2 * por_2
+        hMax_1 = hMax_1 * por_1
+        hMax_2 = hMax_2 * por_2
 
-        h_1 = [VInit_1 * por_1]
-        h_2 = [VInit_2 * por_2]
+        h_1 = [hInit_1 * por_1]
+        h_2 = [hInit_2 * por_2]
         q_no = []
         q_ui = []
         q_s = []
@@ -281,15 +281,14 @@ class Drain(BucketBase):
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
                                      fill_value=0.0).iterrows():
             p, e, s = pes
-            q_no.append(
-                calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
+            q_no.append(calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
             q_boven = calc_q_ui(h_1[-1], RFacIn_2, RFacOut_2, hEq, dt)
             q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
             q_s.append(s)
-            h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], q_boven, VMax_1, dt)
+            h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], q_boven, hMax_1, dt)
             h_1.append(h)
             q_oa.append(q)
-            h, q = calc_h_q_oa(h_2[-1], s, -q_boven, q_ui[-1], VMax_2, dt)
+            h, q = calc_h_q_oa(h_2[-1], s, -q_boven, q_ui[-1], hMax_2, dt)
             h_2.append(h)
             q_dr.append(q)
 

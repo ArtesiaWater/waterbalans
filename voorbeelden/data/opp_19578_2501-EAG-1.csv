@@ -1,0 +1,8 @@
+;EAGID;EAGCode;BakjeID;BakjeOmschrijving;BakjePyCode;OppWaarde
+0;19578;2501-EAG-1;16355;Verhard_>0 & <= 0.5 kwel;Verhard;43547.0
+1;19578;2501-EAG-1;16356;Onverhard_>0 & <= 0.5 kwel;Onverhard;1840576.0
+2;19578;2501-EAG-1;16357;Verhard_>-0.4306 & <= 0 weinig wegzijging;Verhard;47023.0
+3;19578;2501-EAG-1;16358;Onverhard_>-0.4306 & <= 0 weinig wegzijging;Onverhard;766779.0
+4;19578;2501-EAG-1;16359;Verhard_>-1 & <=-0.4306 meer wegzijging;Verhard;12323.0
+5;19578;2501-EAG-1;16360;Onverhard_>-1 & <=-0.4306 meer wegzijging;Onverhard;520862.0
+6;19578;2501-EAG-1;16361;Waterbak;Water;502900.0
