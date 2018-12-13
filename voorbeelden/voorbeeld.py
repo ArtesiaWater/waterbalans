@@ -17,6 +17,7 @@ wb.pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
 
 buckets = pd.read_csv("data\\opp_19578_2501-EAG-1.csv", delimiter=";",
                       decimal=",")
+buckets["OppWaarde"] = pd.to_numeric(buckets.OppWaarde)
 name = "2501-EAG-01"
 id = 1
 # Aanmaken van modelstructuur en de bakjes.
