@@ -113,7 +113,10 @@ class Eag:
             if BakjeID in self.buckets.keys():
                 self.buckets[BakjeID].series[ClusterType] = series
             elif BakjeID == self.water.id:
-                self.water.series[ClusterType] = series
+                if ClusterType.startswith("Cl"):
+                    self.water.chloride[ClusterType] = series
+                else:
+                    self.water.series[ClusterType] = series
             elif BakjeID == -9999:
                 self.series[ClusterType] = series
 
@@ -173,7 +176,10 @@ class Eag:
             "Qwegz": "wegzijging",
             "q_oa": "verhard",  # Verhard: q_oa van Verhard bakje
             "q_in": "berekende inlaat",
-            "q_out": "berekende uitlaat"
+            "q_out": "berekende uitlaat",
+            "q_dr": "drain",
+            "Uitlaat": "uitlaat",
+            "Inlaat": "inlaat"
         }
 
         fluxes = self.water.fluxes.reindex(columns=d.keys())
@@ -185,9 +191,9 @@ class Eag:
         q_verhard = self.water.fluxes.loc[:, names]
         fluxes["verhard"] = q_verhard.sum(axis=1)
 
-        # Uitspoeling: alle positieve q_ui fluxes uit alle verhard en onverhard
+        # Uitspoeling: alle positieve q_ui fluxes uit alle verhard en onverhard en drain
         names = ["q_ui_" + str(id) for id in self.buckets.keys() if
-                 self.buckets[id].name in ["Verhard", "Onverhard"]]
+                 self.buckets[id].name in ["Verhard", "Onverhard", "Drain"]]
         q_uitspoel = self.water.fluxes.loc[:, names]
         q_uitspoel[q_uitspoel < 0] = 0
         fluxes["uitspoeling"] = q_uitspoel.sum(axis=1)
@@ -199,9 +205,9 @@ class Eag:
         q_intrek[q_intrek > 0] = 0
         fluxes["intrek"] = q_intrek.sum(axis=1)
 
-        # Oppervlakkige afstroming: q_oa van Onverharde bakjes
+        # Oppervlakkige afstroming: q_oa van Onverharde en Drain bakjes
         names = ["q_oa_" + str(id) for id in self.buckets.keys() if
-                 self.buckets[id].name == "Onverhard"]
+                 self.buckets[id].name in ["Onverhard", "Drain"]]
         q_afstroom = self.water.fluxes.loc[:, names]
         fluxes["afstroming"] = q_afstroom.sum(axis=1)
 
@@ -211,12 +217,15 @@ class Eag:
         q_cso = self.water.fluxes.loc[:, names]
         fluxes["q_cso"] = q_cso.sum(axis=1)
 
+        # Gedraineerd: q_oa - positieve q_ui van Drain
+        names = ["q_dr_" + str(id) for id in self.buckets.keys() if
+                 self.buckets[id].name == "Drain"]
+        q_drain = self.water.fluxes.loc[:, names]
+        fluxes["drain"] = q_drain.sum(axis=1)
+
         # Berekende in en uitlaat
         fluxes["berekende inlaat"] = self.water.fluxes["q_in"]
         fluxes["berekende uitlaat"] = self.water.fluxes["q_out"]
-
-        # Gedraineerd: q_oa - positieve q_ui van Drain
-        fluxes["drain"] = 0
 
         return fluxes
 
@@ -236,9 +245,9 @@ class Eag:
 
         """
         fluxes = self.aggregate_fluxes()
-        Mass = pd.Series(index=fluxes.index)
+        self.mass_cl_tot = pd.Series(index=fluxes.index)
 
-        # TODO: Dit zijn in feite parameters
+        # TODO: maybe these should be in params file?
         C_params = {
             "neerslag": 6,
             "kwel": 400,
@@ -246,10 +255,30 @@ class Eag:
             "drain": 70,
             "uitspoeling": 70,
             "afstroming": 35,
-            "berekende inlaat": 100
-        }
+            "berekende inlaat": 100}
+        
         C_params = pd.Series(C_params)
-        Cl_init = 90.
+        
+        # pick up ClInit from params
+        if params is not None:
+            Cl_init = params.loc[:, "Waarde"].iloc[0]
+        else:
+            Cl_init = 90.
+            print("Warning! Cl_init not in parameters, Setting default concentration to {0:.1f} mg/L".format(Cl_init))
+
+        # pick up other Cl concentrations from water series
+        rename_keys = {"ClVerhard": "verhard",
+                       "ClRiolering": "q_cso",
+                       "ClDrain": "drain",
+                       "ClUitspoeling": "uitspoeling",
+                       "ClAfstroming": "afstroming"}
+
+        cl_series = self.water.chloride.loc[:, rename_keys.keys()]
+        cl_series = cl_series.rename(columns=rename_keys)
+
+        for icol in set(C_params.index) - set(cl_series.columns):
+            print("Warning! Setting default concentration of {0:.1f} mg/L for '{1}'!".format(C_params.loc[icol], icol))
+            cl_series[icol] = C_params.loc[icol]
 
         # Bereken de initiele chloride massa
         hTarget = self.parameters.loc[self.parameters.loc[:, "Code"] ==
@@ -263,18 +292,21 @@ class Eag:
 
         # Som van de uitgaande fluxen: wegzijging, intrek, berekende uitlaat
         V_out = fluxes.loc[:, ["intrek", "berekende uitlaat", "wegzijging"]].sum(axis=1)
-
+        
+        self.mass_cl_in = fluxes.loc[:, cl_series.columns].multiply(cl_series.loc[:, cl_series.columns])
+        self.mass_cl_out = pd.Series(index=fluxes.index)
         for t in fluxes.index:
-            M_in = fluxes.loc[t, C_params.index].multiply(C_params).sum()
+            M_in = self.mass_cl_in.loc[t].sum()
 
             M_out = V_out.loc[t] * C_out
+            self.mass_cl_out.loc[t] = M_out
 
             M = M + M_in + M_out
 
-            Mass.loc[t] = M
+            self.mass_cl_tot.loc[t] = M
             C_out = M / self.water.storage.loc[t]
 
-        C = Mass / self.water.storage
+        C = self.mass_cl_tot / self.water.storage
 
         return C
 
@@ -287,10 +319,15 @@ class Eag:
             pandas DataFrame with the fractions.
 
         """
-        raise NotImplementedError
-        # fluxes = self.aggregate_fluxes()
-        # frac = pd.DataFrame(index=fluxes.index)
-        #
-        # # Volume + Totaal_uit
-        #
-        # return frac
+        if not hasattr(self, "mass_cl_tot"):
+            raise AttributeError("Cannot calculate fractions! Call 'calculate_chloride_concentration' first.")
+        
+        fractions = self.mass_cl_in.divide(self.mass_cl_tot, axis=0)
+
+        # initial fraction = 1
+        # initial fraction next timestep = (frac_previous*volume - frac_previous*total_out)/volume t+1
+        # initial frac_p = 0
+        # frac_p next timestep = (frac_p previous * volume + p_in - frac_p previous * total_out) / volume t+1
+        
+        return fractions
+

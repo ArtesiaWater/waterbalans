@@ -38,6 +38,9 @@ def create_eag(id, name, buckets, gaf=None, series=None):
         id = bucket.loc["BakjeID"]
         area = bucket.loc["OppWaarde"]
         if kind == "Water":
+            # TODO: remove commented lines
+            # if series is not None:
+            #     series = series.loc[series.ClusterType.apply(lambda s: not s.startswith("Cl"))]
             Water(id=id, eag=eag, series=series, area=area)
         else:
             Bucket(kind=kind, eag=eag, id=id, area=area, series=None)

@@ -21,6 +21,8 @@ class WaterBase(ABC):
         self.parameters = pd.DataFrame(columns=["Waarde"])
         self.area = area  # area in square meters
 
+        self.chloride = pd.DataFrame()
+
     def initialize(self, tmin=None, tmax=None):
         """Method to initialize a Bucket with a clean DataFrame for the
         fluxes and storage time series. This method is called by the init
@@ -51,6 +53,12 @@ class WaterBase(ABC):
             self.series["Neerslag"] = self.eag.series["Neerslag"]
         if "Verdamping" in self.eag.series.columns:
             self.series["Verdamping"] = self.eag.series["Verdamping"]
+        if "Inlaat" in self.eag.series.columns:
+            self.series["Inlaat"] = self.eag.series["Inlaat"] / self.area
+        if "Uitlaat" in self.eag.series.columns:
+            self.series["Uitlaat"] = -self.eag.series["Uitlaat"] / self.area
+
+        #TODO: add Gemaal to this list if sluitfout calculation is active?
 
     def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
         pass
@@ -114,12 +122,12 @@ class Water(WaterBase):
 
         # 2. calculate water bucket specific fluxes
         series = self.series.multiply(self.area)
+
         # TODO add series to fluxes without knowing the amount of series up front
         series.loc[:, "Verdamping"] = -makkink_to_penman(series.loc[:,"Verdamping"])
         series.loc[:, "Qwegz"] = -series.loc[:, "Qwegz"]
         self.fluxes = self.fluxes.join(series, how="outer")
 
-        # TODO: check if this is correct!!
         hTargetMin_1 = (hTarget_1 - hTargetMin_1 - hBottom_1) * self.area
         hTargetMax_1 = (hTargetMax_1 + hTarget_1 - hBottom_1) * self.area
 

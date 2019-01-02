@@ -100,7 +100,16 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     elif kind == "ValueSeries":
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
         tindex = date_range(tmin, tmax, freq=freq)
-        series = create_block_series(df, tindex) * 1e-3  # TODO Hardcoded?
+        series = create_block_series(df, tindex) 
+        if name in ["Qkwel", "Qwegz"]:
+            series = series * 1e-3 # TODO: is this always true?
+    
+    # chloride concentrations
+    elif (kind == "-9999") and (name.startswith("Cl")):
+        value = float(data.loc[:, "Waarde"].values[0])
+        tindex = date_range(tmin, tmax, freq=freq)
+        series = Series(value, index=tindex)
+    
     else:
         return print("kind {} not supported".format(kind))
 
