@@ -304,9 +304,9 @@ class Eag:
             M = M + M_in + M_out
 
             self.mass_cl_tot.loc[t] = M
-            C_out = M / self.water.storage.loc[t]
+            C_out = M / self.water.storage.loc[t, "storage"]
 
-        C = self.mass_cl_tot / self.water.storage
+        C = self.mass_cl_tot / self.water.storage.storage
 
         return C
 
@@ -319,15 +319,29 @@ class Eag:
             pandas DataFrame with the fractions.
 
         """
-        if not hasattr(self, "mass_cl_tot"):
-            raise AttributeError("Cannot calculate fractions! Call 'calculate_chloride_concentration' first.")
-        
-        fractions = self.mass_cl_in.divide(self.mass_cl_tot, axis=0)
+        fluxes = self.aggregate_fluxes()
 
-        # initial fraction = 1
-        # initial fraction next timestep = (frac_previous*volume - frac_previous*total_out)/volume t+1
-        # initial frac_p = 0
-        # frac_p next timestep = (frac_p previous * volume + p_in - frac_p previous * total_out) / volume t+1
+        outflux = fluxes.loc[:, ("verdamping", "wegzijging", "intrek", "berekende uitlaat")].sum(axis=1)
+        
+        fractions = pd.DataFrame(index=fluxes.index, columns=fluxes.columns)
+        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), fluxes.columns] = 0.0  # add starting day
+        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), "initial"] = 1.0  # add starting day
+        fractions.sort_index(inplace=True)
+
+        fraction_columns = ["neerslag", "kwel", "verhard", "q_cso", 
+                            "drain", "uitspoeling", "afstroming", "berekende inlaat"]
+
+        for t in fluxes.index:
+            fractions.loc[t, "initial"] = (fractions.loc[t - pd.Timedelta(days=1), "initial"] * 
+                                        self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
+                                        fractions.loc[t - pd.Timedelta(days=1), "initial"] * 
+                                        outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+            for icol in fraction_columns:
+                fractions.loc[t, icol] = (fractions.loc[t - pd.Timedelta(days=1), icol] * 
+                                        self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
+                                        fluxes.loc[t, icol] -
+                                        fractions.loc[t - pd.Timedelta(days=1), icol] * 
+                                        -1*outflux.loc[t]) / self.water.storage.loc[t, "storage"]
         
         return fractions
 

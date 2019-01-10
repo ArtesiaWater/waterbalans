@@ -41,9 +41,14 @@ class WaterBase(ABC):
         else:
             tmax = pd.Timestamp(tmax)
 
-        index = self.series[tmin:tmax].index
+        self.series = self.series.loc[tmin:tmax]
+
+        index = self.series.loc[tmin:tmax].index
+        index_w_day_before = pd.DatetimeIndex([index[0] - pd.Timedelta(days=1)]).union(index)
+        
         self.fluxes = pd.DataFrame(index=index, dtype=float)
-        self.storage = pd.DataFrame(index=index, dtype=float)
+        self.storage = pd.DataFrame(index=index_w_day_before, dtype=float)
+
 
     def load_series_from_eag(self):
         if self.eag is None:
@@ -131,31 +136,42 @@ class Water(WaterBase):
         hTargetMin_1 = (hTarget_1 - hTargetMin_1 - hBottom_1) * self.area
         hTargetMax_1 = (hTargetMax_1 + hTarget_1 - hBottom_1) * self.area
 
-        h = [(hTarget_1 - hBottom_1) * self.area]
-        q_in = []
-        q_out = []
+        if "Peil" in self.eag.series.loc[tmin:tmax].dropna(axis=1, how="all").columns:
+            h = (self.eag.series.loc[tmin:tmax, "Peil"] - hBottom_1) * self.area
+            if np.isnan(h.iloc[0]):
+                # if no first value, calculate one based on hTarget:
+                h.loc[h.index[0]-pd.Timedelta(days=1)] = (hTarget_1 - hBottom_1) * self.area
+                h.sort_index(inplace=True)
+        else:
+            h = pd.Series(index=self.eag.series.loc[pd.Timestamp(tmin) - 
+                          pd.Timedelta(days=1):pd.Timestamp(tmax)].index)
+            h.iloc[0] = (hTarget_1 - hBottom_1) * self.area
+        q_in = pd.Series(index=self.eag.series.loc[tmin:tmax].index, 
+                         data=np.zeros(self.eag.series.loc[tmin:tmax].shape[0]))
+        q_out = pd.Series(index=self.eag.series.loc[tmin:tmax].index, 
+                          data=np.zeros(self.eag.series.loc[tmin:tmax].shape[0]))
+        
         q_totals = self.fluxes.sum(axis=1)
+        
+        for t in h.index[1:]:
+            if ~np.isnan(h.loc[t]):  # there is a water level measurement
+                dh_minus_dq = h.loc[t] - h.loc[t-pd.Timedelta(days=1)] - q_totals.loc[t]
+                if dh_minus_dq > 0.0:
+                    q_in.loc[t] = dh_minus_dq
+                elif dh_minus_dq < 0.0:
+                    q_out.loc[t] = dh_minus_dq
 
-        # 3. Calculate the fluxes coming in and going out.
-        for q_tot in q_totals.values:
-            # Calculate the outgoing flux
-            if h[-1] + q_tot > hTargetMax_1:
-                q_out.append(min(QOutMax_1, hTargetMax_1 - h[-1] - q_tot))
-                q_in.append(0.0)
-            elif h[-1] + q_tot < hTargetMin_1:
-                q_in.append(hTargetMin_1 - h[-1] - q_tot)
-                q_out.append(0.0)
-            else:
-                q_out.append(0.0)
-                q_in.append(0.0)
+            else:  # no water level measurement
+                if h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t] > hTargetMax_1:
+                    q_out.loc[t] = min(QOutMax_1, hTargetMax_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
+                elif h[t - pd.Timedelta(days=1)] + q_totals.loc[t] < hTargetMin_1:
+                    q_in.loc[t] = hTargetMin_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
+                
+                h.loc[t] = h.loc[t - pd.Timedelta(days=1)] + q_in.loc[t] + q_out.loc[t] + q_totals.loc[t]
 
-            h.append(h[-1] + q_in[-1] + q_out[-1] + q_tot)
-
-        index_with_startday = pd.DatetimeIndex([self.fluxes.index[0] - pd.Timedelta(days=1)]).union(self.fluxes.index)
-        self.storage = pd.Series(data=np.array(h),
-                                 index=index_with_startday)
-        self.level = pd.Series(data=np.array(h) / self.area + hBottom_1,
-                               index=index_with_startday)
+        self.storage = self.storage.assign(storage=h)
+        self.level = pd.Series(data=h.values / self.area + hBottom_1,
+                               index=h.index)
         self.fluxes = self.fluxes.assign(q_in=q_in, q_out=q_out)
 
     def validate(self, return_wb_series=False):
