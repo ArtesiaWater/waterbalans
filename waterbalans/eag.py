@@ -1,6 +1,7 @@
 """Dit bestand bevat de EAG model klasse.
 
 Raoul Collenteur, Artesia Water, September 2018
+David Brakenhoff, Artesia Water, September 2018
 
 """
 

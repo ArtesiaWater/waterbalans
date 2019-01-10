@@ -1,10 +1,11 @@
 """The Plot module contains the methods for plotting of a waterbalans.
 
 Author: R.A. Collenteur, Artesia Water, 2017-11-20
+        D.A. Brakenhoff, Artesia Water, 2018-09-01
 
 """
 import numpy as np
-from pandas import Timestamp
+from pandas import Timestamp, DateOffset
 import matplotlib.pyplot as plt
 from matplotlib import colors
 from .timeseries import get_series
@@ -166,7 +167,7 @@ class Eag_Plots:
 
         return ax
 
-    def gemaal_cumsum(self, tmin=None, tmax=None, period="year", inlaat=True):
+    def gemaal_cumsum(self, tmin=None, tmax=None, period="year", inlaat=True, month_offset=9):
         fluxes = self.eag.aggregate_fluxes()
         
         # get tmin, tmax if not defined
@@ -203,7 +204,7 @@ class Eag_Plots:
         if "Gemaal" in self.eag.series.columns:
             gemaal = self.eag.series["Gemaal"].loc[tmin:tmax]
             if period == "year":
-                gemaal = gemaal.groupby(by=gemaal.index.year).cumsum()
+                gemaal = gemaal.groupby(by=(gemaal.index - DateOffset(months=month_offset)).year).cumsum()
             elif period == "month":
                 gemaal = gemaal.groupby(by=[gemaal.index.year, gemaal.index.month]).cumsum()
             else:
