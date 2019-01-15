@@ -121,11 +121,32 @@ class Eag:
             elif BakjeID == -9999:
                 self.series[ClusterType] = series
 
+    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D"):
+        """Method to add series directly to EAG. Series must contain volumes (so 
+        not divided by area). Series must be negative for water taken out of the 
+        EAG and positive for water coming into the EAG.
+    
+        Parameters
+        ----------
+        series: pandas.DataFrame or pandas.Series
+        name: str, default None
+            name of series to add, if not provided uses 
+            first column name in DataFrame or Series name
+        tmin: str or pandas.Timestamp, optional
+        tmax: str or pandas.Timestamp, optional
+        freq: str
+
+        """
+        if name is None:
+            if isinstance(series, pd.DataFrame):
+                name = series.columns[0]
+            elif isinstance(series, pd.Series):
+                name = series.name
+        self.series[name] = series
+
     def load_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
         provided.
-
-
 
         """
         raise NotImplementedError

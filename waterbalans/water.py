@@ -63,7 +63,10 @@ class WaterBase(ABC):
         if "Uitlaat" in self.eag.series.columns:
             self.series["Uitlaat"] = -self.eag.series["Uitlaat"] / self.area
 
-        #TODO: add Gemaal to this list if sluitfout calculation is active?
+        # add remaining series to water bucket.
+        otherseries = set(self.eag.series.columns) - {"Neerslag", "Verdamping", "Inlaat", "Uitlaat", "Peil", "Gemaal"}
+        for name in otherseries:
+            self.series[name] = self.eag.series[name] / self.area
 
     def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
         pass
