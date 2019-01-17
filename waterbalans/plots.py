@@ -312,7 +312,7 @@ class Eag_Plots:
         
         return ax
 
-    def plot_series(self, series, tmin="2000", tmax="2015", freq="D", mask=None, labelcol="WaardeAlfa"):
+    def plot_series(self, series, tmin="2000", tmax="2018", freq="D", mask=None, labelcol="WaardeAlfa"):
         """Method to plot timeseries based on a pandas DataFrame with series names.
 
         Parameters
