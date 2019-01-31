@@ -166,7 +166,8 @@ class Water(WaterBase):
 
             else:  # no water level measurement
                 if h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t] > hTargetMax_1:
-                    q_out.loc[t] = min(QOutMax_1, hTargetMax_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
+                    q_out.loc[t] = max(-1*QOutMax_1, 
+                                       hTargetMax_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
                 elif h[t - pd.Timedelta(days=1)] + q_totals.loc[t] < hTargetMin_1:
                     q_in.loc[t] = hTargetMin_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
                 

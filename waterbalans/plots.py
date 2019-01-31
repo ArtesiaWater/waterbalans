@@ -9,13 +9,14 @@ from pandas import Timestamp, DateOffset
 import matplotlib.pyplot as plt
 from matplotlib import colors
 from .timeseries import get_series
+from collections import OrderedDict
 
 
 class Plot():
     def __init__(self, waterbalans):
         self.wb = waterbalans
         self.colordict =  {"kwel": "brown",
-                           "neerslag": "b",                             
+                           "neerslag": "b", 
                            "uitspoeling": "lime", 
                            "drain": "orange",
                            "verhard": "darkgray",
@@ -44,7 +45,8 @@ class Plot():
 class Eag_Plots:
     def __init__(self, eag):
         self.eag = eag
-        self.colordict =  {"kwel": "brown",
+        self.colordict =  OrderedDict(
+                          {"kwel": "brown",
                            "neerslag": "b", 
                            "uitspoeling": "lime",  
                            "drain": "orange",
@@ -56,7 +58,9 @@ class Eag_Plots:
                            "intrek": "lime", 
                            "uitlaat": "salmon",
                            "berekende inlaat": "r", 
-                           "berekende uitlaat": "k"}
+                           "berekende uitlaat": "k",
+                           "maalstaat": "yellow",
+                           "sluitfout": "black"})
 
     def bucket(self, name, freq="M", tmin=None, tmax=None):
         bucket = self.eag.buckets[name]
@@ -98,8 +102,11 @@ class Eag_Plots:
         
         return ax
     
-    def aggregated(self, freq="M", tmin=None, tmax=None):
-        fluxes = self.eag.aggregate_fluxes()
+    def aggregated(self, freq="M", tmin=None, tmax=None, add_gemaal=False):
+        if add_gemaal:
+            fluxes = self.eag.aggregate_with_pumpstation()
+        else:
+            fluxes = self.eag.aggregate_fluxes()
 
         # get tmin, tmax if not defined
         if tmin is None:
@@ -109,7 +116,8 @@ class Eag_Plots:
 
         # get data and sort columns
         plotdata = fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
-        column_order = [k for k in self.colordict.keys()]
+        missing_cols = fluxes.columns.difference(self.colordict.keys()).tolist()
+        column_order = [k for k in self.colordict.keys() if k in fluxes.columns] + missing_cols
         plotdata = plotdata.loc[:, column_order]
 
         # get correct colors per flux
@@ -244,25 +252,38 @@ class Eag_Plots:
         if tmax is None:
             self.eag.series.index[-1]
 
-        colordict = {"kwel": "brown", 
+        colordict = OrderedDict(
+                    {"kwel": "brown", 
                      "neerslag": "blue", 
                      "uitspoeling": "lime", 
                      "afstroming": "darkgreen", 
                      "drain": "orange", 
                      "berekende inlaat": "red", 
                      "q_cso": "black",
-                     "verhard": "gray"} 
+                     "verhard": "gray"})
         
         fr = self.eag.calculate_fractions().loc[tmin:tmax]
 
         fr_list = [fr["initial"].astype(np.float).values]
         labels = ["initieel"]
         colors = ["lightgray"]
+        
+        # loop through colordict to determine order
         for icol, c in colordict.items():
             if icol in fr.columns:
-                fr_list.append(fr[icol].astype(np.float).values)
-                colors.append(c)
-                labels.append(icol)
+                if fr[icol].dropna().shape[0] > 1:
+                    fr_list.append(fr[icol].astype(np.float).values)
+                    colors.append(c)
+                    labels.append(icol)
+        
+        for i, icol in enumerate(fr.columns.difference(colordict.keys())):
+            if icol not in ["verdamping", "wegzijging", "berekende uitlaat",
+                            "initial", "intrek"]:
+                if fr[icol].astype(np.float).sum() != 0.0:
+                    fr_list.append(fr[icol].astype(np.float).values)
+                    colors.append("salmon")
+                    labels.append(icol)
+
         # Plot
         fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
         ax.stackplot(fr.index, *fr_list, labels=labels, colors=colors)
@@ -275,6 +296,7 @@ class Eag_Plots:
             ax2 = ax.twinx()
             ax2.plot(C.index, C, color="k")
             ax2.set_ylabel("Chloride concentration (mg/L)")
+        
         ax.set_xlim(Timestamp(tmin), Timestamp(tmax))
         ax.set_ylim(0, 1)
         fig.tight_layout()
@@ -340,4 +362,92 @@ class Eag_Plots:
         ax.legend(loc="best")
         fig.tight_layout()
 
+        return ax
+
+    def compare_fluxes_to_excel_balance(self, exceldf, showdiff=True):
+        """Convenience method to compare original Excel waterbalance
+        to the one calculated with Python.
+        
+        Parameters
+        ----------
+        exceldf : pandas.DataFrame
+            A pandas DataFrame containing the water balance series from 
+            the Excel File. Columns "A,AJ,CH:DB" from the "REKENHART" sheet.
+        showdiff : bool, optional
+            if True show difference between Python and Excel on secondary axes.
+        
+        Returns
+        -------
+        fig: matplotlib figure handle
+            handle to figure containing N subplots comparing series from 
+            Python waterbalance to the Excel waterbalance.
+
+        """
+        fluxes = self.eag.aggregate_fluxes()
+        fluxes.dropna(how="all", axis=1, inplace=True)
+
+        # Plot
+        fig, axgr = plt.subplots(int(np.ceil(fluxes.shape[1]/3)), 3, 
+                                 figsize=(20, 12), dpi=150, sharex=True)
+
+        for i, icol in enumerate(fluxes.columns):
+            iax = axgr.ravel()[i]
+
+            iax.plot(fluxes.index, fluxes.loc[:, icol], label="{} (Python)".format(icol))
+            diff = fluxes.loc[:, icol].copy() # hacky method to subtract excel series from diff
+            
+            # Some logic to match column names TODO: avoid this if possible
+            if icol == "q_cso":
+                icol = "riolering"
+            elif icol == "berekende inlaat":
+                icol = "inlaat"
+            elif icol == "berekende uitlaat":
+                icol="uitlaat"
+            elif icol not in exceldf.columns:
+                print("{} not found in Excel Balance!".format(icol))
+                iax.legend(loc="best")
+                iax.grid(b=True)
+                continue
+            
+            iax.plot(exceldf.index, exceldf.loc[:, icol], label="{} (Excel)".format(icol), 
+                    ls="dashed")
+            iax.grid(b=True)
+            iax.legend(loc="best")
+
+            if showdiff:
+                iax2 = iax.twinx()
+                diff -= exceldf.loc[:, icol]  # hacky method to subtract excel balance (diff column names)
+                iax2.plot(diff.index, diff, c="C4", lw=0.75)
+                yl = np.max(np.abs(iax2.get_ylim()))
+                iax2.set_ylim(-1*yl, yl)
+        
+        fig.tight_layout()
+        return fig
+
+    def compare_waterlevel_to_excel(self, exceldf):
+        """Convenience method to compare calculated water level in Excel waterbalance
+        to the one calculated with Python.
+        
+        Parameters
+        ----------
+        exceldf : pandas.DataFrame
+            A pandas DataFrame containing the water balance series from 
+            the Excel File. Columns "A,AJ,CH:DB" from the "REKENHART" sheet.
+        
+        Returns
+        -------
+        ax: 
+            handle to axes containing N subplots comparing series from 
+            Python waterbalance to the Excel waterbalance.
+        
+        """
+        fig, ax = plt.subplots(1, 1, figsize=(12, 6), dpi=125)
+
+        ax.plot(self.eag.water.level.index, self.eag.water.level, 
+                label="Berekend peil (Python)")
+        ax.plot(exceldf.index, exceldf.loc[:, "peil"], 
+                label="Berekend peil (Excel)", ls="dashed")
+        ax.grid(b=True)
+        ax.legend(loc="best")
+        fig.tight_layout()
         return ax

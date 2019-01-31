@@ -202,9 +202,10 @@ class Eag:
             "q_dr": "drain",
             "Uitlaat": "uitlaat",
             "Inlaat": "inlaat"
-        }
+            }
 
         fluxes = self.water.fluxes.reindex(columns=d.keys())
+        parsed_cols = fluxes.dropna(how="all", axis=1).columns.tolist()
         fluxes = fluxes.rename(columns=d)
 
         # Verhard: q_oa van alle Verhard bakjes
@@ -249,7 +250,32 @@ class Eag:
         fluxes["berekende inlaat"] = self.water.fluxes["q_in"]
         fluxes["berekende uitlaat"] = self.water.fluxes["q_out"]
 
+        # overige fluxes
+        parsed_cols += ["q_in", "q_out"]
+        for icol in self.water.fluxes.columns:
+            if icol.startswith("q_"):
+                parsed_cols.append(icol)
+        missed_cols = self.water.fluxes.columns.difference(parsed_cols)
+        for icol in missed_cols:
+            fluxes[icol] = self.water.fluxes[icol]
+
         return fluxes
+
+    def aggregate_with_pumpstation(self):
+        fluxes = self.aggregate_fluxes()
+        if "Gemaal" not in self.series.columns:
+            print("Warning! No timeseries for pumping station. Cannot aggregate.")
+            return fluxes
+        fluxes.rename(columns={"berekende uitlaat": "sluitfout"}, inplace=True)
+        # Add pumping station timeseries to fluxes
+        fluxes["maalstaat"] = -1*self.series["Gemaal"]
+        # Calculate difference between calculated and measured pumped volume
+        fluxes["sluitfout"] = fluxes["sluitfout"].subtract(fluxes["maalstaat"])
+        # Correct inlet volume with difference between calculated and measured
+        # fluxes["berekende inlaat"] = fluxes["berekende inlaat"] - fluxes.loc[fluxes.sluitfout<0, "sluitfout"]
+
+        return fluxes
+
 
     def calculate_chloride_concentration(self, params=None):
         """Calculate the chloride concentratation in the water bucket.
@@ -341,17 +367,23 @@ class Eag:
             pandas DataFrame with the fractions.
 
         """
+
+        # TODO: Figure out how to include series with non-default names?
         fluxes = self.aggregate_fluxes()
 
-        outflux = fluxes.loc[:, ("verdamping", "wegzijging", "intrek", "berekende uitlaat")].sum(axis=1)
+        # TODO: check robustness of this solution, hard-coded was: ("verdamping", "wegzijging", "intrek", "berekende uitlaat")
+        out_columns = fluxes.loc[:, fluxes.mean() < 0].columns
+        outflux = fluxes.loc[:, out_columns].sum(axis=1)
         
         fractions = pd.DataFrame(index=fluxes.index, columns=fluxes.columns)
         fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), fluxes.columns] = 0.0  # add starting day
         fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), "initial"] = 1.0  # add starting day
         fractions.sort_index(inplace=True)
 
-        fraction_columns = ["neerslag", "kwel", "verhard", "q_cso", 
-                            "drain", "uitspoeling", "afstroming", "berekende inlaat"]
+        # TODO: check robustness of following solution, then remove hardcoded stuff:
+        # fraction_columns = ["neerslag", "kwel", "verhard", "q_cso", 
+        #                     "drain", "uitspoeling", "afstroming", "berekende inlaat"]
+        fraction_columns = fluxes.loc[:, fluxes.mean() > 0].columns
 
         for t in fluxes.index:
             fractions.loc[t, "initial"] = (fractions.loc[t - pd.Timedelta(days=1), "initial"] * 
@@ -366,4 +398,3 @@ class Eag:
                                         -1*outflux.loc[t]) / self.water.storage.loc[t, "storage"]
         
         return fractions
-

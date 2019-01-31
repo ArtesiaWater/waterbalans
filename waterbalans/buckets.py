@@ -36,6 +36,7 @@ class BucketBase(ABC):
     def __init__(self, id=None, eag=None, series=None, area=0.0):
         self.id = id
         self.eag = eag  # Reference to mother object.
+        
         # Add bucket to the eag
         self.eag.add_bucket(self)
 
