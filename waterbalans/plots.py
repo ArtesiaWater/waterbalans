@@ -8,6 +8,7 @@ import numpy as np
 from pandas import Timestamp, DateOffset
 import matplotlib.pyplot as plt
 from matplotlib import colors
+import matplotlib.dates as mdates
 from .timeseries import get_series
 from collections import OrderedDict
 
@@ -28,6 +29,7 @@ class Plot():
                            "uitlaat": "salmon", 
                            "berekende inlaat": "r", 
                            "berekende uitlaat": "k"}
+        self.figsize = (16, 5)
 
     def series(self):
         """Method to plot all series that are present in the model
@@ -61,6 +63,7 @@ class Eag_Plots:
                            "berekende uitlaat": "k",
                            "maalstaat": "yellow",
                            "sluitfout": "black"})
+        self.figsize = (18, 6)
 
     def bucket(self, name, freq="M", tmin=None, tmax=None):
         bucket = self.eag.buckets[name]
@@ -85,7 +88,7 @@ class Eag_Plots:
                 rgbcolors.append(colors.to_rgba("C{}".format(i%10)))
                 i += 1
         
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax = plotdata.plot.bar(stacked=True, width=1, color=rgbcolors, ax=ax)
         
         ax.set_title("{}: bakje {}".format(self.eag.name, bucket.name))
@@ -131,19 +134,24 @@ class Eag_Plots:
                 rgbcolors.append(colors.to_rgba("C{}".format(i%10)))
                 i += 1
         
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax = plotdata.plot.bar(stacked=True, width=1, color=rgbcolors, ax=ax)
         
         ax.set_title(self.eag.name)
         ax.set_ylabel("<- uitstroming | instroming ->")
         ax.grid(axis="y")
         
-        ax.legend(ncol=2)
+        ax.legend(ncol=4)
 
         # set ticks (currently only correct for monthly data)
         if freq == "M":
+            ax.set_xticks(ax.get_xticks()[::2])
             ax.set_xticklabels([dt.strftime('%b-%y') for dt in 
-                                plotdata.index.to_pydatetime()])
+                                plotdata.index.to_pydatetime()[::2]])
+            
+            # ax.xaxis.set_major_locator(mdates.YearLocator())
+            # ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+
         fig.tight_layout()
         
         return ax
@@ -161,7 +169,7 @@ class Eag_Plots:
         calculated_out = fluxes.loc[:, ["berekende uitlaat"]]
         
         # plot figure
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax.plot(calculated_out.index, -1*calculated_out, lw=2, label="berekende uitlaat")
         
         if "Gemaal" in self.eag.series.columns:
@@ -204,7 +212,7 @@ class Eag_Plots:
                 calculated_in = fluxes.loc[:, ["berekende inlaat"]].cumsum()
         
         # plot figure
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax.plot(calculated_out.index, calculated_out, lw=2, label="berekende uitlaat")
         if inlaat:
             ax.plot(calculated_in.index, calculated_in, lw=2, label="berekende inlaat", color="red")
@@ -237,7 +245,7 @@ class Eag_Plots:
         c = c.loc[tmin:tmax]
         
         # Plot
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax.plot(c.index, c, label=self.eag.name)
         ax.grid(b=True)
         ax.legend(loc="best")
@@ -263,6 +271,7 @@ class Eag_Plots:
                      "verhard": "gray"})
         
         fr = self.eag.calculate_fractions().loc[tmin:tmax]
+        fr.dropna(how="all", axis=1, inplace=True)
 
         fr_list = [fr["initial"].astype(np.float).values]
         labels = ["initieel"]
@@ -285,10 +294,10 @@ class Eag_Plots:
                     labels.append(icol)
 
         # Plot
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax.stackplot(fr.index, *fr_list, labels=labels, colors=colors)
         ax.grid(b=True)
-        ax.legend(loc="upper center", ncol=2, )
+        ax.legend(loc="upper center", ncol=2)
         ax.set_ylabel("Percentage (%)")
 
         if chloride_conc is not None:
@@ -309,7 +318,7 @@ class Eag_Plots:
         hBottom = self.eag.water.parameters.loc["hBottom_1", "Waarde"]
 
         # Plot
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax.plot(self.eag.water.level.index, self.eag.water.level, label="berekend peil")
         
         if label_obs:
@@ -344,7 +353,7 @@ class Eag_Plots:
         freq: str
 
         """
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5), dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
 
         for id, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
             BakjeID, ClusterType, ParamType = id
@@ -363,7 +372,7 @@ class Eag_Plots:
 
         return ax
 
-    def compare_fluxes_to_excel_balance(self, exceldf, showdiff=True):
+    def compare_fluxes_to_excel_balance(self, exceldf, column_names=None, showdiff=True):
         """Convenience method to compare original Excel waterbalance
         to the one calculated with Python.
         
@@ -372,6 +381,10 @@ class Eag_Plots:
         exceldf : pandas.DataFrame
             A pandas DataFrame containing the water balance series from 
             the Excel File. Columns "A,AJ,CH:DB" from the "REKENHART" sheet.
+        column_names: dict, optional, default None
+            A dictionary containing Python column names as keys and 
+            Excel column names as values. If not provided, attempts to use
+            the defaults.
         showdiff : bool, optional
             if True show difference between Python and Excel on secondary axes.
         
@@ -389,33 +402,38 @@ class Eag_Plots:
         fig, axgr = plt.subplots(int(np.ceil(fluxes.shape[1]/3)), 3, 
                                  figsize=(20, 12), dpi=150, sharex=True)
 
-        for i, icol in enumerate(fluxes.columns):
+        for i, pycol in enumerate(fluxes.columns):
             iax = axgr.ravel()[i]
 
-            iax.plot(fluxes.index, fluxes.loc[:, icol], label="{} (Python)".format(icol))
-            diff = fluxes.loc[:, icol].copy() # hacky method to subtract excel series from diff
+            iax.plot(fluxes.index, fluxes.loc[:, pycol], label="{} (Python)".format(pycol))
+            diff = fluxes.loc[:, pycol].copy() # hacky method to subtract excel series from diff
             
-            # Some logic to match column names TODO: avoid this if possible
-            if icol == "q_cso":
-                icol = "riolering"
-            elif icol == "berekende inlaat":
-                icol = "inlaat"
-            elif icol == "berekende uitlaat":
-                icol="uitlaat"
-            elif icol not in exceldf.columns:
-                print("{} not found in Excel Balance!".format(icol))
+            # Some logic to link column names
+            defaults = {"q_cso": "riolering", "berekende inlaat": "inlaat",
+                        "berekende uitlaat": "uitlaat", "drain": "gedraineerd"}
+            if column_names:
+                defaults.update(column_names)
+            
+            if pycol not in exceldf.columns and pycol not in defaults.keys():
+                print("Column '{}' not found in Excel Balance!".format(pycol))
                 iax.legend(loc="best")
                 iax.grid(b=True)
                 continue
-            
-            iax.plot(exceldf.index, exceldf.loc[:, icol], label="{} (Excel)".format(icol), 
-                    ls="dashed")
+            else:
+                try:
+                    excol = defaults[pycol]
+                except KeyError:
+                    excol = pycol
+
+            iax.plot(exceldf.index, exceldf.loc[:, excol], label="{0:s} (Excel)".format(excol), 
+                     ls="dashed")
+
             iax.grid(b=True)
             iax.legend(loc="best")
 
             if showdiff:
                 iax2 = iax.twinx()
-                diff -= exceldf.loc[:, icol]  # hacky method to subtract excel balance (diff column names)
+                diff -= exceldf.loc[:, excol]  # hacky method to subtract excel balance (diff column names)
                 iax2.plot(diff.index, diff, c="C4", lw=0.75)
                 yl = np.max(np.abs(iax2.get_ylim()))
                 iax2.set_ylim(-1*yl, yl)
@@ -440,7 +458,7 @@ class Eag_Plots:
             Python waterbalance to the Excel waterbalance.
         
         """
-        fig, ax = plt.subplots(1, 1, figsize=(12, 6), dpi=125)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=125)
 
         ax.plot(self.eag.water.level.index, self.eag.water.level, 
                 label="Berekend peil (Python)")
