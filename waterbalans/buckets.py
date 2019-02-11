@@ -325,7 +325,7 @@ class MengRiool(BucketBase):
         # And also if a different period is calculated!
         try:
             print("Try picking up CSO timeseries from pickle...", end="", flush=True)
-            ts_cso = pd.read_pickle(r"G:/My Drive/k/01-Projecten/17026004_WATERNET_Waterbalansen/05pyfiles/{0:g}_cso_timeseries.pklz".format(knmistn),
+            ts_cso = pd.read_pickle(r"G:/My Drive/k/01projekt/17026004_WATERNET_Waterbalansen/05pyfiles/{0:g}_cso_timeseries.pklz".format(knmistn),
                                     compression="zip")
             ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
             print("Success!", end="\n")
@@ -335,7 +335,7 @@ class MengRiool(BucketBase):
             print("Download succeeded, calculating series...", end="", flush=True)
             ts_cso = calculate_cso(prec.data.RH, Bmax, POCmax, alphasmooth=0.1)
             print("Success! (Pickling series for future use.)")
-            ts_cso.to_pickle(r"G:/My Drive/k/01-Projecten/17026004_WATERNET_Waterbalansen/05pyfiles/{0:g}_cso_timeseries.pklz".format(knmistn), 
+            ts_cso.to_pickle(r"G:/My Drive/k/01projekt/17026004_WATERNET_Waterbalansen/05pyfiles/{0:g}_cso_timeseries.pklz".format(knmistn), 
                              compression="zip")
 
         series = pd.DataFrame(index=ts_cso.index,
