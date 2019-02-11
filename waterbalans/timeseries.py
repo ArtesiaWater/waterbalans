@@ -112,7 +112,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         series = Series(value, index=tindex)
     
     else:
-        return print("kind {} not supported".format(kind))
+        return print("Warning! Adding series of kind {} not supported.".format(kind))
 
     series.name = name
 
@@ -138,11 +138,12 @@ def create_block_series(data, tindex):
         The constructed block series
 
     """
-    series = Series(index=tindex)
+    # start value series 1 year before given index to ensure first period is also filled correctly.
+    series = Series(index=date_range(tindex[0]-Timedelta(days=365), tindex[-1]))
     for t, val in data.iterrows():
         day, month = [int(x) for x in t.split("-")]
         mask = (series.index.month == month) & (series.index.day == day)
         series.loc[mask] = float(val.values[0])
 
     series.fillna(method="ffill", inplace=True)
-    return series
+    return series.loc[tindex]
