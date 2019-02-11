@@ -3,7 +3,7 @@ from .water import Water
 from .buckets import Bucket
 
 
-def create_eag(id, name, buckets, gaf=None, series=None):
+def create_eag(id, name, buckets, gaf=None, series=None, use_waterlevel_series=True):
     """Method to create an instance of EAG.
 
     Parameters
@@ -38,7 +38,7 @@ def create_eag(id, name, buckets, gaf=None, series=None):
         id = bucket.loc["BakjeID"]
         area = bucket.loc["OppWaarde"]
         if kind == "Water":
-            Water(id=id, eag=eag, series=series, area=area)
+            Water(id=id, eag=eag, series=series, area=area, use_waterlevel_series=use_waterlevel_series)
         else:
             Bucket(kind=kind, eag=eag, id=id, area=area, series=None)
 
