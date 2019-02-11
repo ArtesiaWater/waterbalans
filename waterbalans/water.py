@@ -16,7 +16,7 @@ class WaterBase(ABC):
 
         self.series = pd.DataFrame()
         self.series = self.series.append(series)
-        self.load_series_from_eag()
+        self.load_series_from_eag()  # TODO: needed here? Also called in initialize.
 
         self.parameters = pd.DataFrame(columns=["Waarde"])
         self.area = area  # area in square meters
@@ -98,14 +98,15 @@ class Water(WaterBase):
 
     """
 
-    def __init__(self, id, eag, series, area=0.0):
+    def __init__(self, id, eag, series, area=0.0, use_waterlevel_series=True):
         WaterBase.__init__(self, id, eag, series, area)
         self.id = id
         self.eag = eag
         self.name = "Water"
+        self.use_waterlevel_series = use_waterlevel_series
 
         self.parameters = pd.DataFrame(
-            data=[0, 0, 0, 0, 0, 0],
+            data=[0, 0, 0, 0, np.nan, np.nan],
             index=['hTarget_1', 'hTargetMin_1', 'hTargetMax_1',
                    'hBottom_1', 'QInMax_1', 'QOutMax_1'],
             columns=["Waarde"])
@@ -119,6 +120,12 @@ class Water(WaterBase):
         self.parameters.update(params)
         hTarget_1, hTargetMin_1, hTargetMax_1, hBottom_1, QInMax_1, QOutMax_1 = \
             self.parameters.loc[:, "Waarde"]
+        
+        # TODO: check with dbase if this can be done differently.
+        if QInMax_1 == 0.:
+            print("Warning! 'QInMax_1' is equal to 0. Assuming this means there is no limit to inflow.")
+        if QOutMax_1 == 0.:
+            print("Warning! 'QOutMax_1' is equal to 0. Assuming this means there is no limit to outflow.")
 
         # 1. Add incoming fluxes from other buckets
         for bucket in self.eag.buckets.values():
@@ -139,7 +146,7 @@ class Water(WaterBase):
         hTargetMin_1 = (hTarget_1 - hTargetMin_1 - hBottom_1) * self.area
         hTargetMax_1 = (hTargetMax_1 + hTarget_1 - hBottom_1) * self.area
 
-        if "Peil" in self.eag.series.loc[tmin:tmax].dropna(axis=1, how="all").columns:
+        if self.use_waterlevel_series:
             h = (self.eag.series.loc[tmin:tmax, "Peil"] - hBottom_1) * self.area
             if np.isnan(h.iloc[0]):
                 # if no first value, calculate one based on hTarget:
@@ -166,10 +173,16 @@ class Water(WaterBase):
 
             else:  # no water level measurement
                 if h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t] > hTargetMax_1:
-                    q_out.loc[t] = max(-1*QOutMax_1, 
-                                       hTargetMax_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
+                    if np.isnan(QOutMax_1) or (QOutMax_1 == 0):
+                        q_out.loc[t] = hTargetMax_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
+                    else:
+                        q_out.loc[t] = max(-1*QOutMax_1, 
+                                        hTargetMax_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
                 elif h[t - pd.Timedelta(days=1)] + q_totals.loc[t] < hTargetMin_1:
-                    q_in.loc[t] = hTargetMin_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
+                    if np.isnan(QInMax_1) or (QInMax_1 == 0):
+                        q_in.loc[t] = hTargetMin_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
+                    else:
+                        q_in.loc[t] = min(QInMax_1, hTargetMin_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
                 
                 h.loc[t] = h.loc[t - pd.Timedelta(days=1)] + q_in.loc[t] + q_out.loc[t] + q_totals.loc[t]
 
