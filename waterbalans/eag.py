@@ -88,7 +88,7 @@ class Eag:
         else:
             self.water = water
 
-    def add_series(self, series, tmin="2000", tmax="2015", freq="D"):
+    def add_series(self, series, tmin="2000", tmax="2015", freq="D", fillna=False):
         """Method to add timeseries based on a pandas DataFrame.
 
         Parameters
@@ -111,6 +111,11 @@ class Eag:
         for id, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
             BakjeID, ClusterType, ParamType = id
             series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
+            if fillna:
+                if series.isna().sum():
+                    print("Filled {} NaN-values with 0.0 in series {}.".format(series.isna().sum(), ClusterType))
+                    series = series.fillna(0.0)
+
             if BakjeID in self.buckets.keys():
                 self.buckets[BakjeID].series[ClusterType] = series
             elif BakjeID == self.water.id:
@@ -121,7 +126,7 @@ class Eag:
             elif BakjeID == -9999:
                 self.series[ClusterType] = series
 
-    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D"):
+    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D", fillna=False):
         """Method to add series directly to EAG. Series must contain volumes (so 
         not divided by area). Series must be negative for water taken out of the 
         EAG and positive for water coming into the EAG.
@@ -142,6 +147,11 @@ class Eag:
                 name = series.columns[0]
             elif isinstance(series, pd.Series):
                 name = series.name
+
+        if fillna:
+            if series.isna().sum():
+                print("Filled {} NaN-values with 0.0 in series {}.".format(series.isna().sum(), name))
+                series = series.fillna(0.0)
         self.series[name] = series
 
     def load_series_from_gaf(self):
@@ -173,7 +183,7 @@ class Eag:
         for id, bucket in self.buckets.items():
             p = params.loc[params.loc[:, "BakjeID"] == id]
 
-            print("Simulating the waterbalance for bucket: %s" % id)
+            print("Simulating the waterbalance for bucket: %s %s" % (bucket.name, id))
             bucket.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
         p = params.loc[params.loc[:, "BakjeID"] == self.water.id]
@@ -375,15 +385,15 @@ class Eag:
         out_columns = fluxes.loc[:, fluxes.mean() < 0].columns
         outflux = fluxes.loc[:, out_columns].sum(axis=1)
         
-        fractions = pd.DataFrame(index=fluxes.index, columns=fluxes.columns)
-        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), fluxes.columns] = 0.0  # add starting day
-        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), "initial"] = 1.0  # add starting day
-        fractions.sort_index(inplace=True)
-
         # TODO: check robustness of following solution, then remove hardcoded stuff:
         # fraction_columns = ["neerslag", "kwel", "verhard", "q_cso", 
         #                     "drain", "uitspoeling", "afstroming", "berekende inlaat"]
         fraction_columns = fluxes.loc[:, fluxes.mean() > 0].columns
+        
+        fractions = pd.DataFrame(index=fluxes.index, columns=fraction_columns)
+        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), fraction_columns] = 0.0  # add starting day
+        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), "initial"] = 1.0  # add starting day
+        fractions.sort_index(inplace=True)
 
         for t in fluxes.index:
             fractions.loc[t, "initial"] = (fractions.loc[t - pd.Timedelta(days=1), "initial"] * 
