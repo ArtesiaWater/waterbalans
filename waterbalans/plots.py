@@ -437,6 +437,17 @@ class Eag_Plots:
                 iax2.plot(diff.index, diff, c="C4", lw=0.75)
                 yl = np.max(np.abs(iax2.get_ylim()))
                 iax2.set_ylim(-1*yl, yl)
+                
+                # add check if difference is larger than 5% on average
+                perc_err = diff / exceldf.loc[:, excol]
+                check = perc_err.abs().mean() > 0.05
+
+                if check > 0:
+                    iax.patch.set_facecolor("salmon")
+                    iax.patch.set_alpha(0.5)
+                else:
+                    iax.patch.set_facecolor("lightgreen")
+                    iax.patch.set_alpha(0.5)
         
         fig.tight_layout()
         return fig
