@@ -49,7 +49,6 @@ class WaterBase(ABC):
         self.fluxes = pd.DataFrame(index=index, dtype=float)
         self.storage = pd.DataFrame(index=index_w_day_before, dtype=float)
 
-
     def load_series_from_eag(self):
         if self.eag is None:
             return
@@ -138,13 +137,10 @@ class Water(WaterBase):
         # 2. calculate water bucket specific fluxes
         series = self.series.multiply(self.area)
 
-        # TODO add series to fluxes without knowing the amount of series up front
+        # Add series to fluxes without knowing the amount of series up front
         series.loc[:, "Verdamping"] = -makkink_to_penman(series.loc[:,"Verdamping"])
         series.loc[:, "Qwegz"] = -series.loc[:, "Qwegz"]
         self.fluxes = self.fluxes.join(series, how="outer")
-
-        hTargetMin_1 = (hTarget_1 - hTargetMin_1 - hBottom_1) * self.area
-        hTargetMax_1 = (hTargetMax_1 + hTarget_1 - hBottom_1) * self.area
 
         if self.use_waterlevel_series:
             h = (self.eag.series.loc[tmin:tmax, "Peil"] - hBottom_1) * self.area
@@ -156,33 +152,74 @@ class Water(WaterBase):
             h = pd.Series(index=self.eag.series.loc[pd.Timestamp(tmin) - 
                           pd.Timedelta(days=1):pd.Timestamp(tmax)].index)
             h.iloc[0] = (hTarget_1 - hBottom_1) * self.area
+        
+        # pre-allocate empty series
         q_in = pd.Series(index=self.eag.series.loc[tmin:tmax].index, 
                          data=np.zeros(self.eag.series.loc[tmin:tmax].shape[0]))
         q_out = pd.Series(index=self.eag.series.loc[tmin:tmax].index, 
                           data=np.zeros(self.eag.series.loc[tmin:tmax].shape[0]))
         
+        # net flux
         q_totals = self.fluxes.sum(axis=1)
         
+        # Static target levels: 
+        #   - Negative offsets will result in offset being set statically, i.e. it will not vary over simulation
+        #   - Positive offsets will result in offset being set dynamically relative to observed level if available
+        
+        # TODO: min/max levels will come in through series later, not through parameters
+        if hTargetMin_1 < 0:
+            hTargetMin_static = (hTarget_1 + hTargetMin_1 - hBottom_1) * self.area  # a volume
+        else:
+            hTargetMin_static = (hTarget_1 - hTargetMin_1 - hBottom_1) * self.area  # a volume
+        if hTargetMax_1 < 0:
+            hTargetMax_static = (hTargetMax_1 - hTarget_1 - hBottom_1) * self.area  # a volume
+        else:
+            hTargetMax_static = (hTargetMax_1 + hTarget_1 - hBottom_1) * self.area  # a volume
+
         for t in h.index[1:]:
             if ~np.isnan(h.loc[t]):  # there is a water level measurement
-                dh_minus_dq = h.loc[t] - h.loc[t-pd.Timedelta(days=1)] - q_totals.loc[t]
-                if dh_minus_dq > 0.0:
-                    q_in.loc[t] = dh_minus_dq
-                elif dh_minus_dq < 0.0:
-                    q_out.loc[t] = dh_minus_dq
+                
+                # Targets now change with obs if offsets are positive
+                if hTargetMin_1 < 0:
+                    hTargetMin_obs = hTargetMin_static
+                else:
+                    hTargetMin_obs = (self.eag.series.loc[t, "Peil"] - np.abs(hTargetMin_1) - hBottom_1) * self.area  # a volume
+                
+                if hTargetMax_1 < 0:
+                    hTargetMax_obs = hTargetMax_static
+                else:
+                    hTargetMax_obs = (hTargetMax_1 + self.eag.series.loc[t, "Peil"] - hBottom_1) * self.area  # a volume
+
+                # volume[t] = volume[t-1] + q_net[t]
+                h_plus_q = h.loc[t-pd.Timedelta(days=1)] + q_totals.loc[t]
+
+                # test if new volume exceeds thresholds
+                if h_plus_q > hTargetMax_obs:
+                    if np.isnan(QOutMax_1) or (QOutMax_1 == 0):  # no limit on out flux
+                        q_out.loc[t] = hTargetMax_obs - h_plus_q
+                    else:  # limit on out flux
+                        q_out.loc[t] = max(-1*QOutMax_1, hTargetMax_obs - h_plus_q)
+                elif h_plus_q < hTargetMin_obs:
+                    if np.isnan(QInMax_1) or (QInMax_1 == 0):  # no limit on in flux
+                        q_in.loc[t] = hTargetMin_obs - h_plus_q
+                    else:  # limit on in flux
+                        q_in.loc[t] = min(QInMax_1, hTargetMin_obs - h_plus_q)
+                
+                # update h with new calculated volume
+                h.loc[t] = h.loc[t - pd.Timedelta(days=1)] + q_in.loc[t] + q_out.loc[t] + q_totals.loc[t]
 
             else:  # no water level measurement
-                if h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t] > hTargetMax_1:
+                if h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t] > hTargetMax_static:
                     if np.isnan(QOutMax_1) or (QOutMax_1 == 0):
-                        q_out.loc[t] = hTargetMax_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
+                        q_out.loc[t] = hTargetMax_static - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
                     else:
                         q_out.loc[t] = max(-1*QOutMax_1, 
-                                        hTargetMax_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
-                elif h[t - pd.Timedelta(days=1)] + q_totals.loc[t] < hTargetMin_1:
+                                        hTargetMax_static - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
+                elif h[t - pd.Timedelta(days=1)] + q_totals.loc[t] < hTargetMin_static:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):
-                        q_in.loc[t] = hTargetMin_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
+                        q_in.loc[t] = hTargetMin_static - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
                     else:
-                        q_in.loc[t] = min(QInMax_1, hTargetMin_1 - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
+                        q_in.loc[t] = min(QInMax_1, hTargetMin_static - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
                 
                 h.loc[t] = h.loc[t - pd.Timedelta(days=1)] + q_in.loc[t] + q_out.loc[t] + q_totals.loc[t]
 
