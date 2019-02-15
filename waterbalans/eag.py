@@ -126,7 +126,8 @@ class Eag:
             elif BakjeID == -9999:
                 self.series[ClusterType] = series
 
-    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D", fillna=False):
+    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D", 
+                       fillna=False, method=None):
         """Method to add series directly to EAG. Series must contain volumes (so 
         not divided by area). Series must be negative for water taken out of the 
         EAG and positive for water coming into the EAG.
@@ -150,8 +151,11 @@ class Eag:
 
         if fillna:
             if series.isna().sum():
-                print("Filled {} NaN-values with 0.0 in series {}.".format(series.isna().sum(), name))
-                series = series.fillna(0.0)
+                print("Filled {0} NaN-values with {1} in series {2}.".format(series.isna().sum(), method, name))
+                if isinstance(method, str):
+                    series = series.fillna(method=method)
+                elif isinstance(method, float) or isinstance(method, int):
+                    series = series.fillna(method)
         self.series[name] = series
 
     def load_series_from_gaf(self):
