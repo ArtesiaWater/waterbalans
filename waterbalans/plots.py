@@ -399,7 +399,7 @@ class Eag_Plots:
         fluxes.dropna(how="all", axis=1, inplace=True)
 
         # Plot
-        fig, axgr = plt.subplots(int(np.ceil(fluxes.shape[1]/3)), 3, 
+        fig, axgr = plt.subplots(int(np.ceil(fluxes.shape[1]/3))+1, 3, 
                                  figsize=(20, 12), dpi=150, sharex=True)
 
         for i, pycol in enumerate(fluxes.columns):
@@ -449,6 +449,32 @@ class Eag_Plots:
                     iax.patch.set_facecolor("lightgreen")
                     iax.patch.set_alpha(0.5)
         
+        iax = axgr.ravel()[i+1]
+        iax.plot(self.eag.water.level.index, self.eag.water.level, 
+                label="Berekend peil (Python)")
+        iax.plot(exceldf.index, exceldf.loc[:, "peil"], 
+                label="Berekend peil (Excel)", ls="dashed")
+        iax.grid(b=True)
+        iax.legend(loc="best")
+
+        if showdiff:
+                iax2 = iax.twinx()
+                diff = self.eag.water.level - exceldf.loc[:, "peil"]
+                iax2.plot(diff.index, diff, c="C4", lw=0.75)
+                yl = np.max(np.abs(iax2.get_ylim()))
+                iax2.set_ylim(-1*yl, yl)
+                
+                # add check if difference is larger than 5% on average
+                perc_err = diff / exceldf.loc[:, "peil"]
+                check = perc_err.abs().mean() > 0.05
+
+                if check > 0:
+                    iax.patch.set_facecolor("salmon")
+                    iax.patch.set_alpha(0.5)
+                else:
+                    iax.patch.set_facecolor("lightgreen")
+                    iax.patch.set_alpha(0.5)
+
         fig.tight_layout()
         return fig
 
