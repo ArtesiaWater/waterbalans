@@ -56,11 +56,16 @@ def makkink_to_penman(e):
 
     """
     penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
-              1.111, 1.429, 1.000]
+              1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
+    # TODO: which one to use? 2019/02/14 --> this second list seems odd, checking 
+    # with maker of excel balance which to use. Probably bug in Excel!
+    # penman = [0.400, 0.933, 1.267, 1.300, 1.300, 1.310, 1.267, 1.193, 1.170, 
+    #           0.900, 0.700, 0.000]  # col D47:D59 in Excel e_o / e_r
 
     e = e.copy()
     for i in range(1, 13):
-        e.loc[e.index.month == i] = e.loc[e.index.month == i] / penman[i - 1]
+        e.loc[e.index.month == i] = e.loc[e.index.month == i] / penman[i - 1]  # for first list
+        # e.loc[e.index.month == i] = e.loc[e.index.month == i] * penman[i - 1]  # for second list
     return e
 
 def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
