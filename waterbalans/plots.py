@@ -397,6 +397,7 @@ class Eag_Plots:
         """
         fluxes = self.eag.aggregate_fluxes()
         fluxes.dropna(how="all", axis=1, inplace=True)
+        fluxes = fluxes.iloc[:-1]  # drop last day which isn't simulated (day after tmax)
 
         # Plot
         fig, axgr = plt.subplots(int(np.ceil(fluxes.shape[1]/3))+1, 3, 
@@ -440,6 +441,7 @@ class Eag_Plots:
                 
                 # add check if difference is larger than 5% on average
                 perc_err = diff / exceldf.loc[:, excol]
+                perc_err.loc[~np.isfinite(perc_err)] = 0.0
                 check = perc_err.abs().mean() > 0.05
 
                 if check > 0:
