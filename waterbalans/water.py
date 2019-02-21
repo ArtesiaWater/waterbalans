@@ -110,6 +110,7 @@ class Water(WaterBase):
                    'hBottom_1', 'QInMax_1', 'QOutMax_1'],
             columns=["Waarde"])
 
+        self.hTargetSeries = pd.DataFrame()  # for setting waterlevel targets as series
         self.eag.add_water(self)
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
@@ -119,6 +120,11 @@ class Water(WaterBase):
         self.parameters.update(params)
         hTarget_1, hTargetMin_1, hTargetMax_1, hBottom_1, QInMax_1, QOutMax_1 = \
             self.parameters.loc[:, "Waarde"]
+
+        # Pick up hTargetSeries if they exist
+        if not self.hTargetSeries.empty:
+            hTargetMin_1 = self.hTargetSeries["hTargetMin_1"]
+            hTargetMax_1 = self.hTargetSeries["hTargetMax_1"]
         
         # TODO: check with dbase if this can be done differently.
         if QInMax_1 == 0.:
@@ -144,10 +150,10 @@ class Water(WaterBase):
 
         if self.use_waterlevel_series:
             h = (self.eag.series.loc[tmin:tmax, "Peil"] - hBottom_1) * self.area
-            if np.isnan(h.iloc[0]):
-                # if no first value, calculate one based on hTarget:
-                h.loc[h.index[0]-pd.Timedelta(days=1)] = (hTarget_1 - hBottom_1) * self.area
-                h.sort_index(inplace=True)
+            # TODO: currently set to start with target level regardless of observations. Check if correct for all EAGs.
+            # starting level calculated based on hTarget
+            h.loc[h.index[0]-pd.Timedelta(days=1)] = (hTarget_1 - hBottom_1) * self.area
+            h.sort_index(inplace=True)
         else:
             h = pd.Series(index=self.eag.series.loc[pd.Timestamp(tmin) - 
                           pd.Timedelta(days=1):pd.Timestamp(tmax)].index)
@@ -166,29 +172,31 @@ class Water(WaterBase):
         #   - Negative offsets will result in offset being set statically, i.e. it will not vary over simulation
         #   - Positive offsets will result in offset being set dynamically relative to observed level if available
         
-        # TODO: min/max levels will come in through series later, not through parameters
-        if hTargetMin_1 < 0:
-            hTargetMin_static = (hTarget_1 + hTargetMin_1 - hBottom_1) * self.area  # a volume
-        else:
-            hTargetMin_static = (hTarget_1 - hTargetMin_1 - hBottom_1) * self.area  # a volume
-        if hTargetMax_1 < 0:
-            hTargetMax_static = (hTargetMax_1 - hTarget_1 - hBottom_1) * self.area  # a volume
-        else:
-            hTargetMax_static = (hTargetMax_1 + hTarget_1 - hBottom_1) * self.area  # a volume
+        if not self.hTargetSeries.empty:
+            # Convert to volume:
+            hTargetMin_1 = (hTargetMin_1 - hBottom_1) * self.area
+            hTargetMax_1 = (hTargetMax_1 - hBottom_1) * self.area
+        else:  # hTargets are floats (positive or negative) relative to Target level
+            if hTargetMin_1 < 0:  # static
+                hTargetMin_static = (hTarget_1 + hTargetMin_1 - hBottom_1) * self.area  # a volume
+                hTargetMin_1 = pd.Series(index=h.index, data=hTargetMin_static)
+            else:  # dynamic
+                hTargetMin_static = hTarget_1 
+                hTargetMin_1 = (self.eag.series.loc[tmin:tmax, "Peil"] - 
+                                hTargetMin_1 - hBottom_1) * self.area
+            
+            if hTargetMax_1 < 0:  # static
+                hTargetMax_static = (hTargetMax_1 - hTarget_1 - hBottom_1) * self.area  # a volume
+                hTargetMax_1 = pd.Series(index=h.index, data=hTargetMax_static)
+            else:  # dynamic
+                hTargetMax_1 = (self.eag.series.loc[tmin:tmax, "Peil"] + 
+                                hTargetMax_1 - hBottom_1) * self.area
 
         for t in h.index[1:]:
             if ~np.isnan(h.loc[t]):  # there is a water level measurement
                 
-                # Targets now change with obs if offsets are positive
-                if hTargetMin_1 < 0:
-                    hTargetMin_obs = hTargetMin_static
-                else:
-                    hTargetMin_obs = (self.eag.series.loc[t, "Peil"] - np.abs(hTargetMin_1) - hBottom_1) * self.area  # a volume
-                
-                if hTargetMax_1 < 0:
-                    hTargetMax_obs = hTargetMax_static
-                else:
-                    hTargetMax_obs = (hTargetMax_1 + self.eag.series.loc[t, "Peil"] - hBottom_1) * self.area  # a volume
+                hTargetMax_obs = hTargetMax_1.loc[t]
+                hTargetMin_obs = hTargetMin_1.loc[t]
 
                 # volume[t] = volume[t-1] + q_net[t]
                 h_plus_q = h.loc[t-pd.Timedelta(days=1)] + q_totals.loc[t]
