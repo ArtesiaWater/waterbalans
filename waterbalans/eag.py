@@ -112,8 +112,8 @@ class Eag:
             BakjeID, ClusterType, ParamType = id
             series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
             if fillna:
-                if series.isna().sum():
-                    print("Filled {} NaN-values with 0.0 in series {}.".format(series.isna().sum(), ClusterType))
+                if (series.isna().sum() > 0).all():
+                    print("Filled {} NaN-values with 0.0 in series {}.".format(np.int(series.isna().sum()), ClusterType))
                     series = series.fillna(0.0)
 
             if BakjeID in self.buckets.keys():
@@ -121,6 +121,8 @@ class Eag:
             elif BakjeID == self.water.id:
                 if ClusterType.startswith("Cl"):
                     self.water.chloride[ClusterType] = series
+                elif ClusterType.startswith("hTarget"):
+                    self.water.hTargetSeries[ClusterType] = series
                 else:
                     self.water.series[ClusterType] = series
             elif BakjeID == -9999:
@@ -150,13 +152,17 @@ class Eag:
                 name = series.name
 
         if fillna:
-            if series.isna().sum():
-                print("Filled {0} NaN-values with {1} in series {2}.".format(series.isna().sum(), method, name))
+            if (series.isna().sum() > 0).all():
+                print("Filled {0} NaN-values with '{1}' in series {2}.".format(np.int(series.isna().sum()), method, name))
                 if isinstance(method, str):
                     series = series.fillna(method=method)
                 elif isinstance(method, float) or isinstance(method, int):
                     series = series.fillna(method)
-        self.series[name] = series
+
+        if name in self.series.columns:
+            print("Warning! Series {} already present in EAG, overwriting data!".format(name))
+        
+        self.series.loc[series.index, name] = series.values.squeeze()
 
     def load_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
