@@ -1,8 +1,8 @@
-Waternet Waterbalansen Model in Python
-======================================
-
 .. image:: https://travis-ci.com/ArtesiaWater/waterbalans.svg?token=ms7z29YrqxNkVKkenBPh&branch=master
     :target: https://travis-ci.com/ArtesiaWater/waterbalans
+
+Waternet Waterbalansen Model in Python
+======================================
 
 Deze repository bevat het Waternet Waterbalansen model, zoals uitgewerkt door Maarten Ouboter in de Excel Waterbalans module.
 
@@ -11,8 +11,8 @@ Auteur: R.A. Collenteur, Artesia Water 2018
 Auteur: D.A. Brakenhoff, Artesia Water 2018
 
 .. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png?raw=true
-   :height: 100px
-   :width: 100px
+   :height: 50px
+   :width: 50px
 
 Installatie
 ===========
