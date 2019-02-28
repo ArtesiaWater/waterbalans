@@ -48,6 +48,7 @@ class WaterBase(ABC):
         
         self.fluxes = pd.DataFrame(index=index, dtype=float)
         self.storage = pd.DataFrame(index=index_w_day_before, dtype=float)
+        self.level = pd.DataFrame(index=index_w_day_before, dtype=float)
 
     def load_series_from_eag(self):
         if self.eag is None:
@@ -123,8 +124,8 @@ class Water(WaterBase):
 
         # Pick up hTargetSeries if they exist
         if not self.hTargetSeries.empty:
-            hTargetMin_1 = self.hTargetSeries["hTargetMin_1"]
-            hTargetMax_1 = self.hTargetSeries["hTargetMax_1"]
+            hTargetMin_1 = self.hTargetSeries["hTargetMin"]
+            hTargetMax_1 = self.hTargetSeries["hTargetMax"]
         
         # TODO: check with dbase if this can be done differently.
         if QInMax_1 == 0.:
@@ -155,7 +156,7 @@ class Water(WaterBase):
             h.loc[h.index[0]-pd.Timedelta(days=1)] = (hTarget_1 - hBottom_1) * self.area
             h.sort_index(inplace=True)
         else:
-            h = pd.Series(index=self.eag.series.loc[pd.Timestamp(tmin) - 
+            h = pd.Series(index=self.storage.loc[pd.Timestamp(tmin) - 
                           pd.Timedelta(days=1):pd.Timestamp(tmax)].index)
             h.iloc[0] = (hTarget_1 - hBottom_1) * self.area
         
@@ -168,7 +169,7 @@ class Water(WaterBase):
         # net flux
         q_totals = self.fluxes.sum(axis=1)
         
-        # Static target levels: 
+        # Static/dynamic target levels: 
         #   - Negative offsets will result in offset being set statically, i.e. it will not vary over simulation
         #   - Positive offsets will result in offset being set dynamically relative to observed level if available
         
@@ -177,7 +178,7 @@ class Water(WaterBase):
             hTargetMin_1 = (hTargetMin_1 - hBottom_1) * self.area
             hTargetMax_1 = (hTargetMax_1 - hBottom_1) * self.area
         else:  # hTargets are floats (positive or negative) relative to Target level
-            if hTargetMin_1 < 0:  # static
+            if hTargetMin_1 <= 0:  # static
                 hTargetMin_static = (hTarget_1 + hTargetMin_1 - hBottom_1) * self.area  # a volume
                 hTargetMin_1 = pd.Series(index=h.index, data=hTargetMin_static)
             else:  # dynamic
@@ -185,19 +186,18 @@ class Water(WaterBase):
                 hTargetMin_1 = (self.eag.series.loc[tmin:tmax, "Peil"] - 
                                 hTargetMin_1 - hBottom_1) * self.area
             
-            if hTargetMax_1 < 0:  # static
-                hTargetMax_static = (hTargetMax_1 - hTarget_1 - hBottom_1) * self.area  # a volume
+            if hTargetMax_1 <= 0:  # static
+                hTargetMax_static = (hTarget_1 - hTargetMax_1 - hBottom_1) * self.area  # a volume
                 hTargetMax_1 = pd.Series(index=h.index, data=hTargetMax_static)
             else:  # dynamic
                 hTargetMax_1 = (self.eag.series.loc[tmin:tmax, "Peil"] + 
                                 hTargetMax_1 - hBottom_1) * self.area
 
         for t in h.index[1:]:
-            if ~np.isnan(h.loc[t]):  # there is a water level measurement
-                
-                hTargetMax_obs = hTargetMax_1.loc[t]
-                hTargetMin_obs = hTargetMin_1.loc[t]
+            hTargetMax_obs = hTargetMax_1.loc[t]
+            hTargetMin_obs = hTargetMin_1.loc[t]
 
+            if ~np.isnan(h.loc[t]):  # there is a water level measurement
                 # volume[t] = volume[t-1] + q_net[t]
                 h_plus_q = h.loc[t-pd.Timedelta(days=1)] + q_totals.loc[t]
 
@@ -217,23 +217,24 @@ class Water(WaterBase):
                 h.loc[t] = h.loc[t - pd.Timedelta(days=1)] + q_in.loc[t] + q_out.loc[t] + q_totals.loc[t]
 
             else:  # no water level measurement
-                if h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t] > hTargetMax_static:
+                # volume[t] = volume[t-1] + q_net[t]
+                h_plus_q = h.loc[t-pd.Timedelta(days=1)] + q_totals.loc[t]
+
+                if h_plus_q > hTargetMax_obs:
                     if np.isnan(QOutMax_1) or (QOutMax_1 == 0):
-                        q_out.loc[t] = hTargetMax_static - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
+                        q_out.loc[t] = hTargetMax_obs - h_plus_q
                     else:
-                        q_out.loc[t] = max(-1*QOutMax_1, 
-                                        hTargetMax_static - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
-                elif h[t - pd.Timedelta(days=1)] + q_totals.loc[t] < hTargetMin_static:
+                        q_out.loc[t] = max(-1*QOutMax_1, hTargetMax_obs - h_plus_q)
+                elif h_plus_q < hTargetMin_obs:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):
-                        q_in.loc[t] = hTargetMin_static - h[t - pd.Timedelta(days=1)] - q_totals.loc[t]
+                        q_in.loc[t] = hTargetMin_obs - h_plus_q
                     else:
-                        q_in.loc[t] = min(QInMax_1, hTargetMin_static - h[t - pd.Timedelta(days=1)] - q_totals.loc[t])
+                        q_in.loc[t] = min(QInMax_1, hTargetMin_obs - h_plus_q)
                 
                 h.loc[t] = h.loc[t - pd.Timedelta(days=1)] + q_in.loc[t] + q_out.loc[t] + q_totals.loc[t]
 
         self.storage = self.storage.assign(storage=h)
-        self.level = pd.Series(data=h.values / self.area + hBottom_1,
-                               index=h.index)
+        self.level = self.level.assign(level=h / self.area + hBottom_1)
         self.fluxes = self.fluxes.assign(q_in=q_in, q_out=q_out)
 
     def validate(self, return_wb_series=False):
