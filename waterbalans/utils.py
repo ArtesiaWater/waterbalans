@@ -57,6 +57,8 @@ def makkink_to_penman(e):
     """
     penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
               1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
+    # penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
+    #         1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
     # TODO: which one to use? 2019/02/14 --> this second list seems odd, checking 
     # with maker of excel balance which to use. Probably bug in Excel!
     # penman = [0.400, 0.933, 1.267, 1.300, 1.300, 1.310, 1.267, 1.193, 1.170, 
