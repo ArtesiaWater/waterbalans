@@ -10,8 +10,10 @@ from hkvfewspy import Pi
 from pandas import date_range, Series, DataFrame, Timestamp, Timedelta
 import numpy as np
 
-pi = Pi()
-pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
+def initialize_fews_connection(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl'):
+    pi = Pi()
+    pi.setClient(wsdl=wsdl)
+    return pi
 
 
 def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
@@ -43,6 +45,8 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     -----
 
     """
+    pi = initialize_fews_connection()
+    
     if tmin is None:
         tmin = Timestamp("2010")
     else:
