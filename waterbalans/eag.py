@@ -168,9 +168,7 @@ class Eag:
         if name in self.series.columns:
             print("Warning! Series {} already present in EAG, overwriting data!".format(name))
         
-
         self.series.loc[series.index, name] = series.values.squeeze()
-
 
     def load_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
