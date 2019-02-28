@@ -5,7 +5,7 @@ Author: R.A. Collenteur, Artesia Water, 2017-11-20
 
 """
 import numpy as np
-from pandas import Timestamp, DateOffset
+from pandas import Timestamp, DateOffset, Timedelta
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import matplotlib.dates as mdates
@@ -313,8 +313,8 @@ class Eag_Plots:
     def water_level(self, label_obs=False):
 
         hTarget = self.eag.water.parameters.loc["hTarget_1", "Waarde"]
-        hTargetMax = hTarget + self.eag.water.parameters.loc["hTargetMax_1", "Waarde"]
-        hTargetMin = hTarget - self.eag.water.parameters.loc["hTargetMin_1", "Waarde"]
+        hTargetMax = hTarget + np.abs(self.eag.water.parameters.loc["hTargetMax_1", "Waarde"])
+        hTargetMin = hTarget - np.abs(self.eag.water.parameters.loc["hTargetMin_1", "Waarde"])
         hBottom = self.eag.water.parameters.loc["hBottom_1", "Waarde"]
 
         # Plot
@@ -395,12 +395,34 @@ class Eag_Plots:
             Python waterbalance to the Excel waterbalance.
 
         """
+        column_names = {'peil':        0,
+                        'neerslag':    1,
+                        'kwel':        2,
+                        'verhard':     3,
+                        'q_cso':       4,
+                        'drain':       5,
+                        'uitspoeling': 6,
+                        'afstroming':  7,
+                        'Inlaat1':     8,
+                        'Inlaat2':     9,
+                        'Inlaat3':    10,
+                        'Inlaat4':    11,
+                        'berekende inlaat':     12,
+                        'verdamping': 13,
+                        'wegzijging': 14,
+                        'intrek':     15,
+                        'Uitlaat1':   16,
+                        'Uitlaat2':   17,
+                        'Uitlaat3':   18,
+                        'Uitlaat4':   19,
+                        'berekende uitlaat':    20}
+
         fluxes = self.eag.aggregate_fluxes()
         fluxes.dropna(how="all", axis=1, inplace=True)
         fluxes = fluxes.iloc[:-1]  # drop last day which isn't simulated (day after tmax)
 
         # Plot
-        fig, axgr = plt.subplots(int(np.ceil(fluxes.shape[1]/3))+1, 3, 
+        fig, axgr = plt.subplots(int(np.ceil((fluxes.shape[1]+1)/3)), 3, 
                                  figsize=(20, 12), dpi=150, sharex=True)
 
         for i, pycol in enumerate(fluxes.columns):
@@ -408,25 +430,19 @@ class Eag_Plots:
 
             iax.plot(fluxes.index, fluxes.loc[:, pycol], label="{} (Python)".format(pycol))
             diff = fluxes.loc[:, pycol].copy() # hacky method to subtract excel series from diff
-            
-            # Some logic to link column names
-            defaults = {"q_cso": "riolering", "berekende inlaat": "inlaat",
-                        "berekende uitlaat": "uitlaat", "drain": "gedraineerd"}
-            if column_names:
-                defaults.update(column_names)
-            
-            if pycol not in exceldf.columns and pycol not in defaults.keys():
+
+            if pycol not in exceldf.columns and pycol not in column_names.keys():
                 print("Column '{}' not found in Excel Balance!".format(pycol))
                 iax.legend(loc="best")
                 iax.grid(b=True)
                 continue
             else:
                 try:
-                    excol = defaults[pycol]
+                    excol = column_names[pycol]
                 except KeyError:
                     excol = pycol
 
-            iax.plot(exceldf.index, exceldf.loc[:, excol], label="{0:s} (Excel)".format(excol), 
+            iax.plot(exceldf.index, exceldf.iloc[:, excol], label="{0:s} (Excel)".format(exceldf.columns[excol]), 
                      ls="dashed")
 
             iax.grid(b=True)
@@ -434,13 +450,13 @@ class Eag_Plots:
 
             if showdiff:
                 iax2 = iax.twinx()
-                diff -= exceldf.loc[:, excol]  # hacky method to subtract excel balance (diff column names)
+                diff -= exceldf.iloc[:, excol]  # hacky method to subtract excel balance (diff column names)
                 iax2.plot(diff.index, diff, c="C4", lw=0.75)
                 yl = np.max(np.abs(iax2.get_ylim()))
                 iax2.set_ylim(-1*yl, yl)
                 
                 # add check if difference is larger than 5% on average
-                perc_err = diff / exceldf.loc[:, excol]
+                perc_err = diff / exceldf.iloc[:, excol]
                 perc_err.loc[~np.isfinite(perc_err)] = 0.0
                 check = perc_err.abs().mean() > 0.05
 
@@ -452,7 +468,7 @@ class Eag_Plots:
                     iax.patch.set_alpha(0.5)
         
         iax = axgr.ravel()[i+1]
-        iax.plot(self.eag.water.level.index, self.eag.water.level, 
+        iax.plot(self.eag.water.level.iloc[1:].index, self.eag.water.level.iloc[1:], 
                 label="Berekend peil (Python)")
         iax.plot(exceldf.index, exceldf.loc[:, "peil"], 
                 label="Berekend peil (Excel)", ls="dashed")
@@ -460,22 +476,26 @@ class Eag_Plots:
         iax.legend(loc="best")
 
         if showdiff:
-                iax2 = iax.twinx()
-                diff = self.eag.water.level - exceldf.loc[:, "peil"]
-                iax2.plot(diff.index, diff, c="C4", lw=0.75)
-                yl = np.max(np.abs(iax2.get_ylim()))
-                iax2.set_ylim(-1*yl, yl)
-                
-                # add check if difference is larger than 5% on average
-                perc_err = diff / exceldf.loc[:, "peil"]
-                check = perc_err.abs().mean() > 0.05
+            iax2 = iax.twinx()
+            diff = self.eag.water.level.level - exceldf.loc[:, "peil"]
+            iax2.plot(diff.index, diff, c="C4", lw=0.75)
+            yl = np.max(np.abs(iax2.get_ylim()))
+            iax2.set_ylim(-1*yl, yl)
+            
+            mint = np.max([self.eag.water.level.index[0], exceldf.index[0]])
+            maxt = np.min([self.eag.water.level.index[-1], exceldf.index[-1]])
 
-                if check > 0:
-                    iax.patch.set_facecolor("salmon")
-                    iax.patch.set_alpha(0.5)
-                else:
-                    iax.patch.set_facecolor("lightgreen")
-                    iax.patch.set_alpha(0.5)
+            # add check if series are similar (1cm absolute + 1% error on top of value in excel)
+            check = np.allclose(self.eag.water.level.loc[mint:maxt, "level"], 
+                                exceldf.loc[mint:maxt, "peil"], 
+                                atol=0.005, rtol=0.00)
+
+            if check:
+                iax.patch.set_facecolor("lightgreen")
+                iax.patch.set_alpha(0.5)
+            else:
+                iax.patch.set_facecolor("salmon")
+                iax.patch.set_alpha(0.5)
 
         fig.tight_layout()
         return fig
