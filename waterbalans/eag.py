@@ -6,6 +6,7 @@ David Brakenhoff, Artesia Water, September 2018
 """
 
 from collections import OrderedDict
+from pandas import date_range, Timestamp
 
 from .buckets import *
 from .plots import Eag_Plots
@@ -127,6 +128,11 @@ class Eag:
                     self.water.series[ClusterType] = series
             elif BakjeID == -9999:
                 self.series[ClusterType] = series
+        
+        # Create index based on tmin/tmax if no series are added to EAG!
+        if self.series.empty:
+            self.series = pd.DataFrame(index=date_range(Timestamp(tmin), 
+                                                        Timestamp(tmax), freq="D"))
 
     def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D", 
                        fillna=False, method=None):
@@ -162,7 +168,9 @@ class Eag:
         if name in self.series.columns:
             print("Warning! Series {} already present in EAG, overwriting data!".format(name))
         
+
         self.series.loc[series.index, name] = series.values.squeeze()
+
 
     def load_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
