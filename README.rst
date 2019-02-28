@@ -1,6 +1,9 @@
 Waternet Waterbalansen Model in Python
 ======================================
 
+.. image:: https://travis-ci.org/pastas/pastas.svg?branch=master
+                    :target: https://travis-ci.org/pastas/pastas
+
 Deze repository bevat het Waternet Waterbalansen model, zoals uitgewerkt door Maarten Ouboter in de Excel Waterbalans module.
 
 Auteur: R.A. Collenteur, Artesia Water 2018
