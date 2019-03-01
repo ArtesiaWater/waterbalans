@@ -146,7 +146,8 @@ class Water(WaterBase):
 
         # Add series to fluxes without knowing the amount of series up front
         series.loc[:, "Verdamping"] = -makkink_to_penman(series.loc[:,"Verdamping"])
-        series.loc[:, "Qwegz"] = -series.loc[:, "Qwegz"]
+        if "Qwegz" in series.columns:
+            series.loc[:, "Qwegz"] = -series.loc[:, "Qwegz"]
         self.fluxes = self.fluxes.join(series, how="outer")
 
         if self.use_waterlevel_series:

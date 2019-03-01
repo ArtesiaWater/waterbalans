@@ -10,7 +10,7 @@ endTime = datetime(2018, 6, 1)
 pi = Pi()
 pi.setClient(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl')
 
-lijst = pd.read_csv("fews/waterbalans.txt", sep=";", header=None,
+lijst = pd.read_csv("./voorbeelden/fews/waterbalans.txt", sep=";", header=None,
                     names=["filterId", "moduleInstanceId", "locationId",
                            "parameterId", "nanValue", "name"])
 

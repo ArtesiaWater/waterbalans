@@ -151,6 +151,10 @@ class Eag:
         freq: str
 
         """
+        if self.series.index.shape[0] == 0:
+            self.series = pd.DataFrame(index=date_range(Timestamp(tmin), 
+                                                        Timestamp(tmax), freq="D"))
+
         if name is None:
             if isinstance(series, pd.DataFrame):
                 name = series.columns[0]
@@ -168,7 +172,7 @@ class Eag:
         if name in self.series.columns:
             print("Warning! Series {} already present in EAG, overwriting data!".format(name))
         
-        self.series.loc[series.index, name] = series.values.squeeze()
+        self.series.loc[series.index.intersection(self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
 
     def load_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
@@ -347,8 +351,11 @@ class Eag:
                        "ClUitspoeling": "uitspoeling",
                        "ClAfstroming": "afstroming"}
 
-        cl_series = self.water.chloride.loc[:, rename_keys.keys()]
-        cl_series = cl_series.rename(columns=rename_keys)
+        if not self.water.chloride.empty:
+            cl_series = self.water.chloride.loc[:, rename_keys.keys()]
+            cl_series = cl_series.rename(columns=rename_keys)
+        else:
+            cl_series = pd.DataFrame(index=self.series.index, columns=C_params.keys(), data=C_params.to_dict())
 
         for icol in set(C_params.index) - set(cl_series.columns):
             print("Warning! Setting default concentration of {0:.1f} mg/L for '{1}'!".format(C_params.loc[icol], icol))
