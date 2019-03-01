@@ -97,3 +97,6 @@ ENV/
 
 ./waterbalans/desktop.ini
 waterbalans/desktop.ini
+
+htmlcov/
+.coverage

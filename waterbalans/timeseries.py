@@ -60,7 +60,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     else:
         tmax = Timestamp(tmax)
     # Download a timeseries from FEWS
-    if kind == "FEWS" and pi is not None:
+    if kind == "FEWS" and pi is not None:  # pragma: no cover
         
         # Note: this selects only the first entry if there are multiple
         if isinstance(data, DataFrame):

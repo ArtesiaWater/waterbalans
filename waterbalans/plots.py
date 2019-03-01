@@ -305,7 +305,7 @@ class Eag_Plots:
             ax2.plot(chloride_conc.index, chloride_conc, color="k")
             ax2.set_ylabel("Chloride concentration (mg/L)")
         
-        ax.set_xlim(Timestamp(tmin), Timestamp(tmax))
+        # ax.set_xlim(Timestamp(tmin), Timestamp(tmax))
         ax.set_ylim(0, 1)
         fig.tight_layout()
         return ax
@@ -342,7 +342,7 @@ class Eag_Plots:
         
         return ax
 
-    def plot_series(self, series, tmin="2000", tmax="2018", freq="D", mask=None, labelcol="WaardeAlfa"):
+    def plot_series(self, series, tmin="2000", tmax="2018", freq="D", mask=None, labelcol="WaardeAlfa"):  # pragma: no cover
         """Method to plot timeseries based on a pandas DataFrame with series names.
 
         Parameters
@@ -372,7 +372,7 @@ class Eag_Plots:
 
         return ax
 
-    def compare_fluxes_to_excel_balance(self, exceldf, column_names=None, showdiff=True):
+    def compare_fluxes_to_excel_balance(self, exceldf, column_names=None, showdiff=True):  # pragma: no cover
         """Convenience method to compare original Excel waterbalance
         to the one calculated with Python.
         
@@ -500,7 +500,7 @@ class Eag_Plots:
         fig.tight_layout()
         return fig
 
-    def compare_waterlevel_to_excel(self, exceldf):
+    def compare_waterlevel_to_excel(self, exceldf):  # pragma: no cover
         """Convenience method to compare calculated water level in Excel waterbalance
         to the one calculated with Python.
         

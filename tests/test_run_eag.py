@@ -31,6 +31,7 @@ def test_eag_run():
     params["Waarde"] = pd.to_numeric(params.Waarde)
     # simulate
     e.simulate(params=params, tmin="2000", tmax="2000-01-10")
+    e.water.validate()
     return e
 
 def test_calculate_fluxes():
@@ -46,7 +47,7 @@ def test_calculate_fractions():
 def test_calculate_chloride():
     e = test_eag_run()
     cl = e.calculate_chloride_concentration()
-    return 
+    return e, cl
 
 def test_add_real_series_and_simulate():
     tmin = "2000"
