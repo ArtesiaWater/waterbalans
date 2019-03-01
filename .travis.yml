@@ -15,10 +15,10 @@ matrix:
         sudo: true
         services:
           - xvfb
-        before_script: # configure a headless display to test plot generation
-          - "export DISPLAY=:99.0"
-          - "sh -e /etc/init.d/xvfb start"
-          - sleep 3 # give xvfb some time to start
+        # before_script: # configure a headless display to test plot generation
+        #   - "export DISPLAY=:99.0"
+        #   - "sh -e /etc/init.d/xvfb start"
+        #   - sleep 3 # give xvfb some time to start
 
 # Install dependencies
 install:
