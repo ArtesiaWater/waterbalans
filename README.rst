@@ -4,22 +4,25 @@
 Waternet Waterbalansen Model in Python
 ======================================
 
-Deze repository bevat het Waternet Waterbalansen model, zoals uitgewerkt door Maarten Ouboter in de Excel Waterbalans module.
+Deze repository bevat het Waternet Waterbalansen model, zoals uitgewerkt door 
+Maarten Ouboter in de Excel Waterbalans module.
 
-Auteurs: 
+Auteurs:
+
 - R.A. Collenteur, Artesia Water 2018
 - D.A. Brakenhoff, Artesia Water 2018
 
-.. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png?raw=true
-   :height: 50 px
-   :width: 50 px
-   :scale: 50 %
+.. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png
+    :height: 150px
+    :width: 150px
+    :align: right
 
 Installatie
 ===========
 
 1. Download de data van deze repository.
-2. Open een windows command window (CMD) en cd naar de map waterbalans (waar ook het bestand setup.py staat)
+2. Open een windows command window (CMD) en cd naar de map waterbalans 
+(waar ook het bestand setup.py staat).
 3. type het volgende en druk op enter::
 
    >>> pip install .
@@ -27,7 +30,7 @@ Installatie
 
 Installatie vereisten
 =====================
-- Python 3.6 installatie (bij voorkeur Anaconda https://www.anaconda.com/download/)
+- Python 3.7 installatie (bij voorkeur Anaconda https://www.anaconda.com/download/)
 
 Project Groep
 =============
