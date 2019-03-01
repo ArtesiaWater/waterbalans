@@ -45,7 +45,11 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     -----
 
     """
-    pi = initialize_fews_pi()
+    try:
+        pi = initialize_fews_pi()
+    except Exception as e:
+        print("Warning! Pi service cannot be started. Module will not import series from FEWS!")
+        pi = None
     
     if tmin is None:
         tmin = Timestamp("2010")
@@ -56,7 +60,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     else:
         tmax = Timestamp(tmax)
     # Download a timeseries from FEWS
-    if kind == "FEWS":
+    if kind == "FEWS" and pi is not None:
         
         # Note: this selects only the first entry if there are multiple
         if isinstance(data, DataFrame):
