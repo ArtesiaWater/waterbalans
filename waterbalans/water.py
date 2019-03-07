@@ -64,7 +64,7 @@ class WaterBase(ABC):
             self.series["Uitlaat"] = -self.eag.series["Uitlaat"] / self.area
 
         # add remaining series to water bucket.
-        otherseries = set(self.eag.series.columns) - {"Neerslag", "Verdamping", "Inlaat", "Uitlaat", "Peil", "Gemaal"}
+        otherseries = set(self.eag.series.columns) - {"Neerslag", "Verdamping", "Inlaat", "Uitlaat", "Peil", "Gemaal", "q_cso"}
         for name in otherseries:
             self.series[name] = self.eag.series[name] / self.area
 
@@ -145,7 +145,7 @@ class Water(WaterBase):
         series = self.series.multiply(self.area)
 
         # Add series to fluxes without knowing the amount of series up front
-        series.loc[:, "Verdamping"] = -makkink_to_penman(series.loc[:,"Verdamping"])
+        series.loc[:, "Verdamping"] = -makkink_to_penman(series.loc[:,"Verdamping"], use_excel_factors=True)  # TODO: change back to False!!
         if "Qwegz" in series.columns:
             series.loc[:, "Qwegz"] = -series.loc[:, "Qwegz"]
         self.fluxes = self.fluxes.join(series, how="outer")
