@@ -10,7 +10,11 @@ from hkvfewspy import Pi
 from pandas import date_range, Series, DataFrame, Timestamp, Timedelta
 import numpy as np
 
-def initialize_fews_pi(wsdl='http://localhost:8081/FewsPiService/fewspiservice?wsdl'):
+def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
+    """
+    FEWS Webservice 2017.01: http://localhost:8081/FewsPiService/fewspiservice?wsdl
+    FEWS Webservice 2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl
+    """
     pi = Pi()
     pi.setClient(wsdl=wsdl)
     return pi
