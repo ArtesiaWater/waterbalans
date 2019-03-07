@@ -435,3 +435,13 @@ class Eag:
         bucketnames = [b.name for b in self.buckets.values()]
         bucketparams = [b.parameters for b in self.buckets.values()]
         return pd.concat(bucketparams, axis=1, sort=False, keys=bucketnames)
+
+    def get_bucket(self, buckettype="all"):
+        if buckettype ==  "all":
+            return self.buckets.values()
+        else:
+            bucketlist = []
+            for k, v in self.buckets.items():
+                if v.name == buckettype:
+                    bucketlist.append(v)
+            return bucketlist
