@@ -302,13 +302,14 @@ class Drain(BucketBase):
 
 
 class MengRiool(BucketBase):
-    def __init__(self, id, eag, series, area=0.0):
+    def __init__(self, id, eag, series, area=0.0, use_eag_cso_series=False):
         BucketBase.__init__(self, id, eag, series, area)
         self.name = "MengRiool"
         self.parameters = pd.DataFrame(
             data=[240, 5e-3, 0.5e-3],
             index=['KNMIStation', 'Bmax', 'POCmax'],
             columns=["Waarde"])
+        self.use_eag_cso_series = use_eag_cso_series
 
     def simulate(self, params, tmin, tmax, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
@@ -324,11 +325,16 @@ class MengRiool(BucketBase):
         # Note caching has risks if Bmax and POCmax change! 
         # And also if a different period is calculated!
         try:
-            print("Try picking up CSO timeseries from pickle...", end="", flush=True)
-            ts_cso = pd.read_pickle(r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(knmistn),
-                                    compression="zip")
-            ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
-            print("Success!", end="\n")
+            if self.use_eag_cso_series:
+                print("Pick up CSO timeseries from eag.series...", end="", flush=True)
+                ts_cso = self.eag.series.loc[pd.to_datetime(tmin):pd.to_datetime(tmax), "q_cso"] / self.area
+                print("Success!", end="\n")
+            else:
+                print("Try picking up CSO timeseries from pickle...", end="", flush=True)
+                ts_cso = pd.read_pickle(r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(knmistn),
+                                        compression="zip")
+                ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
+                print("Success!", end="\n")
         except FileNotFoundError:
             print("Failed, calculating CSO series... Downloading hourly KNMI data for station {}".format(knmistn))
             prec = KnmiStation.download(stns=[knmistn], interval="hour", start=tmin, end=tmax, vars="RH")
