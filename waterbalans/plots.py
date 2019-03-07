@@ -45,7 +45,7 @@ class Plot():
 
 
 class Eag_Plots:
-    def __init__(self, eag):
+    def __init__(self, eag, dpi=150):
         self.eag = eag
         self.colordict =  OrderedDict(
                           {"kwel": "brown",
@@ -64,6 +64,7 @@ class Eag_Plots:
                            "maalstaat": "yellow",
                            "sluitfout": "black"})
         self.figsize = (18, 6)
+        self.dpi = dpi
 
     def bucket(self, name, freq="M", tmin=None, tmax=None):
         bucket = self.eag.buckets[name]
@@ -372,7 +373,7 @@ class Eag_Plots:
 
         return ax
 
-    def compare_fluxes_to_excel_balance(self, exceldf, column_names=None, showdiff=True):  # pragma: no cover
+    def compare_fluxes_to_excel_balance(self, exceldf, showdiff=True):  # pragma: no cover
         """Convenience method to compare original Excel waterbalance
         to the one calculated with Python.
         
@@ -381,10 +382,6 @@ class Eag_Plots:
         exceldf : pandas.DataFrame
             A pandas DataFrame containing the water balance series from 
             the Excel File. Columns "A,AJ,CH:DB" from the "REKENHART" sheet.
-        column_names: dict, optional, default None
-            A dictionary containing Python column names as keys and 
-            Excel column names as values. If not provided, attempts to use
-            the defaults.
         showdiff : bool, optional
             if True show difference between Python and Excel on secondary axes.
         
@@ -423,7 +420,7 @@ class Eag_Plots:
 
         # Plot
         fig, axgr = plt.subplots(int(np.ceil((fluxes.shape[1]+1)/3)), 3, 
-                                 figsize=(20, 12), dpi=150, sharex=True)
+                                 figsize=(20, 12), dpi=self.dpi, sharex=True)
 
         for i, pycol in enumerate(fluxes.columns):
             iax = axgr.ravel()[i]
@@ -442,7 +439,7 @@ class Eag_Plots:
                 except KeyError:
                     excol = pycol
 
-            iax.plot(exceldf.index, exceldf.iloc[:, excol], label="{0:s} (Excel)".format(exceldf.columns[excol]), 
+            iax.plot(exceldf.index, exceldf.iloc[:, excol], label="{0:s} (Excel)".format(exceldf.columns[excol].split(".")[0]), 
                      ls="dashed")
 
             iax.grid(b=True)
@@ -519,7 +516,7 @@ class Eag_Plots:
         """
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=125)
 
-        ax.plot(self.eag.water.level.index, self.eag.water.level, 
+        ax.plot(self.eag.water.level.index[1:], self.eag.water.level.iloc[1:], 
                 label="Berekend peil (Python)")
         ax.plot(exceldf.index, exceldf.loc[:, "peil"], 
                 label="Berekend peil (Excel)", ls="dashed")
