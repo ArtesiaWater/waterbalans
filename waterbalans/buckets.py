@@ -327,7 +327,7 @@ class MengRiool(BucketBase):
         try:
             if self.use_eag_cso_series:
                 print("Pick up CSO timeseries from eag.series...", end="", flush=True)
-                ts_cso = self.eag.series.loc[pd.to_datetime(tmin):pd.to_datetime(tmax), "q_cso"] / self.area
+                ts_cso = self.eag.series.loc[pd.to_datetime(tmin):pd.to_datetime(tmax), "q_cso"]
                 print("Success!", end="\n")
             else:
                 print("Try picking up CSO timeseries from pickle...", end="", flush=True)
