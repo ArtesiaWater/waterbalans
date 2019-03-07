@@ -306,7 +306,6 @@ class Eag:
 
         return fluxes
 
-
     def calculate_chloride_concentration(self, params=None):
         """Calculate the chloride concentratation in the water bucket.
 
@@ -431,3 +430,8 @@ class Eag:
                                         -1*outflux.loc[t]) / self.water.storage.loc[t, "storage"]
         
         return fractions
+
+    def get_bucket_params(self):
+        bucketnames = [b.name for b in self.buckets.values()]
+        bucketparams = [b.parameters for b in self.buckets.values()]
+        return pd.concat(bucketparams, axis=1, sort=False, keys=bucketnames)
