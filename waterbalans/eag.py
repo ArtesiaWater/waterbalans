@@ -207,6 +207,7 @@ class Eag:
             bucket.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
         p = params.loc[params.loc[:, "BakjeID"] == self.water.id]
+        print("Simulating the waterbalance for bucket: %s %s" % (self.water.name, self.water.id))
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
         print("Simulation succesfully completed.")
 
