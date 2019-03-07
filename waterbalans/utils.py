@@ -35,7 +35,7 @@ def excel2datetime(excel_datenum, freq="D", start_date="1899-12-30"):
     datetimes = to_datetime(start_date) + to_timedelta(excel_datenum, freq)
     return datetimes
 
-def makkink_to_penman(e):
+def makkink_to_penman(e, use_excel_factors=False):
     """Method to transform the the makkink potential evaporation to Penman
     evaporation for open water.
 
@@ -43,6 +43,9 @@ def makkink_to_penman(e):
     ----------
     e: pandas.Series
         Pandas Series containing the evaporation with the date as index.
+    use_excel_factors: bool, optional default is False
+        if True, uses the excel factors, only difference is that evaporation 
+        in december is 0.0.
 
     Returns
     -------
@@ -55,19 +58,15 @@ def makkink_to_penman(e):
     klimatologische verdampingsgetallen, KNMI/CHO, rapporten en nota's, no.19
 
     """
-    penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
-              1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
-    # penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
-    #         1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
-    # TODO: which one to use? 2019/02/14 --> this second list seems odd, checking 
-    # with maker of excel balance which to use. Probably bug in Excel!
-    # penman = [0.400, 0.933, 1.267, 1.300, 1.300, 1.310, 1.267, 1.193, 1.170, 
-    #           0.900, 0.700, 0.000]  # col D47:D59 in Excel e_o / e_r
-
+    if use_excel_factors:
+        penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
+                1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
+    else:
+        penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
+                1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
     e = e.copy()
     for i in range(1, 13):
         e.loc[e.index.month == i] = e.loc[e.index.month == i] / penman[i - 1]  # for first list
-        # e.loc[e.index.month == i] = e.loc[e.index.month == i] * penman[i - 1]  # for second list
     return e
 
 def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
