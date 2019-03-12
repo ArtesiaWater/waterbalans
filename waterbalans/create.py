@@ -3,7 +3,7 @@ from .water import Water
 from .buckets import Bucket
 
 
-def create_eag(id, name, buckets, gaf=None, series=None, use_waterlevel_series=True):
+def create_eag(id, name, buckets, gaf=None, series=None, use_waterlevel_series=False):
     """Method to create an instance of EAG.
 
     Parameters
