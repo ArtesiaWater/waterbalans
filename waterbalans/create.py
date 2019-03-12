@@ -38,7 +38,8 @@ def create_eag(id, name, buckets, gaf=None, series=None, use_waterlevel_series=T
         id = bucket.loc["BakjeID"]
         area = bucket.loc["OppWaarde"]
         if kind == "Water":
-            Water(id=id, eag=eag, series=series, area=area, use_waterlevel_series=use_waterlevel_series)
+            Water(id=id, eag=eag, series=series, area=area,
+                  use_waterlevel_series=use_waterlevel_series)
         else:
             Bucket(kind=kind, eag=eag, id=id, area=area, series=None)
 

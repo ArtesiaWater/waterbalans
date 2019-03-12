@@ -8,6 +8,7 @@ from pandas import to_datetime, to_timedelta, Series
 import matplotlib.pyplot as plt
 from pastas.read import KnmiStation
 
+
 class Singleton(type):
     _instances = {}
 
@@ -35,6 +36,7 @@ def excel2datetime(excel_datenum, freq="D", start_date="1899-12-30"):
     datetimes = to_datetime(start_date) + to_timedelta(excel_datenum, freq)
     return datetimes
 
+
 def makkink_to_penman(e, use_excel_factors=False):
     """Method to transform the the makkink potential evaporation to Penman
     evaporation for open water.
@@ -60,19 +62,21 @@ def makkink_to_penman(e, use_excel_factors=False):
     """
     if use_excel_factors:
         penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
-                1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
+                  1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
     else:
         penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
-                1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
+                  1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
     e = e.copy()
     for i in range(1, 13):
-        e.loc[e.index.month == i] = e.loc[e.index.month == i] / penman[i - 1]  # for first list
+        e.loc[e.index.month == i] = e.loc[e.index.month == i] / \
+            penman[i - 1]  # for first list
     return e
+
 
 def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
     """Calculate Combined Sewer Overflow timeseries based 
     on hourly precipitation series.
-    
+
     Parameters
     ----------
     prec : pd.Series
@@ -83,12 +87,12 @@ def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
         maximum pump (over) capacity
     alphasmooth : float, optional
         factor for exponential smoothing (the default is 0.1)
-    
+
     Returns
     -------
     pd.Series
         timeseries of combined sewer overflows (cso)
-    
+
     """
 
     p_smooth = prec.ewm(alpha=alphasmooth, adjust=False).mean()
@@ -104,5 +108,5 @@ def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
         cso.iloc[i] = np.max([vol.iloc[i] - Bmax, 0.0])
 
     cso_daily = cso.resample("D").sum()
-    
+
     return cso_daily

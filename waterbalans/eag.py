@@ -6,9 +6,11 @@ David Brakenhoff, Artesia Water, September 2018
 """
 
 from collections import OrderedDict
+import numpy as np
+import pandas as pd
 from pandas import date_range, Timestamp
 
-from .buckets import *
+from .buckets import Verhard, Onverhard, Drain, MengRiool
 from .plots import Eag_Plots
 from .timeseries import get_series
 
@@ -114,7 +116,8 @@ class Eag:
             series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
             if fillna:
                 if (series.isna().sum() > 0).all():
-                    print("Filled {} NaN-values with 0.0 in series {}.".format(np.int(series.isna().sum()), ClusterType))
+                    print("Filled {} NaN-values with 0.0 in series {}.".format(
+                        np.int(series.isna().sum()), ClusterType))
                     series = series.fillna(0.0)
 
             if BakjeID in self.buckets.keys():
@@ -128,18 +131,18 @@ class Eag:
                     self.water.series[ClusterType] = series
             elif BakjeID == -9999:
                 self.series[ClusterType] = series
-        
+
         # Create index based on tmin/tmax if no series are added to EAG!
         if self.series.empty:
-            self.series = pd.DataFrame(index=date_range(Timestamp(tmin), 
+            self.series = pd.DataFrame(index=date_range(Timestamp(tmin),
                                                         Timestamp(tmax), freq="D"))
 
-    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D", 
+    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D",
                        fillna=False, method=None):
         """Method to add series directly to EAG. Series must contain volumes (so 
         not divided by area). Series must be negative for water taken out of the 
         EAG and positive for water coming into the EAG.
-    
+
         Parameters
         ----------
         series: pandas.DataFrame or pandas.Series
@@ -152,7 +155,7 @@ class Eag:
 
         """
         if self.series.index.shape[0] == 0:
-            self.series = pd.DataFrame(index=date_range(Timestamp(tmin), 
+            self.series = pd.DataFrame(index=date_range(Timestamp(tmin),
                                                         Timestamp(tmax), freq="D"))
 
         if name is None:
@@ -163,16 +166,19 @@ class Eag:
 
         if fillna:
             if (series.isna().sum() > 0).all():
-                print("Filled {0} NaN-values with '{1}' in series {2}.".format(np.int(series.isna().sum()), method, name))
+                print("Filled {0} NaN-values with '{1}' in series {2}.".format(
+                    np.int(series.isna().sum()), method, name))
                 if isinstance(method, str):
                     series = series.fillna(method=method)
                 elif isinstance(method, float) or isinstance(method, int):
                     series = series.fillna(method)
 
         if name in self.series.columns:
-            print("Warning! Series {} already present in EAG, overwriting data!".format(name))
-        
-        self.series.loc[series.index.intersection(self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
+            print(
+                "Warning! Series {} already present in EAG, overwriting data!".format(name))
+
+        self.series.loc[series.index.intersection(
+            self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
 
     def load_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
@@ -195,19 +201,22 @@ class Eag:
         tmax: str or pandas.Timestamp
 
         """
+        print("Simulating: {}...".format(self.name))
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "Code"] + "_" +
                                   self.parameters.loc[:,
-                                  "Laagvolgorde"].astype(str), inplace=True)
+                                                      "Laagvolgorde"].astype(str), inplace=True)
 
         for id, bucket in self.buckets.items():
             p = params.loc[params.loc[:, "BakjeID"] == id]
 
-            print("Simulating the waterbalance for bucket: %s %s" % (bucket.name, id))
+            print("Simulating the waterbalance for bucket: %s %s" %
+                  (bucket.name, id))
             bucket.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
         p = params.loc[params.loc[:, "BakjeID"] == self.water.id]
-        print("Simulating the waterbalance for bucket: %s %s" % (self.water.name, self.water.id))
+        print("Simulating the waterbalance for bucket: %s %s" %
+              (self.water.name, self.water.id))
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
         print("Simulation succesfully completed.")
 
@@ -233,7 +242,7 @@ class Eag:
             "q_dr": "drain",
             "Uitlaat": "uitlaat",
             "Inlaat": "inlaat"
-            }
+        }
 
         fluxes = self.water.fluxes.reindex(columns=d.keys())
         parsed_cols = fluxes.dropna(how="all", axis=1).columns.tolist()
@@ -334,15 +343,16 @@ class Eag:
             "uitspoeling": 70,
             "afstroming": 35,
             "berekende inlaat": 100}
-        
+
         C_params = pd.Series(C_params)
-        
+
         # pick up ClInit from params
         if params is not None:
             Cl_init = params.loc[:, "Waarde"].iloc[0]
         else:
             Cl_init = 90.
-            print("Warning! Cl_init not in parameters, Setting default concentration to {0:.1f} mg/L".format(Cl_init))
+            print(
+                "Warning! Cl_init not in parameters, Setting default concentration to {0:.1f} mg/L".format(Cl_init))
 
         # pick up other Cl concentrations from water series
         rename_keys = {"ClVerhard": "verhard",
@@ -355,10 +365,12 @@ class Eag:
             cl_series = self.water.chloride.loc[:, rename_keys.keys()]
             cl_series = cl_series.rename(columns=rename_keys)
         else:
-            cl_series = pd.DataFrame(index=self.series.index, columns=C_params.keys(), data=C_params.to_dict())
+            cl_series = pd.DataFrame(
+                index=self.series.index, columns=C_params.keys(), data=C_params.to_dict())
 
         for icol in set(C_params.index) - set(cl_series.columns):
-            print("Warning! Setting default concentration of {0:.1f} mg/L for '{1}'!".format(C_params.loc[icol], icol))
+            print("Warning! Setting default concentration of {0:.1f} mg/L for '{1}'!".format(
+                C_params.loc[icol], icol))
             cl_series[icol] = C_params.loc[icol]
 
         # Bereken de initiele chloride massa
@@ -372,9 +384,11 @@ class Eag:
         C_out = Cl_init
 
         # Som van de uitgaande fluxen: wegzijging, intrek, berekende uitlaat
-        V_out = fluxes.loc[:, ["intrek", "berekende uitlaat", "wegzijging"]].sum(axis=1)
-        
-        self.mass_cl_in = fluxes.loc[:, cl_series.columns].multiply(cl_series.loc[:, cl_series.columns])
+        V_out = fluxes.loc[:, [
+            "intrek", "berekende uitlaat", "wegzijging"]].sum(axis=1)
+
+        self.mass_cl_in = fluxes.loc[:, cl_series.columns].multiply(
+            cl_series.loc[:, cl_series.columns])
         self.mass_cl_out = pd.Series(index=fluxes.index)
         for t in fluxes.index:
             M_in = self.mass_cl_in.loc[t].sum()
@@ -407,29 +421,32 @@ class Eag:
         # TODO: check robustness of this solution, hard-coded was: ("verdamping", "wegzijging", "intrek", "berekende uitlaat")
         out_columns = fluxes.loc[:, fluxes.mean() < 0].columns
         outflux = fluxes.loc[:, out_columns].sum(axis=1)
-        
+
         # TODO: check robustness of following solution, then remove hardcoded stuff:
-        # fraction_columns = ["neerslag", "kwel", "verhard", "q_cso", 
+        # fraction_columns = ["neerslag", "kwel", "verhard", "q_cso",
         #                     "drain", "uitspoeling", "afstroming", "berekende inlaat"]
         fraction_columns = fluxes.loc[:, fluxes.mean() > 0].columns
-        
+
         fractions = pd.DataFrame(index=fluxes.index, columns=fraction_columns)
-        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), fraction_columns] = 0.0  # add starting day
-        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), "initial"] = 1.0  # add starting day
+        # add starting day
+        fractions.loc[fluxes.index[0] -
+                      pd.Timedelta(days=1), fraction_columns] = 0.0
+        # add starting day
+        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), "initial"] = 1.0
         fractions.sort_index(inplace=True)
 
         for t in fluxes.index:
-            fractions.loc[t, "initial"] = (fractions.loc[t - pd.Timedelta(days=1), "initial"] * 
-                                        self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
-                                        fractions.loc[t - pd.Timedelta(days=1), "initial"] * 
-                                        outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+            fractions.loc[t, "initial"] = (fractions.loc[t - pd.Timedelta(days=1), "initial"] *
+                                           self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
+                                           fractions.loc[t - pd.Timedelta(days=1), "initial"] *
+                                           outflux.loc[t]) / self.water.storage.loc[t, "storage"]
             for icol in fraction_columns:
-                fractions.loc[t, icol] = (fractions.loc[t - pd.Timedelta(days=1), icol] * 
-                                        self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
-                                        fluxes.loc[t, icol] -
-                                        fractions.loc[t - pd.Timedelta(days=1), icol] * 
-                                        -1*outflux.loc[t]) / self.water.storage.loc[t, "storage"]
-        
+                fractions.loc[t, icol] = (fractions.loc[t - pd.Timedelta(days=1), icol] *
+                                          self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
+                                          fluxes.loc[t, icol] -
+                                          fractions.loc[t - pd.Timedelta(days=1), icol] *
+                                          -1*outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+
         return fractions
 
     def get_bucket_params(self):
@@ -437,12 +454,12 @@ class Eag:
         bucketparams = [b.parameters for b in self.buckets.values()]
         return pd.concat(bucketparams, axis=1, sort=False, keys=bucketnames)
 
-    def get_bucket(self, buckettype="all"):
-        if buckettype ==  "all":
-            return self.buckets.values()
+    def get_buckets(self, buckettype="all"):
+        if buckettype == "all":
+            return list(self.buckets.values())
         else:
             bucketlist = []
-            for k, v in self.buckets.items():
+            for _, v in self.buckets.items():
                 if v.name == buckettype:
                     bucketlist.append(v)
             return bucketlist

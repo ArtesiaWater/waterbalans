@@ -36,7 +36,7 @@ class BucketBase(ABC):
     def __init__(self, id=None, eag=None, series=None, area=0.0):
         self.id = id
         self.eag = eag  # Reference to mother object.
-        
+
         # Add bucket to the eag
         self.eag.add_bucket(self)
 
@@ -116,7 +116,7 @@ class Verhard(BucketBase):
         # Get parameters
         self.parameters.update(params)
         hMax_1, hMax_2, hInit_2, EFacMin_1, EFacMax_1, RFacIn_2, RFacOut_2, \
-        por_2 = self.parameters.loc[:, "Waarde"]
+            por_2 = self.parameters.loc[:, "Waarde"]
 
         hEq = 0.0
 
@@ -133,9 +133,10 @@ class Verhard(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            print("Warning: {} not in series. Assumed equal to 0!".format( {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
-            
-        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
+            print("Warning: {} not in series. Assumed equal to 0!".format(
+                {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+
+        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
                                      fill_value=0.0).iterrows():
             p, e, s = pes
 
@@ -143,13 +144,13 @@ class Verhard(BucketBase):
             q_no.append(
                 calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
             h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], 0.0, hMax_1, dt)
-            
+
             # The completely random choice to create a waterbalance rest term?
-            h_1.append(max(0.0, h)) # TODO is dit logisch?
+            h_1.append(max(0.0, h))  # TODO is dit logisch?
             q_oa.append(q)
 
             # Bereken de waterbalans in laag 2
-            q_s.append(s) # TODO kan er helemaal uit
+            q_s.append(s)  # TODO kan er helemaal uit
             q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
             h, _ = calc_h_q_oa(h_2[-1], s, 0.0, q_ui[-1], hMax_2, dt)
             h_2.append(h)
@@ -190,7 +191,7 @@ class Onverhard(BucketBase):
         self.parameters.update(params)
         hMax_1, hInit_1, EFacMin_1, EFacMax_1, RFacIn_1, RFacOut_1, por_1 = \
             self.parameters.loc[:, "Waarde"]
-        
+
         hMax_1 = hMax_1 * por_1
 
         hEq = 0.0
@@ -205,11 +206,13 @@ class Onverhard(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            print("Warning: {} not in series. Assumed equal to 0!".format( {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
-        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
+            print("Warning: {} not in series. Assumed equal to 0!".format(
+                {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
                                      fill_value=0.0).iterrows():
             p, e, s = pes
-            q_no.append(calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
+            q_no.append(
+                calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
             qui = calc_q_ui(h_1[-1], RFacIn_1, RFacOut_1, hEq, dt)
             q_ui.append(qui)
             q_s.append(s)
@@ -228,9 +231,10 @@ class Drain(BucketBase):
         self.name = "Drain"
 
         self.parameters = pd.DataFrame(
-            data=[0.7, 0.3, 0.35, 0.3, 0.75, 1.0, 0.5, 0.0, 0.001, 0.001, 0.3, 0.3], 
-            index=['hMax_1', 'hMax_2', 'hInit_1', 'hInit_2', 
-                   'EFacMin_1', 'EFacMax_1', 'RFacIn_1', 'RFacIn_2', 
+            data=[0.7, 0.3, 0.35, 0.3, 0.75, 1.0,
+                  0.5, 0.0, 0.001, 0.001, 0.3, 0.3],
+            index=['hMax_1', 'hMax_2', 'hInit_1', 'hInit_2',
+                   'EFacMin_1', 'EFacMax_1', 'RFacIn_1', 'RFacIn_2',
                    'RFacOut_1', 'RFacOut_2', 'por_1', 'por_2'],
             columns=["Waarde"])
         self.parameters.loc[:, "pname"] = self.parameters.index
@@ -251,14 +255,15 @@ class Drain(BucketBase):
 
         # Get parameters
         if not set(params.index).issubset(self.parameters.index):
-            print("Warning: {} not in series. Assumed equal to np.NaN!".format( set(self.parameters.index) - set(params.index)))
+            print("Warning: {} not in series. Assumed equal to np.NaN!".format(
+                set(self.parameters.index) - set(params.index)))
             # warnings.warn("{0} is missing parameters for bucket {1}!".format(self.eag.name, self.name))
 
         self.parameters.update(params)
 
         hMax_1, hMax_2, hInit_1, hInit_2, EFacMin_1, EFacMax_1, RFacIn_1, RFacIn_2, \
-        RFacOut_1, RFacOut_2, por_1, por_2 = self.parameters.loc[:, "Waarde"]
-        
+            RFacOut_1, RFacOut_2, por_1, por_2 = self.parameters.loc[:, "Waarde"]
+
         hEq = 0.0
 
         hMax_1 = hMax_1 * por_1
@@ -276,10 +281,10 @@ class Drain(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            print("Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!".format(self.name, self.id, 
-                                                                                          {"Neerslag", "Verdamping", "Qkwel"} - 
+            print("Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!".format(self.name, self.id,
+                                                                                          {"Neerslag", "Verdamping", "Qkwel"} -
                                                                                           set(series.columns)))
-        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"], 
+        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
                                      fill_value=0.0).iterrows():
             p, e, s = pes
             no = calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt)
@@ -321,27 +326,32 @@ class MengRiool(BucketBase):
         Bmax = self.parameters.at["Bmax", "Waarde"]
         POCmax = self.parameters.at["POCmax", "Waarde"]
 
-        # See if cached version is available, otherwise calculate 
-        # Note caching has risks if Bmax and POCmax change! 
+        # See if cached version is available, otherwise calculate
+        # Note caching has risks if Bmax and POCmax change!
         # And also if a different period is calculated!
         try:
             if self.use_eag_cso_series:
-                print("Pick up CSO timeseries from eag.series...", end="", flush=True)
-                ts_cso = self.eag.series.loc[pd.to_datetime(tmin):pd.to_datetime(tmax), "q_cso"]
+                print("Pick up CSO timeseries from eag.series...",
+                      end="", flush=True)
+                ts_cso = self.eag.series.loc[pd.to_datetime(
+                    tmin):pd.to_datetime(tmax), "q_cso"]
                 print("Success!", end="\n")
             else:
-                print("Try picking up CSO timeseries from pickle...", end="", flush=True)
+                print("Try picking up CSO timeseries from pickle...",
+                      end="", flush=True)
                 ts_cso = pd.read_pickle(r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(knmistn),
                                         compression="zip")
                 ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
                 print("Success!", end="\n")
         except FileNotFoundError:
-            print("Failed, calculating CSO series... Downloading hourly KNMI data for station {}".format(knmistn))
-            prec = KnmiStation.download(stns=[knmistn], interval="hour", start=tmin, end=tmax, vars="RH")
+            print("Failed, calculating CSO series... Downloading hourly KNMI data for station {}".format(
+                knmistn))
+            prec = KnmiStation.download(
+                stns=[knmistn], interval="hour", start=tmin, end=tmax, vars="RH")
             print("Download succeeded, calculating series...", end="", flush=True)
             ts_cso = calculate_cso(prec.data.RH, Bmax, POCmax, alphasmooth=0.1)
             print("Success! (Pickling series for future use.)")
-            ts_cso.to_pickle(r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(knmistn), 
+            ts_cso.to_pickle(r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(knmistn),
                              compression="zip")
 
         series = pd.DataFrame(index=ts_cso.index,

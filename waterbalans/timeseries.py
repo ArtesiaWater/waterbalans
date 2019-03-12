@@ -10,6 +10,7 @@ from hkvfewspy import Pi
 from pandas import date_range, Series, DataFrame, Timestamp, Timedelta
 import numpy as np
 
+
 def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
     """
     FEWS Webservice 2017.01: http://localhost:8081/FewsPiService/fewspiservice?wsdl
@@ -54,7 +55,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     except Exception as e:
         print("Warning! Pi service cannot be started. Module will not import series from FEWS!")
         pi = None
-    
+
     if tmin is None:
         tmin = Timestamp("2010")
     else:
@@ -65,13 +66,13 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         tmax = Timestamp(tmax)
     # Download a timeseries from FEWS
     if kind == "FEWS" and pi is not None:  # pragma: no cover
-        
+
         # Note: this selects only the first entry if there are multiple
         if isinstance(data, DataFrame):
             data = data.loc[:, "WaardeAlfa"]
             if len(data) > 1:
                 print("Warning! Multiple series found, selecting "
-                    "first one ({}) and continuing".format(data.iloc[0]))
+                      "first one ({}) and continuing".format(data.iloc[0]))
             data = data.iloc[0]
         else:
             data = data.loc["WaardeAlfa"].values[0]
@@ -91,21 +92,24 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         series = df.loc[:, ["date", "value"]].set_index("date")
         series = series.tz_localize(None)  # Remove timezone from FEWS series
         series = series.astype(float)
-        # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden. 
+        # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
         if np.any(series.index.hour != 9):
             series.index = series.index.floor(freq="D") - Timedelta(days=1)
         series = series.squeeze()
 
         # Delete nan-values (-999) (could be moved to fewspy)
         series.replace(-999.0, np.nan, inplace=True)
-        
+
         # check units, TODO, check if others need to be fixed?
         if name in ["Verdamping", "Neerslag"]:
             series = series.divide(1e3)
 
     #  If a constant timeseries is required
     elif kind == "Constant":
-        value = float(data.loc[:, "Waarde"].values[0]) * 1e-3
+        if name in ["Qkwel", "Qwegz"]:
+            value = float(data.loc[:, "Waarde"].values[0]) * 1e-3
+        else:  # TODO: check if this is correct
+            value = float(data.loc[:, "Waarde"].values[0])
         tindex = date_range(tmin, tmax, freq=freq)
         series = Series(value, index=tindex)
 
@@ -113,16 +117,16 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     elif kind == "ValueSeries":
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
         tindex = date_range(tmin, tmax, freq=freq)
-        series = create_block_series(df, tindex) 
+        series = create_block_series(df, tindex)
         if name in ["Qkwel", "Qwegz"]:
-            series = series * 1e-3 # TODO: is this always true?
-    
+            series = series * 1e-3  # TODO: is this always true?
+
     # chloride concentrations
     elif (kind == "-9999") and (name.startswith("Cl")):
         value = float(data.loc[:, "Waarde"].values[0])
         tindex = date_range(tmin, tmax, freq=freq)
         series = Series(value, index=tindex)
-    
+
     else:
         return print("Warning! Adding series of kind {} not supported.".format(kind))
 
@@ -151,7 +155,8 @@ def create_block_series(data, tindex):
 
     """
     # start value series 1 year before given index to ensure first period is also filled correctly.
-    series = Series(index=date_range(tindex[0]-Timedelta(days=365), tindex[-1]))
+    series = Series(index=date_range(
+        tindex[0]-Timedelta(days=365), tindex[-1]))
     for t, val in data.iterrows():
         day, month = [int(x) for x in t.split("-")]
         mask = (series.index.month == month) & (series.index.day == day)
