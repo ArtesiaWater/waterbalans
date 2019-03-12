@@ -45,6 +45,7 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+.pytest_cache
 
 # Translations
 *.mo
@@ -100,3 +101,5 @@ waterbalans/desktop.ini
 
 htmlcov/
 .coverage
+
+~$*
