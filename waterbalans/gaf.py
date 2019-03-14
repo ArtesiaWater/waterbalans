@@ -3,12 +3,8 @@
 """
 
 from collections import OrderedDict
-from io import BytesIO
-
+import numpy as np
 import pandas as pd
-
-from waterbalans.oud.io import load_model, read_xml
-from waterbalans.oud.access import AccessServer
 from .eag import Eag
 
 
@@ -26,146 +22,89 @@ class Gaf:
 
     """
 
-    def __init__(self, id=None, db_model=None, db_series=None, db_param=None):
+    def __init__(self, id=None, name=None, eags=[], series=None):
+        # Basic information
         self.id = id
+        self.name = name
 
-        # Store the database source types
-        self.db_model = db_model  # model database
-        # self.db_series = self._connect_fews_db(args=db_series)
-        self.db_param = self._connect_param_db(args=db_param)
-
-        # Placeholder
-        self.data = pd.DataFrame()
+        # EAG
         self.eags = OrderedDict()
-        self.parameters = pd.DataFrame(columns=["eag", "bucket", "pname",
-                                                "pinit", "popt", "pmin",
-                                                "pmax", "pvary"])
 
-        self.series = OrderedDict()
+        for e in eags:
+            if isinstance(e, Eag):
+                self.eags[e.name] = e
+            else:
+                print("Warning! added Eags must be instance of Eag object.")
+
+        self.data = pd.DataFrame()
+        self.parameters = pd.DataFrame()
+
+        if series is None:
+            self.series = pd.DataFrame()
+        else:
+            self.series = series
 
     def add_eag(self, eag):
         self.eags[eag.name] = eag
 
-    def _connect_fews_db(self, args):
-        """Method tpo connect to the the FEWS database.
+    def add_series(self, series, tmin="2000", tmax="2015", freq="D",
+                   fillna=False):
+        for eagname, eag in self.eags.items():
+            eagseries = series.loc[series.EAGCode == eagname, :]
+            eag.add_series(eagseries, tmin=tmin, tmax=tmax,
+                           freq=freq, fillna=fillna)
+
+    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D",
+                       fillna=False, method=None):
+        """Method to add series directly to EAG. Series must contain volumes (so 
+        not divided by area). Series must be negative for water taken out of the 
+        EAG and positive for water coming into the EAG.
 
         Parameters
         ----------
-        kwargs: dict
-            Any keyword values combination that is taken by the FewsServer
-            instance.
-
-        Returns
-        -------
-        FewsServer: waterbalans.FewsServer
-
-        """
-        if args is None:
-            args = {}
-        return FewsServer(*args)
-
-    def _connect_param_db(self, args):
-        """Method to connect to a parameters database to extract the
-        parameters.
-
-        Parameters
-        ----------
-        kwargs:
-            any parameters that are taken by the AccessServer object.
-
-        Returns
-        -------
-        AccessServer: waterbalans.AccesServer
+        series: pandas.DataFrame or pandas.Series
+        name: str, default None
+            name of series to add, if not provided uses 
+            first column name in DataFrame or Series name
+        tmin: str or pandas.Timestamp, optional
+        tmax: str or pandas.Timestamp, optional
+        freq: str
 
         """
-        if args is None:
-            args = {}
-        return AccessServer(*args)
+        if self.series.index.shape[0] == 0:
+            self.series = pd.DataFrame(index=pd.date_range(pd.Timestamp(tmin),
+                                                           pd.Timestamp(tmax), freq="D"))
 
-    def get_model_configs(self, gaf_id):
-        model_configs = self.db_param.get_model_configs(gaf_id)
-        return model_configs
+        if name is None:
+            if isinstance(series, pd.DataFrame):
+                name = series.columns[0]
+            elif isinstance(series, pd.Series):
+                name = series.name
 
-    def get_model_sets(self, config_id):
-        model_sets = self.db_param.get_model_sets(config_id)
-        return model_sets
+        if fillna:
+            if (series.isna().sum() > 0).all():
+                print("Filled {0} NaN-values with '{1}' in series {2}.".format(
+                    np.int(series.isna().sum()), method, name))
+                if isinstance(method, str):
+                    series = series.fillna(method=method)
+                elif isinstance(method, float) or isinstance(method, int):
+                    series = series.fillna(method)
 
-    def set_model_parameters(self, set_id):
-        parameters = self.db_param.get_parameters(set_id)
-        self.parameters._update_inplace(parameters)
-        return parameters
+        if name in self.series.columns:
+            print(
+                "Warning! Series {} already present in EAG, overwriting data!".format(name))
 
-    def get_model_structure(self, fname, id=None):
-        """Method to load the data model from a file or database.
+        self.series.loc[series.index.intersection(
+            self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
 
-        Returns
-        -------
-        data: pandas.DataFrame
-            Imported table that is used as a template to construct the model.
-
-        """
-        data = load_model(fname=fname)
-        if id:
-            self.data = data.loc[data.loc[:, "GAF"] == id]
-        else:
-            self.data = data
-
-        self._create_model_structure()
-
-    def _create_model_structure(self):
-        """Method to import model structure description from a file or
-        database.
-
-        """
-        for id in self.data.loc[:, "EAG"].unique():
-            df = self.data.loc[self.data.loc[:, "EAG"] == id]
-            eag = Eag(id=id, gaf=self, data=df, name=id)
-            self.eags[id] = eag
-
-    def get_series_list(self):
-        """Method to obtain a list of measurement point id's to retrieve from
-        the Fews server.
-
-        Returns
-        -------
-        series: list
-            List of time series that are available for this GAF.
-
-        """
-        pass
-
-    def load_series(self):
-        """Method to import the time series in both the Gaf object and
-        the subpolder Objects.
-
-        """
-        self.series["prec"] = pd.Series()
-        self.series["evap"] = pd.Series()
-
-        for subpolder in self.eags.values():
-            subpolder.load_series_from_eag()
-
-    def get_series(self, id, **kwargs):
-        kwargs.update(locationIds=id)
-        data = self.db_series.getTimeSeries(**kwargs)
-        data = BytesIO(data.encode())
-        series = read_xml(data)
-
-        return series
-
-    def simulate(self):
+    def simulate(self, parameters, tmin=None, tmax=None):
         """Method to calculate the waterbalance for the Gaf.
 
-        Returns
-        -------
-
         """
-        for eag in self.eags.values():
-            print("Simulating the waterbalance for EAG: %s" % eag.name)
-            eag.simulate()
+        for eagname, eag in self.eags.items():
+            eag.get_series_from_gaf()
+            params = parameters.loc[parameters.EAGCode == eagname, :]
+            eag.simulate(params, tmin=tmin, tmax=tmax)
 
-    def validate(self):
-        """Method to validate the water balance based on the total input,
-        output and the change in storage of the model for each time step.
-        """
-        pass
+    def get_eags(self):
+        return [e for e in self.eags.values()]
