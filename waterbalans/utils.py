@@ -184,25 +184,25 @@ def get_extra_series_from_pickle(picklefile, compression="zip"):
     return df_series
 
 
-def add_timeseries_to_eag(eag, df, tmin=None, tmax=None, overwrite=False,
+def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
                           data_from_excel=False):
-    """Add timeseries to EAG. Only parses column names starting with
+    """Add timeseries to EAG or GAF. Only parses column names starting with
     'Neerslag', 'Verdamping', 'Inlaat', 'Uitlaat', 'Peil', or 'Gemaal'.
 
     Parameters
     ----------
-    eag : waterbalans.Eag 
-        An existing Eag object
+    eag_or_gaf : waterbalans.Eag or waterbalans.Gaf
+        An existing Eag or Gaf object
     df : pandas.DataFrame
         DataFrame with DateTimeIndex containing series to be added
     tmin : pandas.TimeStamp, optional
         start time for added series (the default is None, which 
-        attempts to pick up tmin from existing Eag object)
+        attempts to pick up tmin from existing Eag or Gaf object)
     tmax : pandas.TimeStamp, optional
         end time for added series (the default is None, which 
-        attempts to pick up tmax from existing Eag object)
+        attempts to pick up tmax from existing Eag or Gaf object)
     overwrite : bool, optional
-        overwrite series if name already exists in Eag object (the default is False)
+        overwrite series if name already exists in Eag or Gaf object (the default is False)
     data_from_excel: bool, optional
         if True, assumes data source is Excel Balance 'uitgangspunten' sheet. 
         Function will make an assumption about the column names and order and 
@@ -210,15 +210,19 @@ def add_timeseries_to_eag(eag, df, tmin=None, tmax=None, overwrite=False,
         column names (default).
 
     """
+    o = eag_or_gaf
+    # if not isinstance(o, Eag) or not isinstance(o, Gaf):
+    #     raise ValueError(
+    #         "Arg 'eag_or_gaf' must be Eag or Gaf object. Received {}".format(type(o)))
 
     try:
         if tmin is None:
-            tmin = eag.series.index[0]
+            tmin = o.series.index[0]
         if tmax is None:
-            tmax = eag.series.index[-1]
+            tmax = o.series.index[-1]
     except IndexError:
         raise ValueError(
-            "tmin/tmax cannot be inferred from EAG object.")
+            "tmin/tmax cannot be inferred from EAG/GAF object.")
 
     if data_from_excel:
         columns = ["neerslag", "verdamping", "peil",
@@ -229,7 +233,7 @@ def add_timeseries_to_eag(eag, df, tmin=None, tmax=None, overwrite=False,
     else:
         columns = df.columns
 
-    eag_series = eag.series.columns
+    eag_series = o.series.columns
 
     # Gemaal
     colmask = [True if icol.lower().startswith("gemaal")
@@ -240,14 +244,14 @@ def add_timeseries_to_eag(eag, df, tmin=None, tmax=None, overwrite=False,
     gemaal = gemaal_series.sum(axis=1)
     if "Gemaal" in eag_series:
         if overwrite:
-            eag.add_eag_series(gemaal, name="Gemaal", tmin=tmin,
-                               tmax=tmax, fillna=True, method=0.0)
+            o.add_eag_series(gemaal, name="Gemaal", tmin=tmin,
+                             tmax=tmax, fillna=True, method=0.0)
         else:
             print("'Gemaal' already in EAG. No action taken.")
     else:
         print("Adding 'Gemaal' series to EAG.")
-        eag.add_eag_series(gemaal, name="Gemaal", tmin=tmin,
-                           tmax=tmax, fillna=True, method=0.0)
+        o.add_eag_series(gemaal, name="Gemaal", tmin=tmin,
+                         tmax=tmax, fillna=True, method=0.0)
 
     # Inlaat/Uitlaat
     factor = 1.0
@@ -268,16 +272,16 @@ def add_timeseries_to_eag(eag, df, tmin=None, tmax=None, overwrite=False,
                 colnam = series.columns[jcol].split("|")[0]
             if colnam in eag_series:
                 if overwrite:
-                    eag.add_eag_series(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
-                                       tmin=tmin, tmax=tmax, fillna=True, method=0.0)
+                    o.add_eag_series(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
+                                     tmin=tmin, tmax=tmax, fillna=True, method=0.0)
                 else:
                     print("'{}' already in EAG. No action taken.".format(
                         colnam))
             else:
                 print("Adding '{}' series to EAG.".format(
                     colnam))
-                eag.add_eag_series(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
-                                   tmin=tmin, tmax=tmax, fillna=True, method=0.0)
+                o.add_eag_series(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
+                                 tmin=tmin, tmax=tmax, fillna=True, method=0.0)
 
     # Peil
     colmask = [True if icol.lower().startswith("peil")
@@ -285,14 +289,14 @@ def add_timeseries_to_eag(eag, df, tmin=None, tmax=None, overwrite=False,
     peil = df.loc[:, colmask]
     if "Peil" in eag_series:
         if overwrite:
-            eag.add_eag_series(peil, name="Peil", tmin=tmin, tmax=tmax,
-                               fillna=True, method="ffill")
+            o.add_eag_series(peil, name="Peil", tmin=tmin, tmax=tmax,
+                             fillna=True, method="ffill")
         else:
             print("'Peil' already in EAG. No action taken.")
     else:
         print("Adding 'Peil' series to EAG.")
-        eag.add_eag_series(peil, name="Peil", tmin=tmin, tmax=tmax,
-                           fillna=True, method="ffill")
+        o.add_eag_series(peil, name="Peil", tmin=tmin, tmax=tmax,
+                         fillna=True, method="ffill")
 
     # Neerslag/Verdamping
     for inam in ["Neerslag", "Verdamping"]:
@@ -301,13 +305,13 @@ def add_timeseries_to_eag(eag, df, tmin=None, tmax=None, overwrite=False,
         pe = df.loc[:, colmask] * 1e-3
         if inam in eag_series:
             if overwrite:
-                eag.add_eag_series(pe, name=inam, tmin=tmin, tmax=tmax,
-                                   fillna=True, method=0.0)
+                o.add_eag_series(pe, name=inam, tmin=tmin, tmax=tmax,
+                                 fillna=True, method=0.0)
             else:
                 print("'{}' already in EAG. No action taken.".format(inam))
         else:
             print("Adding '{}' series to EAG.".format(inam))
-            eag.add_eag_series(pe, name=inam, tmin=tmin, tmax=tmax,
-                               fillna=True, method=0.0)
+            o.add_eag_series(pe, name=inam, tmin=tmin, tmax=tmax,
+                             fillna=True, method=0.0)
 
     return
