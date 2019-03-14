@@ -1,8 +1,6 @@
 from abc import ABC
-
 import numpy as np
 import pandas as pd
-
 from .utils import makkink_to_penman
 
 
@@ -102,7 +100,7 @@ class Water(WaterBase):
 
     """
 
-    def __init__(self, id, eag, series, area=0.0, use_waterlevel_series=True):
+    def __init__(self, id, eag, series, area=0.0, use_waterlevel_series=False):
         WaterBase.__init__(self, id, eag, series, area)
         self.id = id
         self.eag = eag
