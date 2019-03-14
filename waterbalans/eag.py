@@ -180,14 +180,13 @@ class Eag:
         self.series.loc[series.index.intersection(
             self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
 
-    def load_series_from_gaf(self):
+    def get_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
         provided.
 
         """
-        raise NotImplementedError
-        # self.series["Neerslag"] = self.gaf.series["Neerslag"]
-        # self.series["Verdamping"] = self.gaf.series["Verdamping"]
+        if self.gaf is not None and self.series.empty:
+            self.series = self.series.join(self.gaf.series, how="left")
 
     def simulate(self, params, tmin=None, tmax=None):
         """Method to validate the water balance based on the total input,
