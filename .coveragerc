@@ -1,4 +1,3 @@
 [run]
 omit = 
     waterbalans/oud/*
-    waterbalans/gaf.py
