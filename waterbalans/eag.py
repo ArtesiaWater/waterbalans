@@ -114,6 +114,10 @@ class Eag:
         """
         for id, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
             BakjeID, ClusterType, ParamType = id
+            # check if ValueSeries actually contains information
+            if ParamType == "ValueSeries":
+                if df.loc[:, "Waarde"].sum() == 0.0:
+                    continue
             series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
             if fillna:
                 if (series.isna().sum() > 0).all():
@@ -186,6 +190,13 @@ class Eag:
         provided.
 
         """
+        # create index if empty
+        if self.series.index.shape[0] == 0:
+            tmin = self.gaf.series.index[0]
+            tmax = self.gaf.series.index[-1]
+            self.series = pd.DataFrame(index=date_range(Timestamp(tmin),
+                                                        Timestamp(tmax), freq="D"))
+
         if self.gaf is not None and self.series.empty:
             self.series = self.series.join(self.gaf.series, how="left")
 
