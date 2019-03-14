@@ -6,9 +6,9 @@ Auteur: R.A. Collenteur, Artesia Water
 
 """
 
-from hkvfewspy import Pi
-from pandas import date_range, Series, DataFrame, Timestamp, Timedelta
 import numpy as np
+from hkvfewspy import Pi
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 
 
 def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
@@ -52,7 +52,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     """
     try:
         pi = initialize_fews_pi()
-    except Exception as e:
+    except Exception:
         print("Warning! Pi service cannot be started. Module will not import series from FEWS!")
         pi = None
 

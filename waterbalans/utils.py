@@ -2,10 +2,11 @@
 
 """
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pandas import to_datetime, to_timedelta, Series
-import matplotlib.pyplot as plt
+from pandas import Series, to_datetime, to_timedelta
 from pastas.read import KnmiStation
 
 

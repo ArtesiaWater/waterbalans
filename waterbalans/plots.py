@@ -4,13 +4,15 @@ Author: R.A. Collenteur, Artesia Water, 2017-11-20
         D.A. Brakenhoff, Artesia Water, 2018-09-01
 
 """
-import numpy as np
-from pandas import Timestamp, DateOffset, Timedelta
-import matplotlib.pyplot as plt
-from matplotlib import colors
-import matplotlib.dates as mdates
-from .timeseries import get_series
 from collections import OrderedDict
+
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import colors
+from pandas import DateOffset, Timedelta, Timestamp
+
+from .timeseries import get_series
 
 
 class Plot():
@@ -246,7 +248,7 @@ class Eag_Plots:
         c = c.loc[tmin:tmax]
         
         # Plot
-        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
+        _, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax.plot(c.index, c, label=self.eag.name)
         ax.grid(b=True)
         ax.legend(loc="best")
@@ -286,7 +288,7 @@ class Eag_Plots:
                     colors.append(c)
                     labels.append(icol)
         
-        for i, icol in enumerate(fr.columns.difference(colordict.keys())):
+        for icol in fr.columns.difference(colordict.keys()):
             if icol not in ["verdamping", "wegzijging", "berekende uitlaat",
                             "initial", "intrek"]:
                 if fr[icol].astype(np.float).sum() != 0.0:

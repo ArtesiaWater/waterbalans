@@ -1,7 +1,7 @@
+from .buckets import Bucket
 from .eag import Eag
 from .gaf import Gaf
 from .water import Water
-from .buckets import Bucket
 
 
 def create_eag(id, name, buckets, gaf=None, series=None, use_waterlevel_series=False):

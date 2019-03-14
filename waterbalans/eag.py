@@ -6,11 +6,12 @@ David Brakenhoff, Artesia Water, September 2018
 """
 
 from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
-from pandas import date_range, Timestamp
+from pandas import Timestamp, date_range
 
-from .buckets import Verhard, Onverhard, Drain, MengRiool
+from .buckets import Drain, MengRiool, Onverhard, Verhard
 from .plots import Eag_Plots
 from .timeseries import get_series
 

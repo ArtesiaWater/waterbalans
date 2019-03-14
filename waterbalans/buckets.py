@@ -4,12 +4,14 @@
 
 """
 
-from abc import ABC
 import warnings
-import pandas as pd
+from abc import ABC
+
 import numpy as np
-from .utils import calculate_cso
+import pandas as pd
 from pastas.read import KnmiStation
+
+from .utils import calculate_cso
 
 
 class Bucket:
