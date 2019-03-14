@@ -138,7 +138,7 @@ class Eag:
             self.series = pd.DataFrame(index=date_range(Timestamp(tmin),
                                                         Timestamp(tmax), freq="D"))
 
-    def add_eag_series(self, series, name=None, tmin="2000", tmax="2015", freq="D",
+    def add_timeseries(self, series, name=None, tmin="2000", tmax="2015", freq="D",
                        fillna=False, method=None):
         """Method to add series directly to EAG. Series must contain volumes (so 
         not divided by area). Series must be negative for water taken out of the 

@@ -245,13 +245,13 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
     gemaal = gemaal_series.sum(axis=1)
     if "Gemaal" in eag_series:
         if overwrite:
-            o.add_eag_series(gemaal, name="Gemaal", tmin=tmin,
+            o.add_timeseries(gemaal, name="Gemaal", tmin=tmin,
                              tmax=tmax, fillna=True, method=0.0)
         else:
             print("'Gemaal' already in EAG. No action taken.")
     else:
         print("Adding 'Gemaal' series to EAG.")
-        o.add_eag_series(gemaal, name="Gemaal", tmin=tmin,
+        o.add_timeseries(gemaal, name="Gemaal", tmin=tmin,
                          tmax=tmax, fillna=True, method=0.0)
 
     # Inlaat/Uitlaat
@@ -273,7 +273,7 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
                 colnam = series.columns[jcol].split("|")[0]
             if colnam in eag_series:
                 if overwrite:
-                    o.add_eag_series(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
+                    o.add_timeseries(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
                                      tmin=tmin, tmax=tmax, fillna=True, method=0.0)
                 else:
                     print("'{}' already in EAG. No action taken.".format(
@@ -281,7 +281,7 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
             else:
                 print("Adding '{}' series to EAG.".format(
                     colnam))
-                o.add_eag_series(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
+                o.add_timeseries(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
                                  tmin=tmin, tmax=tmax, fillna=True, method=0.0)
 
     # Peil
@@ -290,13 +290,13 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
     peil = df.loc[:, colmask]
     if "Peil" in eag_series:
         if overwrite:
-            o.add_eag_series(peil, name="Peil", tmin=tmin, tmax=tmax,
+            o.add_timeseries(peil, name="Peil", tmin=tmin, tmax=tmax,
                              fillna=True, method="ffill")
         else:
             print("'Peil' already in EAG. No action taken.")
     else:
         print("Adding 'Peil' series to EAG.")
-        o.add_eag_series(peil, name="Peil", tmin=tmin, tmax=tmax,
+        o.add_timeseries(peil, name="Peil", tmin=tmin, tmax=tmax,
                          fillna=True, method="ffill")
 
     # Neerslag/Verdamping
@@ -306,13 +306,13 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
         pe = df.loc[:, colmask] * 1e-3
         if inam in eag_series:
             if overwrite:
-                o.add_eag_series(pe, name=inam, tmin=tmin, tmax=tmax,
+                o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
                                  fillna=True, method=0.0)
             else:
                 print("'{}' already in EAG. No action taken.".format(inam))
         else:
             print("Adding '{}' series to EAG.".format(inam))
-            o.add_eag_series(pe, name=inam, tmin=tmin, tmax=tmax,
+            o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
                              fillna=True, method=0.0)
 
     return
