@@ -341,7 +341,7 @@ class MengRiool(BucketBase):
                     tmin):pd.to_datetime(tmax), "q_cso"]
                 print("Success!", end="\n")
             else:
-                print("Try picking up CSO timeseries from pickle...",
+                print("Try picking up CSO timeseries from pickle or csv...",
                       end="", flush=True)
                 if self.path_to_cso_series is None:
                     fcso = r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(
