@@ -55,20 +55,26 @@ class WaterBase(ABC):
     def load_series_from_eag(self):
         if self.eag is None:
             return
-
-        if "Neerslag" in self.eag.series.columns:
-            self.series["Neerslag"] = self.eag.series["Neerslag"]
-        if "Verdamping" in self.eag.series.columns:
-            self.series["Verdamping"] = self.eag.series["Verdamping"]
-        if "Inlaat" in self.eag.series.columns:
-            self.series["Inlaat"] = self.eag.series["Inlaat"] / self.area
-        if "Uitlaat" in self.eag.series.columns:
-            self.series["Uitlaat"] = -self.eag.series["Uitlaat"] / self.area
+        colset = []
+        for icol in self.eag.series.columns:
+            if icol.lower().startswith("neerslag"):
+                colset.append(icol)
+                self.series["Neerslag"] = self.eag.series[icol]
+            if icol.lower().startswith("verdamping"):
+                colset.append(icol)
+                self.series["Verdamping"] = self.eag.series[icol]
+            if icol.lower().startswith("inlaat"):
+                colset.append(icol)
+                self.series[icol] = self.eag.series[icol] / self.area
+            if icol.lower().startswith("uitlaat"):
+                colset.append(icol)
+                self.series[icol] = -self.eag.series[icol] / self.area
 
         # add remaining series to water bucket.
-        otherseries = set(self.eag.series.columns) - \
-            {"Neerslag", "Verdamping", "Inlaat",
-                "Uitlaat", "Peil", "Gemaal", "q_cso"}
+        colset += ["Neerslag", "Verdamping", "Inlaat",
+                   "Uitlaat", "Peil", "Gemaal", "q_cso"]
+        otherseries = set(self.eag.series.columns) - set(colset)
+
         for name in otherseries:
             self.series[name] = self.eag.series[name] / self.area
 
