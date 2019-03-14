@@ -309,7 +309,7 @@ class Drain(BucketBase):
 
 
 class MengRiool(BucketBase):
-    def __init__(self, id, eag, series, area=0.0, use_eag_cso_series=False):
+    def __init__(self, id, eag, series, area=0.0, use_eag_cso_series=False, path_to_pklz=None):
         BucketBase.__init__(self, id, eag, series, area)
         self.name = "MengRiool"
         self.parameters = pd.DataFrame(
@@ -317,6 +317,7 @@ class MengRiool(BucketBase):
             index=['KNMIStation', 'Bmax', 'POCmax'],
             columns=["Waarde"])
         self.use_eag_cso_series = use_eag_cso_series
+        self.path_to_pklz = path_to_pklz
 
     def simulate(self, params, tmin, tmax, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
@@ -341,8 +342,12 @@ class MengRiool(BucketBase):
             else:
                 print("Try picking up CSO timeseries from pickle...",
                       end="", flush=True)
-                ts_cso = pd.read_pickle(r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(knmistn),
-                                        compression="zip")
+                if self.path_to_pklz is None:
+                    fpickle = r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(
+                        knmistn)
+                else:
+                    fpickle = self.path_to_pklz
+                ts_cso = pd.read_pickle(fpickle, compression="zip")
                 ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
                 print("Success!", end="\n")
         except FileNotFoundError:
