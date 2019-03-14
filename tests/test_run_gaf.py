@@ -33,7 +33,7 @@ def test_gaf_run():
     e, = g.get_eags()
     bm = e.get_buckets(buckettype="MengRiool")
     for b in bm:
-        b.path_to_cso_series = r"./tests/data/cso_series/240_cso_timeseries.csv"
+        b.path_to_cso_series = r"./tests/data/240_cso_timeseries.csv"
 
     # load parameters
     params = pd.read_csv(os.path.join(test_data, "param_1557_2110-GAF.csv"),
