@@ -260,8 +260,10 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
         colmask = [True if icol.lower().startswith(inam.lower())
                    else False for icol in columns]
         series = df.loc[:, colmask]
-        if inam == "Uitlaat":
-            factor = -1.0
+        # Water bucket already does this, so outgoing fluxes can be entered positive:
+        # TODO: check if can be removed
+        # if inam == "Uitlaat":
+        #     factor = -1.0
         for jcol in range(series.shape[1]):
             # Check if empty
             if series.iloc[:, jcol].dropna().empty:
