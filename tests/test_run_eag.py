@@ -18,7 +18,7 @@ def test_make_eag():
     return e
 
 
-def test_add_series():
+def test_add_series_to_eag():
     e = test_make_eag()
     e.add_timeseries(pd.Series(index=pd.date_range("2000", periods=10, freq="D"), data=1e-3*np.ones(10)), name="Neerslag", tmin="2000", tmax="2000-01-10",
                      fillna=True, method=0.0)
@@ -28,7 +28,7 @@ def test_add_series():
 
 
 def test_eag_run():
-    e = test_add_series()
+    e = test_add_series_to_eag()
     # load parameters
     params = pd.read_csv(os.path.join(test_data, "param_1396_3360-EAG-1.csv"), delimiter=";",
                          decimal=",")
