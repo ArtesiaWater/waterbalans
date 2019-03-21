@@ -169,6 +169,13 @@ class Eag:
             elif isinstance(series, pd.Series):
                 name = series.name
 
+        if name in self.series.columns:
+            print(
+                "Warning! Series {} already present in EAG, overwriting data where not NaN!".format(name))
+            first_valid_index = series.first_valid_index()
+            last_valid_index = series.last_valid_index()
+            series = series.loc[first_valid_index:last_valid_index]
+
         if fillna:
             if (series.isna().sum() > 0).all():
                 print("Filled {0} NaN-values with '{1}' in series {2}.".format(
@@ -178,12 +185,9 @@ class Eag:
                 elif isinstance(method, float) or isinstance(method, int):
                     series = series.fillna(method)
 
-        if name in self.series.columns:
-            print(
-                "Warning! Series {} already present in EAG, overwriting data!".format(name))
-
-        self.series.loc[series.index.intersection(
-            self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
+        shared_index = series.index.intersection(self.series.index)
+        self.series.loc[shared_index,
+                        name] = series.loc[shared_index].values.squeeze()
 
     def get_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
@@ -267,7 +271,7 @@ class Eag:
 
         # Uitspoeling: alle positieve q_ui fluxes uit alle verhard en onverhard en drain
         names = ["q_ui_" + str(id) for id in self.buckets.keys() if
-                 self.buckets[id].name in ["Verhard", "Onverhard", "Drain"]]
+                 self.buckets[id].name in ["Verhard", "Onverhard"]]
         q_uitspoel = self.water.fluxes.loc[:, names]
         q_uitspoel[q_uitspoel < 0] = 0
         fluxes["uitspoeling"] = q_uitspoel.sum(axis=1)
@@ -294,8 +298,12 @@ class Eag:
         # Gedraineerd: q_oa - positieve q_ui van Drain
         names = ["q_dr_" + str(id) for id in self.buckets.keys() if
                  self.buckets[id].name == "Drain"]
+        names2 = ["q_ui_" + str(id) for id in self.buckets.keys() if
+                  self.buckets[id].name == "Drain"]
         q_drain = self.water.fluxes.loc[:, names]
-        fluxes["drain"] = q_drain.sum(axis=1)
+        q_uitspoeling = self.water.fluxes.loc[:, names2]
+        q_uitspoeling[q_uitspoeling < 0.] = 0.
+        fluxes["drain"] = q_drain.sum(axis=1) + q_uitspoeling.sum(axis=1)
 
         # Berekende in en uitlaat
         fluxes["berekende inlaat"] = self.water.fluxes["q_in"]
@@ -474,3 +482,11 @@ class Eag:
                 if v.name == buckettype:
                     bucketlist.append(v)
             return bucketlist
+
+    def modelstructure(self):
+        df = pd.DataFrame(index=[i.id for i in self.buckets.values()])
+        df.index.name = "ID"
+        df["Name"] = [i.name for i in self.buckets.values()]
+        df["Area"] = [i.area for i in self.buckets.values()]
+        df["BucketObj"] = self.buckets.values()
+        return df
