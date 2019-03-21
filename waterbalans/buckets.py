@@ -100,6 +100,9 @@ class BucketBase(ABC):
 
         """
         pass
+    
+    def __repr__(self):
+        return "<{0}: {1} bucket with area {2:.1f}>".format(self.id, self.name, self.area)
 
 
 class Verhard(BucketBase):
