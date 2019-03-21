@@ -196,21 +196,20 @@ class Eag_Plots:
             fluxes.index[-1]
         
         fluxes = fluxes.loc[tmin:tmax]
-        calculated_out = fluxes.loc[:, ["berekende uitlaat"]]
 
         if period == "year":
-            grouper = [fluxes.index.year]
+            grouper = [(fluxes.index - DateOffset(months=month_offset)).year]
         elif period == "month":
             grouper = [fluxes.index.year, fluxes.index.month]
         else:
             grouper=None
 
         if grouper is not None:
-            calculated_out = calculated_out.groupby(by=grouper).cumsum()
+            calculated_out = fluxes.loc[:, ["berekende uitlaat"]].groupby(by=grouper).cumsum()
             if inlaat:
                 calculated_in = fluxes.loc[:, ["berekende inlaat"]].groupby(by=grouper).cumsum()
         else:
-            calculated_out = calculated_out.cumsum()
+            calculated_out = fluxes.loc[:, ["berekende uitlaat"]].cumsum()
             if inlaat:
                 calculated_in = fluxes.loc[:, ["berekende inlaat"]].cumsum()
         
