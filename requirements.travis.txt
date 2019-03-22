@@ -2,4 +2,4 @@ pandas>=0.24
 numpy>=1.15
 pastas>=0.9.7
 matplotlib>=3.0.2
-hkvfewspy=0.6.2
+hkvfewspy==0.6.2
