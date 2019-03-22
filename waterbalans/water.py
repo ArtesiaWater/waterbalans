@@ -24,6 +24,9 @@ class WaterBase(ABC):
 
         self.chloride = pd.DataFrame()
 
+    def __repr__(self):
+        return "<{0}: {1} bucket with area {2:.1f}>".format(self.id, "Water", self.area)
+
     def initialize(self, tmin=None, tmax=None):
         """Method to initialize a Bucket with a clean DataFrame for the
         fluxes and storage time series. This method is called by the init
@@ -133,7 +136,7 @@ class Water(WaterBase):
             self.parameters.loc[:, "Waarde"]
 
         # Pick up hTargetSeries if they exist
-        if not self.hTargetSeries.empty:
+        if not self.hTargetSeries.empty and not self.use_waterlevel_series:
             hTargetMin_1 = self.hTargetSeries["hTargetMin"]
             hTargetMax_1 = self.hTargetSeries["hTargetMax"]
 
@@ -191,7 +194,7 @@ class Water(WaterBase):
         #   - Negative offsets will result in offset being set statically, i.e. it will not vary over simulation
         #   - Positive offsets will result in offset being set dynamically relative to observed level if available
 
-        if not self.hTargetSeries.empty:
+        if not self.hTargetSeries.empty and not self.use_waterlevel_series:
             # Convert to volume:
             hTargetMin_1 = (hTargetMin_1 - hBottom_1) * self.area
             hTargetMax_1 = (hTargetMax_1 - hBottom_1) * self.area
@@ -201,19 +204,29 @@ class Water(WaterBase):
                     hTarget_1 + hTargetMin_1 - hBottom_1) * self.area  # a volume
                 hTargetMin_1 = pd.Series(index=h.index, data=hTargetMin_static)
             else:  # dynamic
-                hTargetMin_static = hTarget_1
+                ht = hTargetMin_1
                 hTargetMin_1 = (self.eag.series.loc[tmin:tmax, "Peil"] -
                                 hTargetMin_1 - hBottom_1) * self.area
+                # This is what Excel does (start with init level instead of first obs Peil)
+                hTargetMin_1.iloc[0] = (hTarget_1 - ht - hBottom_1) * self.area
 
             if hTargetMax_1 <= 0:  # static
                 hTargetMax_static = (
                     hTarget_1 - hTargetMax_1 - hBottom_1) * self.area  # a volume
                 hTargetMax_1 = pd.Series(index=h.index, data=hTargetMax_static)
             else:  # dynamic
+                ht = hTargetMax_1
                 hTargetMax_1 = (self.eag.series.loc[tmin:tmax, "Peil"] +
                                 hTargetMax_1 - hBottom_1) * self.area
+                # This is what Excel does (start with init level instead of first obs Peil)
+                hTargetMax_1.iloc[0] = (hTarget_1 + ht - hBottom_1) * self.area
 
         for t in h.index[1:]:
+            if np.isnan(hTargetMax_1.loc[t]):
+                hTargetMax_1.loc[t] = hTargetMax_1.loc[t - pd.Timedelta(days=1)]
+            if np.isnan(hTargetMin_1.loc[t]):
+                hTargetMin_1.loc[t] = hTargetMin_1.loc[t - pd.Timedelta(days=1)]
+            
             hTargetMax_obs = hTargetMax_1.loc[t]
             hTargetMin_obs = hTargetMin_1.loc[t]
 
@@ -226,8 +239,12 @@ class Water(WaterBase):
                     if np.isnan(QOutMax_1) or (QOutMax_1 == 0):  # no limit on out flux
                         q_out.loc[t] = hTargetMax_obs - h_plus_q
                     else:  # limit on out flux
-                        q_out.loc[t] = max(-1*QOutMax_1,
-                                           hTargetMax_obs - h_plus_q)
+                        # No limit on outflux in first timestep in Excel
+                        if t == tmin:
+                            q_out.loc[t] = hTargetMax_obs - h_plus_q
+                        else:
+                            q_out.loc[t] = max(-1*QOutMax_1,
+                                            hTargetMax_obs - h_plus_q)
                 elif h_plus_q < hTargetMin_obs:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):  # no limit on in flux
                         q_in.loc[t] = hTargetMin_obs - h_plus_q
@@ -246,8 +263,12 @@ class Water(WaterBase):
                     if np.isnan(QOutMax_1) or (QOutMax_1 == 0):
                         q_out.loc[t] = hTargetMax_obs - h_plus_q
                     else:
-                        q_out.loc[t] = max(-1*QOutMax_1,
-                                           hTargetMax_obs - h_plus_q)
+                        # No limit on outflux in first timestep in Excel
+                        if t == tmin:
+                            q_out.loc[t] = hTargetMax_obs - h_plus_q
+                        else:
+                            q_out.loc[t] = max(-1*QOutMax_1,
+                                            hTargetMax_obs - h_plus_q)
                 elif h_plus_q < hTargetMin_obs:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):
                         q_in.loc[t] = hTargetMin_obs - h_plus_q
