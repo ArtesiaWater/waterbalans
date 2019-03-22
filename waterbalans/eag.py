@@ -174,7 +174,8 @@ class Eag:
                 "Warning! Series {} already present in EAG, overwriting data where not NaN!".format(name))
             first_valid_index = series.first_valid_index()
             last_valid_index = series.last_valid_index()
-            series = series.loc[first_valid_index:last_valid_index]
+            series = series.loc[first_valid_index:last_valid_index].dropna()
+            fillna = False
 
         if fillna:
             if (series.isna().sum() > 0).all():
@@ -186,8 +187,7 @@ class Eag:
                     series = series.fillna(method)
 
         shared_index = series.index.intersection(self.series.index)
-        self.series.loc[shared_index,
-                        name] = series.loc[shared_index].values.squeeze()
+        self.series.loc[shared_index, name] = series.loc[shared_index].values.squeeze()
 
     def get_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
@@ -489,4 +489,5 @@ class Eag:
         df["Name"] = [i.name for i in self.buckets.values()]
         df["Area"] = [i.area for i in self.buckets.values()]
         df["BucketObj"] = self.buckets.values()
+        df.loc[self.water.id, :] = [self.water.name, self.water.area, self.water]
         return df
