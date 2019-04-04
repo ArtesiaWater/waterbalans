@@ -166,6 +166,30 @@ def get_extra_series_from_excel(excelfile, sheet_name="extra_reeksen"):
     return df_series
 
 
+def get_wqparams_from_excel(excelfile, sheet_name="stoffen"):
+    """Load water quality parameters from excelfile containing all info
+    for an EAG. The structure of the excelfile is defined. See example file at
+    https://github.com/ArtesiaWater/waterbalans/tree/master/voorbeelden/data
+
+    Parameters
+    ----------
+    excelfile : str, path to excelfile
+        path to excelfile
+
+    Returns
+    -------
+    df_series: pandas.DataFrame
+        DataFrame containing water quality parameters
+
+    """
+
+    xls = pd.ExcelFile(excelfile)
+    df_series = pd.read_excel(xls, sheet_name=sheet_name, skiprows=[1],
+                              header=[0], index_col=None, usecols="A:I")
+
+    return df_series
+
+
 def get_extra_series_from_pickle(picklefile, compression="zip"):
     """Load timeseries from pickle.
 
@@ -316,5 +340,3 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
             print("Adding '{}' series to EAG.".format(inam))
             o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
                              fillna=True, method=0.0)
-
-    return
