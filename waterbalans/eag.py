@@ -491,3 +491,92 @@ class Eag:
         df["BucketObj"] = self.buckets.values()
         df.loc[self.water.id, :] = [self.water.name, self.water.area, self.water]
         return df
+
+    def simulate_wq(self, wq_params, increment=False, tmin=None, 
+                    tmax=None, freq="D"):
+        
+        print("Simulating water quality: {}...".format(self.name))
+
+        if not hasattr(self.water, "fluxes"):
+            raise AttributeError("No calculated fluxes in water bucket." 
+                                 "Please simulate water quantity first!")
+        
+        # Get tmin and tmax
+        if tmin is None:
+            tmin = self.series.index.min()
+        else:
+            tmin = pd.Timestamp(tmin)
+        if tmax is None:
+            tmax = self.series.index.max()
+        else:
+            tmax = pd.Timestamp(tmax)
+
+        # Parse wq_params table
+        # Should result in C_series -> per flux a series in one DataFrame, 
+        # if FEWS or local data is used, data is ffilled 
+        incols = [icol for icol in wq_params.InlaatType if icol != "initieel"]
+        C_series = pd.DataFrame(index=self.water.fluxes.loc[tmin:tmax].index, columns=incols)
+
+        for ID, df in wq_params.groupby(["InlaatType", "ReeksType"]):
+            inlaat_type, reeks_type = ID
+            # Get initial concentration and continue
+            if inlaat_type == "initieel":
+                C_init = df["Waarde"].iloc[0]
+                continue
+
+            series = get_series(inlaat_type, reeks_type, df, tmin=tmin, tmax=tmax, freq=freq)
+            
+            # If increment is True, add increment to concentration
+            if increment:
+                series += df["StofIncrement"].iloc[0]
+
+            # add series to C_series DataFrame
+            if reeks_type == "Constant":
+                C_series.loc[:, inlaat_type] = series
+            else:
+                # Fill in series on dates with measurement
+                shared_index = series.index.intersection(C_series.index)
+                C_series.loc[shared_index, inlaat_type] = series
+
+            # Series is often not measured on each day -> ffill to fill gaps
+            if series.isna().sum() > 0:
+                C_series.loc[:, inlaat_type].fillna(method='ffill')
+
+        # Get fluxes
+        fluxes = self.aggregate_fluxes()
+        
+        # Calculate initial mass and concentration
+        hTarget = self.parameters.loc[self.parameters.loc[:, "Code"] ==
+                                      "hTarget", "Waarde"].values[0]
+        hBottom = self.parameters.loc[self.parameters.loc[:, "Code"] ==
+                                      "hBottom", "Waarde"].values[0]
+
+        V_init = (hTarget - hBottom) * self.water.area
+        M = C_init * V_init
+        C_out = C_init
+
+        # Sum of outgoing fluxes from water bucket
+        outcols = ["intrek", "berekende uitlaat", "wegzijging"] 
+        outcols += [jcol for jcol in self.water.fluxes if jcol.startswith("Uitlaat")]
+        V_out = fluxes.loc[:, outcols].sum(axis=1)
+
+        mass_tot = pd.Series(index=fluxes.index)
+        mass_out = pd.Series(index=fluxes.index)
+        mass_in = fluxes.loc[:, incols].multiply(C_series)
+        
+        for t in fluxes.index:
+            M_in = mass_in.loc[t].sum()
+
+            M_out = V_out.loc[t] * C_out
+            mass_out.loc[t] = M_out
+
+            M = M + M_in + M_out
+
+            mass_tot.loc[t] = M
+            C_out = M / self.water.storage.loc[t, "storage"]
+
+        C = mass_tot / self.water.storage["storage"]
+        
+        print("Simulation water quality succesfully completed.")
+        
+        return C
