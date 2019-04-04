@@ -23,7 +23,7 @@ def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice
 
 def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     """Method that return a time series downloaded from fews or constructed
-    from it parameters.
+    from its parameters.
 
     Parameters
     ----------
@@ -92,6 +92,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         series = df.loc[:, ["date", "value"]].set_index("date")
         series = series.tz_localize(None)  # Remove timezone from FEWS series
         series = series.astype(float)
+        
         # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
         if np.any(series.index.hour != 9):
             series.index = series.index.floor(freq="D") - Timedelta(days=1)
@@ -108,7 +109,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     elif kind == "Constant":
         if name in ["Qkwel", "Qwegz"]:
             value = float(data.loc[:, "Waarde"].values[0]) * 1e-3
-        else:  # TODO: check if this is correct
+        else:
             value = float(data.loc[:, "Waarde"].values[0])
         tindex = date_range(tmin, tmax, freq=freq)
         series = Series(value, index=tindex)
@@ -126,6 +127,13 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         value = float(data.loc[:, "Waarde"].values[0])
         tindex = date_range(tmin, tmax, freq=freq)
         series = Series(value, index=tindex)
+    
+    elif kind == "Local":
+        # if kind is Local, read Series from CSV provided by dbase!
+        # TODO: intuitive method to read CSV/Series from Database
+        # series = pd.read_csv(data.loc[])
+        # series = series[name]
+        pass
 
     else:
         return print("Warning! Adding series of kind {} not supported.".format(kind))
