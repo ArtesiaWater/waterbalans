@@ -259,10 +259,9 @@ class Drain(BucketBase):
         self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
-        if not set(params.index).issubset(self.parameters.index):
-            print("Warning: {} not in series. Assumed equal to np.NaN!".format(
-                set(self.parameters.index) - set(params.index)))
-            # warnings.warn("{0} is missing parameters for bucket {1}!".format(self.eag.name, self.name))
+        non_defined_params = set(self.parameters.index) - set(params.index)
+        if len(non_defined_params) > 0:
+            print("Warning: {} not set in parameters, using default values!".format(non_defined_params))
 
         self.parameters.update(params)
 
@@ -312,7 +311,7 @@ class Drain(BucketBase):
 
 
 class MengRiool(BucketBase):
-    def __init__(self, id, eag, series, area=0.0, use_eag_cso_series=False,
+    def __init__(self, id, eag, series, area=0.0, use_eag_cso_series=True,
                  path_to_cso_series=None):
         BucketBase.__init__(self, id, eag, series, area)
         self.name = "MengRiool"
