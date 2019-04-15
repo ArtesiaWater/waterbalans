@@ -10,40 +10,9 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
-from pandas import DateOffset, Timedelta, Timestamp
+from pandas import Timedelta, Timestamp
 
 from .timeseries import get_series
-
-
-class Plot():
-    def __init__(self, waterbalans):
-        self.wb = waterbalans
-        self.colordict =  {"kwel": "brown",
-                           "neerslag": "b", 
-                           "uitspoeling": "lime", 
-                           "drain": "orange",
-                           "verhard": "darkgray",
-                           "afstroming": "darkgreen", 
-                           "q_cso": "olive", 
-                           "wegzijging": "brown", 
-                           "verdamping": "b", 
-                           "intrek": "lime",
-                           "uitlaat": "salmon", 
-                           "berekende inlaat": "r", 
-                           "berekende uitlaat": "k"}
-        self.figsize = (16, 5)
-
-    def series(self):
-        """Method to plot all series that are present in the model
-
-        Returns
-        -------
-        axes: list of matplotlib.axes
-            Liost with matplotlib axes instances.
-
-        """
-
-        raise NotImplementedError
 
 
 class Eag_Plots:
@@ -67,6 +36,48 @@ class Eag_Plots:
                            "sluitfout": "black"})
         self.figsize = (18, 6)
         self.dpi = dpi
+
+    def series(self):
+
+        fig, axgr = plt.subplots(len(self.eag.series.columns), 1, sharex=True)
+
+        for icol, iax in zip(self.eag.series.columns, axgr):
+            iax.plot(self.eag.series.index, self.eag.series.loc[:, icol], label=icol)
+            iax.grid(b=True)
+            iax.legend(loc="best")
+        
+        fig.tight_layout()
+        return axgr
+
+    def plot_series(self, series, tmin="2000", tmax="2018", freq="D", mask=None, labelcol="WaardeAlfa"):  # pragma: no cover
+        """Method to plot timeseries based on a pandas DataFrame with series names.
+
+        Parameters
+        ----------
+        series: pandas.DataFrame
+        tmin: str or pandas.Timestamp, optional
+        tmax: str or pandas.Timestamp, optional
+        freq: str
+
+        """
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
+
+        for id, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
+            BakjeID, ClusterType, ParamType = id
+            if mask is not None:
+                if (BakjeID == mask) or (ClusterType == mask) or (ParamType == mask):
+                    for j in range(df.shape[0]):
+                        series = get_series(ClusterType, ParamType, df.iloc[j:j+1], tmin, tmax, freq)
+                        ax.plot(series.index, series, label=df.iloc[j].loc[labelcol])
+            else:
+                for j in range(df.shape[0]):
+                    series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
+                    ax.plot(series.index, series, label=df.iloc[j].loc[labelcol])
+
+        ax.legend(loc="best")
+        fig.tight_layout()
+
+        return ax
 
     def bucket(self, name, freq="M", tmin=None, tmax=None):
         bucket = self.eag.buckets[name]
@@ -186,48 +197,33 @@ class Eag_Plots:
 
         return ax
 
-    def gemaal_cumsum(self, tmin=None, tmax=None, period="year", inlaat=True, month_offset=9):
-        fluxes = self.eag.aggregate_fluxes()
+    def cumsum_series(self, fluxes_names=["berekende inlaat", "berekende uitlaat"], 
+                      eagseries_names=["Gemaal"], tmin=None, tmax=None, 
+                      period="year", month_offset=9):
         
-        # get tmin, tmax if not defined
-        if tmin is None:
-            fluxes.index[0]
-        if tmax is None:
-            fluxes.index[-1]
-        
-        fluxes = fluxes.loc[tmin:tmax]
-
-        if period == "year":
-            grouper = [(fluxes.index - DateOffset(months=month_offset)).year]
-        elif period == "month":
-            grouper = [fluxes.index.year, fluxes.index.month]
+        if len(self.eag.series.columns.intersect(set(eagseries_names))) > 0:
+            cumsum_fluxes, cumsum_series = self.eag.cumulative_period_sum(fluxes_names=fluxes_names,
+                                                                          eagseries_names=eagseries_names,
+                                                                          cumsum_period=period, 
+                                                                          month_offset=month_offset,
+                                                                          tmin=tmin, tmax=tmax)
         else:
-            grouper=None
+            cumsum_fluxes = self.eag.cumulative_period_sum(fluxes_names=fluxes_names,
+                                                           eagseries_names=None,
+                                                           cumsum_period=period, 
+                                                           month_offset=month_offset,
+                                                           tmin=tmin, tmax=tmax)
+            cumsum_series = None
 
-        if grouper is not None:
-            calculated_out = fluxes.loc[:, ["berekende uitlaat"]].groupby(by=grouper).cumsum()
-            if inlaat:
-                calculated_in = fluxes.loc[:, ["berekende inlaat"]].groupby(by=grouper).cumsum()
-        else:
-            calculated_out = fluxes.loc[:, ["berekende uitlaat"]].cumsum()
-            if inlaat:
-                calculated_in = fluxes.loc[:, ["berekende inlaat"]].cumsum()
-        
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
-        ax.plot(calculated_out.index, calculated_out, lw=2, label="berekende uitlaat")
-        if inlaat:
-            ax.plot(calculated_in.index, calculated_in, lw=2, label="berekende inlaat", color="red")
-        
-        if "Gemaal" in self.eag.series.columns:
-            gemaal = self.eag.series["Gemaal"].loc[tmin:tmax]
-            if period == "year":
-                gemaal = gemaal.groupby(by=(gemaal.index - DateOffset(months=month_offset)).year).cumsum()
-            elif period == "month":
-                gemaal = gemaal.groupby(by=[gemaal.index.year, gemaal.index.month]).cumsum()
-            else:
-                gemaal = gemaal.cumsum()
-            ax.fill_between(gemaal.index, 0.0, -gemaal, label="gemeten bij gemaal", color="C1")
+        for flux_nam in fluxes_names:
+            ax.plot(cumsum_fluxes[flux_nam].index, cumsum_fluxes[flux_nam], lw=2, label=flux_nam)
+
+        if cumsum_series is not None:
+            for eseries_nam in eagseries_names:
+                ax.fill_between(cumsum_series[eseries_nam].index, 0.0, -cumsum_series[eseries_nam], 
+                                label=eseries_nam, color="C1")
 
         ax.set_ylabel("Cumulatieve afvoer (m$^3$)")
         ax.legend(loc="best")
@@ -255,7 +251,7 @@ class Eag_Plots:
 
         return ax
     
-    def chloride_fractions(self, tmin=None, tmax=None, chloride_conc=None):
+    def fractions(self, tmin=None, tmax=None, chloride_conc=None):
         # get tmin, tmax if not defined
         if tmin is None:
             self.eag.series.index[0]
@@ -315,12 +311,14 @@ class Eag_Plots:
     def water_level(self, label_obs=False):
 
         hTarget = self.eag.water.parameters.loc["hTarget_1", "Waarde"]
-        hTargetMax = hTarget + np.abs(self.eag.water.parameters.loc["hTargetMax_1", "Waarde"])
-        hTargetMin = hTarget - np.abs(self.eag.water.parameters.loc["hTargetMin_1", "Waarde"])
+        # hTargetMax = hTarget + np.abs(self.eag.water.parameters.loc["hTargetMax_1", "Waarde"])
+        # hTargetMin = hTarget - np.abs(self.eag.water.parameters.loc["hTargetMin_1", "Waarde"])
+        hTargetMax = self.eag.water.hTargetSeries.hTargetMax
+        hTargetMin = self.eag.water.hTargetSeries.hTargetMin
         hBottom = self.eag.water.parameters.loc["hBottom_1", "Waarde"]
 
         # Plot
-        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=self.dpi)
         ax.plot(self.eag.water.level.index, self.eag.water.level, label="berekend peil")
         
         if label_obs:
@@ -330,10 +328,8 @@ class Eag_Plots:
         
         ax.axhline(hTarget, linestyle="dashed", lw=1.5, label="hTarget", color="k")
         
-        if hTargetMin != 0.:
-            ax.axhline(hTargetMin, linestyle="dashed", lw=1.5, label="hTargetMin", color="b")
-        if hTargetMax != 0.:
-            ax.axhline(hTargetMax, linestyle="dashed", lw=1.5, label="hTargetMax", color="r")
+        ax.plot(hTargetMin.index, hTargetMin, linestyle="dashed", lw=1.5, label="hTargetMin", color="r")
+        ax.plot(hTargetMax.index, hTargetMax, linestyle="dashed", lw=1.5, label="hTargetMax", color="b")
 
         ax.axhline(hBottom, linestyle="dashdot", lw=1.5, label="hBottom", color="brown")
 
@@ -342,36 +338,6 @@ class Eag_Plots:
 
         fig.tight_layout()
         
-        return ax
-
-    def plot_series(self, series, tmin="2000", tmax="2018", freq="D", mask=None, labelcol="WaardeAlfa"):  # pragma: no cover
-        """Method to plot timeseries based on a pandas DataFrame with series names.
-
-        Parameters
-        ----------
-        series: pandas.DataFrame
-        tmin: str or pandas.Timestamp, optional
-        tmax: str or pandas.Timestamp, optional
-        freq: str
-
-        """
-        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
-
-        for id, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
-            BakjeID, ClusterType, ParamType = id
-            if mask is not None:
-                if (BakjeID == mask) or (ClusterType == mask) or (ParamType == mask):
-                    for j in range(df.shape[0]):
-                        series = get_series(ClusterType, ParamType, df.iloc[j:j+1], tmin, tmax, freq)
-                        ax.plot(series.index, series, label=df.iloc[j].loc[labelcol])
-            else:
-                for j in range(df.shape[0]):
-                    series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
-                    ax.plot(series.index, series, label=df.iloc[j].loc[labelcol])
-
-        ax.legend(loc="best")
-        fig.tight_layout()
-
         return ax
 
     def compare_fluxes_to_excel_balance(self, exceldf, showdiff=True):  # pragma: no cover
