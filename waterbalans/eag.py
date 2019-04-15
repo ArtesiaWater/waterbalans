@@ -10,10 +10,11 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from pandas import Timestamp, date_range
+from pandas.tseries.offsets import MonthOffset
 
 from .buckets import Drain, MengRiool, Onverhard, Verhard
 from .plots import Eag_Plots
-from .timeseries import get_series
+from .timeseries import get_series, update_series
 
 
 class Eag:
@@ -92,7 +93,7 @@ class Eag:
         else:
             self.water = water
 
-    def add_series(self, series, tmin="2000", tmax="2015", freq="D", fillna=False):
+    def add_series(self, series, tmin="2000", tmax="2015", freq="D", fillna=False, method="append"):
         """Method to add timeseries based on a pandas DataFrame.
 
         Parameters
@@ -112,30 +113,53 @@ class Eag:
         eag.add_series(series)
 
         """
-        for id, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
-            BakjeID, ClusterType, ParamType = id
+        # Sort series to parse in order: Valueseries -> Local -> FEWS -> Constant
+        series = series.sort_values(by="ParamType", ascending=False)
+
+        for id, df in series.groupby(["ParamType", "BakjeID", "ClusterType"], sort=False):
+            ParamType, BakjeID, ClusterType  = id
+            
             # check if ValueSeries actually contains information
             if ParamType == "ValueSeries":
                 if df.loc[:, "Waarde"].sum() == 0.0:
-                    continue
+                    continue  
             series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
+            # Check if series contains data
+            if series is None:
+                continue
+            # Fill NaNs if specified
             if fillna:
                 if (series.isna().sum() > 0).all():
                     print("Filled {} NaN-values with 0.0 in series {}.".format(
                         np.int(series.isna().sum()), ClusterType))
                     series = series.fillna(0.0)
-
-            if BakjeID in self.buckets.keys():
-                self.buckets[BakjeID].series[ClusterType] = series
-            elif BakjeID == self.water.id:
-                if ClusterType.startswith("Cl"):
-                    self.water.chloride[ClusterType] = series
-                elif ClusterType.startswith("hTarget"):
+            # Add series to appropriate object
+            if BakjeID in self.buckets.keys():  # add to Land Bucket
+                if ClusterType in self.buckets[BakjeID].series.columns:  # check if already exists
+                    orig_series = self.buckets[BakjeID].series[ClusterType]
+                    new_series = update_series(orig_series, series, method=method)
+                    self.buckets[BakjeID].series[ClusterType] = new_series  # add updated series
+                else:  # add new series
+                    self.buckets[BakjeID].series[ClusterType] = series
+            elif BakjeID == self.water.id:  # add to Water Bucket
+                if ClusterType.startswith("hTarget"):
                     self.water.hTargetSeries[ClusterType] = series
-                else:
-                    self.water.series[ClusterType] = series
-            elif BakjeID == -9999:
-                self.series[ClusterType] = series
+                else:  # non-targetlevel series
+                    if ClusterType in self.water.series.columns:  # check if already exists
+                        orig_series = self.water.series[ClusterType]
+                        new_series = update_series(orig_series, series, method=method)
+                        self.water.series[ClusterType] = new_series  # add updated series
+                    else:  # add new series
+                        self.water.series[ClusterType] = series
+            elif BakjeID == -9999:  # add to EAG, no specific bucket defined
+                if ClusterType in self.series.columns:  # check if already exists
+                    orig_series = self.series[ClusterType]
+                    new_series = update_series(orig_series, series, method=method)
+                    if new_series.empty:
+                        raise(ValueError("Empty series!"))
+                    self.series[ClusterType] = new_series  # add updated series
+                else:  # add new series
+                    self.series[ClusterType] = series
 
         # Create index based on tmin/tmax if no series are added to EAG!
         if self.series.empty:
@@ -204,6 +228,30 @@ class Eag:
         if self.gaf is not None and self.series.empty:
             self.series = self.series.join(self.gaf.series, how="left")
 
+    def get_modelstructure(self):
+        df = pd.DataFrame(index=[i.id for i in self.buckets.values()])
+        df.index.name = "ID"
+        df["Name"] = [i.name for i in self.buckets.values()]
+        df["Area"] = [i.area for i in self.buckets.values()]
+        df["BucketObj"] = self.buckets.values()
+        df.loc[self.water.id, :] = [self.water.name, self.water.area, self.water]
+        return df
+
+    def get_bucket_params(self):
+        bucketnames = [b.name for b in self.buckets.values()]
+        bucketparams = [b.parameters for b in self.buckets.values()]
+        return pd.concat(bucketparams, axis=1, sort=False, keys=bucketnames)
+
+    def get_buckets(self, buckettype="all"):
+        if buckettype == "all":
+            return list(self.buckets.values())
+        else:
+            bucketlist = []
+            for _, v in self.buckets.items():
+                if v.name == buckettype:
+                    bucketlist.append(v)
+            return bucketlist
+
     def simulate(self, params, tmin=None, tmax=None):
         """Method to validate the water balance based on the total input,
         output and the change in storage of the model for each time step.
@@ -218,7 +266,7 @@ class Eag:
         """
         print("Simulating: {}...".format(self.name))
         self.parameters = params
-        self.parameters.set_index(self.parameters.loc[:, "Code"] + "_" +
+        self.parameters.set_index(self.parameters.loc[:, "ParamCode"] + "_" +
                                   self.parameters.loc[:,
                                                       "Laagvolgorde"].astype(str), inplace=True)
 
@@ -234,6 +282,104 @@ class Eag:
               (self.water.name, self.water.id))
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
         print("Simulation succesfully completed.")
+
+    def simulate_wq(self, wq_params, increment=False, tmin=None, 
+                    tmax=None, freq="D"):
+        
+        print("Simulating water quality: {}...".format(self.name))
+
+        if not hasattr(self.water, "fluxes"):
+            raise AttributeError("No calculated fluxes in water bucket." 
+                                 "Please simulate water quantity first!")
+        
+        # Get tmin and tmax
+        if tmin is None:
+            tmin = self.series.index.min()
+        else:
+            tmin = pd.Timestamp(tmin)
+        if tmax is None:
+            tmax = self.series.index.max()
+        else:
+            tmax = pd.Timestamp(tmax)
+
+        # Parse wq_params table
+        # Should result in C_series -> per flux a series in one DataFrame, 
+        # if FEWS or local data is used, data is ffilled 
+        incols = [icol.lower() for icol in wq_params.Inlaattype if icol != "initieel"]
+        C_series = pd.DataFrame(index=self.water.fluxes.loc[tmin:tmax].index, columns=incols)
+        
+        C_init = 0.0  # if no initial value passed
+
+        for ID, df in wq_params.groupby(["Inlaattype", "Reekstype"]):
+            inlaat_type, reeks_type = ID
+            inlaat_type = inlaat_type.lower()
+
+            # Get initial concentration and continue
+            if inlaat_type == "initieel":
+                C_init = df["Waarde"].iloc[0]
+                continue
+
+            series = get_series(inlaat_type, reeks_type, df, tmin=tmin, tmax=tmax, freq=freq)
+
+            if series.sum() == 0.0:
+                incols.remove(inlaat_type)
+                continue
+            
+            # If increment is True, add increment to concentration
+            if increment:
+                series += df["Stofincrement"].iloc[0]
+
+            # add series to C_series DataFrame
+            if reeks_type == "Constant":
+                C_series.loc[:, inlaat_type] = series
+            else:
+                # Fill in series on dates with measurement
+                shared_index = series.index.intersection(C_series.index)
+                C_series.loc[shared_index, inlaat_type] = series
+
+            # Series is often not measured on each day -> ffill to fill gaps
+            if series.isna().sum() > 0:
+                C_series.loc[:, inlaat_type].fillna(method='ffill')
+
+        # Get fluxes
+        fluxes = self.aggregate_fluxes()
+        fluxes.columns = [icol.lower() for icol in fluxes.columns]
+        
+        # Calculate initial mass and concentration
+        hTarget = self.parameters.loc[self.parameters.loc[:, "ParamCode"] ==
+                                      "hTarget", "Waarde"].values[0]
+        hBottom = self.parameters.loc[self.parameters.loc[:, "ParamCode"] ==
+                                      "hBottom", "Waarde"].values[0]
+
+        V_init = (hTarget - hBottom) * self.water.area
+        M = C_init * V_init
+        C_out = C_init
+
+        # Sum of outgoing fluxes from water bucket
+        outcols = ["intrek", "berekende uitlaat", "wegzijging"] 
+        outcols += [jcol.lower() for jcol in self.water.fluxes if jcol.startswith("Uitlaat")]
+        V_out = fluxes.loc[:, outcols].sum(axis=1)
+
+        mass_tot = pd.Series(index=fluxes.index)
+        mass_out = pd.Series(index=fluxes.index)
+        mass_in = fluxes.loc[:, incols].multiply(C_series)
+        
+        for t in fluxes.index:
+            M_in = mass_in.loc[t].sum()
+
+            M_out = V_out.loc[t] * C_out
+            mass_out.loc[t] = M_out
+
+            M = M + M_in + M_out
+
+            mass_tot.loc[t] = M
+            C_out = M / self.water.storage.loc[t, "storage"]
+
+        C = mass_tot / self.water.storage["storage"]
+        
+        print("Simulation water quality succesfully completed.")
+        
+        return C
 
     def aggregate_fluxes(self):
         """Method to aggregate fluxes to those used for visualisation in the
@@ -320,7 +466,7 @@ class Eag:
 
         return fluxes
 
-    def aggregate_with_pumpstation(self):
+    def aggregate_fluxes_w_pumpstation(self):
         fluxes = self.aggregate_fluxes()
         if "Gemaal" not in self.series.columns:
             print("Warning! No timeseries for pumping station. Cannot aggregate.")
@@ -335,94 +481,57 @@ class Eag:
 
         return fluxes
 
-    def calculate_chloride_concentration(self, params=None):
-        """Calculate the chloride concentratation in the water bucket.
-
-        Parameters
-        ----------
-        params: pandas.DataFrame
-            Pandas DataFrame containing the parameters, similar to the
-            simulate method.
-
-        Returns
-        -------
-        C: pandas.Series
-            Pandas Series of the chloride concentration in the Water bucket.
-
-        """
+    def calculate_cumsum(self, fluxes_names=None, eagseries_names=None, 
+                              cumsum_period="year", month_offset=9, tmin=None, 
+                              tmax=None):
+        # Get fluxes
         fluxes = self.aggregate_fluxes()
-        self.mass_cl_tot = pd.Series(index=fluxes.index)
 
-        # TODO: maybe these should be in params file?
-        C_params = {
-            "neerslag": 6,
-            "kwel": 400,
-            "verhard": 10,
-            "drain": 70,
-            "uitspoeling": 70,
-            "afstroming": 35,
-            "berekende inlaat": 100}
+        if tmin is None:
+            tmin = fluxes.index[0]
+        if tmax is None:
+            tmax = fluxes.index[-1]
 
-        C_params = pd.Series(C_params)
+        # Helper function to get grouper
+        def get_grouper(s, cumsum_period="year", month_offset=9):
+            if cumsum_period == "year":
+                grouper = [(s.index - MonthOffset(n=month_offset)).year]
+            elif cumsum_period == "month":
+                grouper = [s.index.year, s.index.month]
+            else:
+                grouper=None
+            return grouper
 
-        # pick up ClInit from params
-        if params is not None:
-            Cl_init = params.loc[:, "Waarde"].iloc[0]
+        # By default calculate cumsum for calculated in- and outflux
+        if fluxes_names is None:
+            fluxes_names = ["berekende uitlaat", "berekende inlaat"]
+
+        fluxes = fluxes.loc[tmin:tmax, fluxes_names]
+        # Get grouper for fluxes
+        grouper = get_grouper(fluxes, cumsum_period=cumsum_period,
+                              month_offset=month_offset)
+        # Calculate cumsum fluxes
+        if grouper is not None:
+            cumsum_flux = fluxes.groupby(by=grouper).cumsum()
         else:
-            Cl_init = 90.
-            print(
-                "Warning! Cl_init not in parameters, Setting default concentration to {0:.1f} mg/L".format(Cl_init))
-
-        # pick up other Cl concentrations from water series
-        rename_keys = {"ClVerhard": "verhard",
-                       "ClRiolering": "q_cso",
-                       "ClDrain": "drain",
-                       "ClUitspoeling": "uitspoeling",
-                       "ClAfstroming": "afstroming"}
-
-        if not self.water.chloride.empty:
-            cl_series = self.water.chloride.loc[:, rename_keys.keys()]
-            cl_series = cl_series.rename(columns=rename_keys)
-        else:
-            cl_series = pd.DataFrame(
-                index=self.series.index, columns=C_params.keys(), data=C_params.to_dict())
-
-        for icol in set(C_params.index) - set(cl_series.columns):
-            print("Warning! Setting default concentration of {0:.1f} mg/L for '{1}'!".format(
-                C_params.loc[icol], icol))
-            cl_series[icol] = C_params.loc[icol]
-
-        # Bereken de initiele chloride massa
-        hTarget = self.parameters.loc[self.parameters.loc[:, "Code"] ==
-                                      "hTarget", "Waarde"].values[0]
-        hBottom = self.parameters.loc[self.parameters.loc[:, "Code"] ==
-                                      "hBottom", "Waarde"].values[0]
-
-        V_init = (hTarget - hBottom) * self.water.area
-        M = Cl_init * V_init
-        C_out = Cl_init
-
-        # Som van de uitgaande fluxen: wegzijging, intrek, berekende uitlaat
-        V_out = fluxes.loc[:, [
-            "intrek", "berekende uitlaat", "wegzijging"]].sum(axis=1)
-
-        self.mass_cl_in = fluxes.loc[:, cl_series.columns].multiply(
-            cl_series.loc[:, cl_series.columns])
-        self.mass_cl_out = pd.Series(index=fluxes.index)
-        for t in fluxes.index:
-            M_in = self.mass_cl_in.loc[t].sum()
-
-            M_out = V_out.loc[t] * C_out
-            self.mass_cl_out.loc[t] = M_out
-
-            M = M + M_in + M_out
-
-            self.mass_cl_tot.loc[t] = M
-            C_out = M / self.water.storage.loc[t, "storage"]
-
-        C = self.mass_cl_tot / self.water.storage.storage
-
-        return C
+            cumsum_flux = fluxes.cumsum()
+    
+        # If eagseries_names defined calculate cumsum
+        if eagseries_names is not None:        
+            # Get series based on column names
+            series = self.series.loc[tmin:tmax, eagseries_names]
+            # Get grouper for series
+            grouper = get_grouper(series, cumsum_period=cumsum_period,
+                                  month_offset=month_offset)
+            # Calculate cumsum fluxes
+            if grouper is not None:
+                cumsum_series = series.groupby(by=grouper).cumsum()
+            else:
+                cumsum_series = series.cumsum()  
+            # Return both cumsum_flux and cumsum_series
+            return cumsum_flux, cumsum_series
+        # Return only cumsum_flux
+        return cumsum_flux
 
     def calculate_fractions(self):
         """Method to calculate the fractions.
@@ -468,115 +577,67 @@ class Eag:
 
         return fractions
 
-    def get_bucket_params(self):
-        bucketnames = [b.name for b in self.buckets.values()]
-        bucketparams = [b.parameters for b in self.buckets.values()]
-        return pd.concat(bucketparams, axis=1, sort=False, keys=bucketnames)
-
-    def get_buckets(self, buckettype="all"):
-        if buckettype == "all":
-            return list(self.buckets.values())
-        else:
-            bucketlist = []
-            for _, v in self.buckets.items():
-                if v.name == buckettype:
-                    bucketlist.append(v)
-            return bucketlist
-
-    def modelstructure(self):
-        df = pd.DataFrame(index=[i.id for i in self.buckets.values()])
-        df.index.name = "ID"
-        df["Name"] = [i.name for i in self.buckets.values()]
-        df["Area"] = [i.area for i in self.buckets.values()]
-        df["BucketObj"] = self.buckets.values()
-        df.loc[self.water.id, :] = [self.water.name, self.water.area, self.water]
-        return df
-
-    def simulate_wq(self, wq_params, increment=False, tmin=None, 
-                    tmax=None, freq="D"):
+    def calculate_missing_influx(self):
+        """Calculate missing influx to the system by averaging the 
+        difference between the calculated outflux versus the measured
+        outflux at the pumping station. The missing influx is equal to 
+        the average difference per month.
         
-        print("Simulating water quality: {}...".format(self.name))
-
-        if not hasattr(self.water, "fluxes"):
-            raise AttributeError("No calculated fluxes in water bucket." 
-                                 "Please simulate water quantity first!")
+        Raises
+        ------
+        ValueError
+            if no Pumping Station ("Gemaal") timeseries is in Eag.series
+        AttributeError
+            if the model has not yet been simulated
         
-        # Get tmin and tmax
-        if tmin is None:
-            tmin = self.series.index.min()
-        else:
-            tmin = pd.Timestamp(tmin)
-        if tmax is None:
-            tmax = self.series.index.max()
-        else:
-            tmax = pd.Timestamp(tmax)
+        Returns
+        -------
+        pd.Series
+            Series containing the calcualted missing influx per day
+        """
 
-        # Parse wq_params table
-        # Should result in C_series -> per flux a series in one DataFrame, 
-        # if FEWS or local data is used, data is ffilled 
-        incols = [icol for icol in wq_params.InlaatType if icol != "initieel"]
-        C_series = pd.DataFrame(index=self.water.fluxes.loc[tmin:tmax].index, columns=incols)
-
-        for ID, df in wq_params.groupby(["InlaatType", "ReeksType"]):
-            inlaat_type, reeks_type = ID
-            # Get initial concentration and continue
-            if inlaat_type == "initieel":
-                C_init = df["Waarde"].iloc[0]
-                continue
-
-            series = get_series(inlaat_type, reeks_type, df, tmin=tmin, tmax=tmax, freq=freq)
-            
-            # If increment is True, add increment to concentration
-            if increment:
-                series += df["StofIncrement"].iloc[0]
-
-            # add series to C_series DataFrame
-            if reeks_type == "Constant":
-                C_series.loc[:, inlaat_type] = series
-            else:
-                # Fill in series on dates with measurement
-                shared_index = series.index.intersection(C_series.index)
-                C_series.loc[shared_index, inlaat_type] = series
-
-            # Series is often not measured on each day -> ffill to fill gaps
-            if series.isna().sum() > 0:
-                C_series.loc[:, inlaat_type].fillna(method='ffill')
-
-        # Get fluxes
+        if not "Gemaal" in self.series.columns:
+            raise ValueError("No series 'Gemaal' in eag.series!")
+        if self.water.fluxes.empty:
+            raise AttributeError("No simulation data! Simulate model!")
         fluxes = self.aggregate_fluxes()
         
-        # Calculate initial mass and concentration
-        hTarget = self.parameters.loc[self.parameters.loc[:, "Code"] ==
-                                      "hTarget", "Waarde"].values[0]
-        hBottom = self.parameters.loc[self.parameters.loc[:, "Code"] ==
-                                      "hBottom", "Waarde"].values[0]
-
-        V_init = (hTarget - hBottom) * self.water.area
-        M = C_init * V_init
-        C_out = C_init
-
-        # Sum of outgoing fluxes from water bucket
-        outcols = ["intrek", "berekende uitlaat", "wegzijging"] 
-        outcols += [jcol for jcol in self.water.fluxes if jcol.startswith("Uitlaat")]
-        V_out = fluxes.loc[:, outcols].sum(axis=1)
-
-        mass_tot = pd.Series(index=fluxes.index)
-        mass_out = pd.Series(index=fluxes.index)
-        mass_in = fluxes.loc[:, incols].multiply(C_series)
+        diff = self.series["Gemaal"] - -1*fluxes["berekende uitlaat"]
+        diff.loc[diff <= 0.0] = 0.0
         
-        for t in fluxes.index:
-            M_in = mass_in.loc[t].sum()
+        inlaat_monthly = diff.resample("M").mean()
+        inlaat_sluitfout = inlaat_monthly.resample("D").bfill()
 
-            M_out = V_out.loc[t] * C_out
-            mass_out.loc[t] = M_out
+        return inlaat_sluitfout
 
-            M = M + M_in + M_out
-
-            mass_tot.loc[t] = M
-            C_out = M / self.water.storage.loc[t, "storage"]
-
-        C = mass_tot / self.water.storage["storage"]
+    def output_for_plots(self):
         
-        print("Simulation water quality succesfully completed.")
+        output_dict = {}
+
+        output_dict["{}_fluxes.csv".format(self.name)] = self.aggregate_fluxes()
         
-        return C
+        eagseries_names = None
+        if "Gemaal" in self.series.columns:
+            eagseries_names = ["Gemaal"]
+            output_dict["{}_fluxes_w_ps.csv".format(self.name)] = \
+                self.aggregate_fluxes_w_pumpstation()
+            
+        cumsum = self.calculate_cumsum(eagseries_names=eagseries_names)    
+        if len(cumsum) == 2:
+            for nam, iseries in zip(["inuitflux", "gemaal"], cumsum):
+                output_dict["{}_{}_cumsum.csv".format(self.name, nam)] = iseries
+
+        output_dict["{}_fractions.csv".format(self.name)] = self.calculate_fractions()
+
+        return output_dict
+    
+    def output_to_zipfile(self, zipfname, outputdict=None):
+        
+        import zipfile
+
+        if outputdict is None:
+            outputdict = self.output_for_plots()
+
+        with zipfile.ZipFile(zipfname, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for csvname, series in outputdict.items():
+                zipf.writestr(csvname, series.to_csv())
