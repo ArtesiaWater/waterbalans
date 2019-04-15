@@ -54,7 +54,11 @@ def test_calculate_fractions():
 
 def test_calculate_chloride():
     e = test_eag_run()
-    cl = e.calculate_chloride_concentration()
+    chloride_params = pd.read_csv(os.path.join(test_data, "stoffen_chloride_1396_3360-EAG-1.csv"), 
+                                  decimal=".", delimiter=";")
+    chloride_params.columns = [icol.capitalize() for icol in chloride_params.columns]
+    chloride_params.replace("Riolering", "q_cso", inplace=True)
+    cl = e.simulate_wq(chloride_params)
     return e, cl
 
 

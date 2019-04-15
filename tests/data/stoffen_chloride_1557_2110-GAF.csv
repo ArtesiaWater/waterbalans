@@ -1,0 +1,14 @@
+;EAGID;EAGCode;StofNaam;InlaatType;ReeksType;WaardeAlfa;Waarde;StofIncrement;Eenheid
+0;1557;2110-GAF;Chloride;initieel;Constant;;90.0;0;mg/l
+0;1557;2110-GAF;Chloride;Afstroming;Constant;;10.0;0;mg/l
+1;1557;2110-GAF;Chloride;Berekende inlaat;Constant;;130.0;0;mg/l
+2;1557;2110-GAF;Chloride;Drain;Constant;;400.0;0;mg/l
+3;1557;2110-GAF;Chloride;Inlaat1;Constant;;200.0;0;mg/l
+4;1557;2110-GAF;Chloride;Inlaat2;Constant;;800.0;0;mg/l
+5;1557;2110-GAF;Chloride;Inlaat3;Constant;;300.0;0;mg/l
+6;1557;2110-GAF;Chloride;Inlaat4;Constant;;0.0;0;mg/l
+7;1557;2110-GAF;Chloride;Kwel;Constant;;400.0;0;mg/l
+8;1557;2110-GAF;Chloride;Neerslag;Constant;;6.0;0;mg/l
+9;1557;2110-GAF;Chloride;Riolering;Constant;;80.0;0;mg/l
+10;1557;2110-GAF;Chloride;Uitspoeling;Constant;;200.0;0;mg/l
+11;1557;2110-GAF;Chloride;Verhard;Constant;;200.0;0;mg/l

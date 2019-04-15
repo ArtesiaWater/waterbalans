@@ -33,6 +33,7 @@ def test_gaf_run():
     e, = g.get_eags()
     bm = e.get_buckets(buckettype="MengRiool")
     for b in bm:
+        b.use_eag_cso_series = False
         b.path_to_cso_series = r"./tests/data/240_cso_timeseries.csv"
 
     # load parameters

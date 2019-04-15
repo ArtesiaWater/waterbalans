@@ -140,7 +140,6 @@ class Water(WaterBase):
             hTargetMin_1 = self.hTargetSeries["hTargetMin"]
             hTargetMax_1 = self.hTargetSeries["hTargetMax"]
 
-        # TODO: check with dbase if this can be done differently.
         if QInMax_1 == 0.:
             print(
                 "Warning! 'QInMax_1' is equal to 0. Assuming this means there is no limit to inflow.")

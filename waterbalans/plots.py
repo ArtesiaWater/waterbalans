@@ -232,14 +232,13 @@ class Eag_Plots:
 
         return ax
 
-    def chloride(self, c, tmin=None, tmax=None):
+    def wq_concentration(self, c, tmin=None, tmax=None):
         # get tmin, tmax if not defined
         if tmin is None:
             self.eag.series.index[0]
         if tmax is None:
             self.eag.series.index[-1]
         
-        # TODO: make plot function indepent of passing concentrations by adding chloride to eag object
         c = c.loc[tmin:tmax]
         
         # Plot
@@ -247,7 +246,7 @@ class Eag_Plots:
         ax.plot(c.index, c, label=self.eag.name)
         ax.grid(b=True)
         ax.legend(loc="best")
-        ax.set_ylabel("Chloride concentratie (mg/L)")
+        ax.set_ylabel("Concentration (mg/L)")
 
         return ax
     
@@ -311,10 +310,17 @@ class Eag_Plots:
     def water_level(self, label_obs=False):
 
         hTarget = self.eag.water.parameters.loc["hTarget_1", "Waarde"]
-        # hTargetMax = hTarget + np.abs(self.eag.water.parameters.loc["hTargetMax_1", "Waarde"])
-        # hTargetMin = hTarget - np.abs(self.eag.water.parameters.loc["hTargetMin_1", "Waarde"])
-        hTargetMax = self.eag.water.hTargetSeries.hTargetMax
-        hTargetMin = self.eag.water.hTargetSeries.hTargetMin
+        
+        add_target_levels = True
+        if self.eag.water.hTargetSeries.empty:
+            hTargetMax = self.eag.water.parameters.loc["hTargetMax_1", "Waarde"]
+            hTargetMin = self.eag.water.parameters.loc["hTargetMin_1", "Waarde"]
+            if hTargetMax == -9999. or hTargetMin == -9999.:
+                add_target_levels = False
+        else:
+            hTargetMax = self.eag.water.hTargetSeries.hTargetMax
+            hTargetMin = self.eag.water.hTargetSeries.hTargetMin
+ 
         hBottom = self.eag.water.parameters.loc["hBottom_1", "Waarde"]
 
         # Plot
@@ -328,8 +334,9 @@ class Eag_Plots:
         
         ax.axhline(hTarget, linestyle="dashed", lw=1.5, label="hTarget", color="k")
         
-        ax.plot(hTargetMin.index, hTargetMin, linestyle="dashed", lw=1.5, label="hTargetMin", color="r")
-        ax.plot(hTargetMax.index, hTargetMax, linestyle="dashed", lw=1.5, label="hTargetMax", color="b")
+        if add_target_levels:
+            ax.plot(hTargetMin.index, hTargetMin, linestyle="dashed", lw=1.5, label="hTargetMin", color="r")
+            ax.plot(hTargetMax.index, hTargetMax, linestyle="dashed", lw=1.5, label="hTargetMax", color="b")
 
         ax.axhline(hBottom, linestyle="dashdot", lw=1.5, label="hBottom", color="brown")
 

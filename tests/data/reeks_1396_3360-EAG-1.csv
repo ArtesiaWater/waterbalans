@@ -1,19 +1,52 @@
-;EAGID;EAGCode;BakjeID;Laagvolgorde;ClusterType;ReeksType;ParamType;Waarde;WaardeAlfa;StartDag
-0;1396;3360-EAG-1;139600000;-9999;ClAfstroming;Cl;-9999;10.0;;
-1;1396;3360-EAG-1;139600000;-9999;ClDrain;Cl;-9999;150.0;;
-2;1396;3360-EAG-1;139600000;-9999;ClKwel;Cl;-9999;30.0;;
-3;1396;3360-EAG-1;139600000;-9999;ClNeerslag;Cl;-9999;6.0;;
-4;1396;3360-EAG-1;139600000;-9999;ClRiolering;Cl;-9999;100.0;;
-5;1396;3360-EAG-1;139600000;-9999;ClUitspoeling;Cl;-9999;20.0;;
-6;1396;3360-EAG-1;139600000;-9999;ClVerhard;Cl;-9999;10.0;;
-0;1396;3360-EAG-1;139640111;1;Qkwel;Flux;ValueSeries;0.6;;01-04
-1;1396;3360-EAG-1;139640111;1;Qkwel;Flux;ValueSeries;0.99;;01-10
-2;1396;3360-EAG-1;139640116;1;Qkwel;Flux;ValueSeries;-1.77;;01-10
-3;1396;3360-EAG-1;139640116;1;Qkwel;Flux;ValueSeries;-1.06;;01-04
-0;1396;3360-EAG-1;139600000;1;Qkwel;Flux;ValueSeries;0.6;;01-04
-1;1396;3360-EAG-1;139600000;1;Qkwel;Flux;ValueSeries;0.99;;01-10
-2;1396;3360-EAG-1;139600000;1;Qwegz;Flux;Constant;0.0;;
-0;1396;3360-EAG-1;139600000;1;hTargetMin;Flux;ValueSeries;-1.02;;01-05
-0;1396;3360-EAG-1;139600000;1;hTargetMin;Flux;ValueSeries;-1.12;;01-10
-1;1396;3360-EAG-1;139600000;1;hTargetMax;Flux;ValueSeries;-0.98;;01-05
-1;1396;3360-EAG-1;139600000;1;hTargetMax;Flux;ValueSeries;-1.08;;01-10
+;EAGID;EAGCode;BakjeID;Laagvolgorde;ClusterType;ParamType;Waarde;WaardeAlfa;StartDag;Eenheid
+0;1396;3360-EAG-1;1396122671;1;Qkwel;ValueSeries;0.6;;01-04;mm/dag
+1;1396;3360-EAG-1;1396122671;1;Qkwel;ValueSeries;0.99;;01-10;mm/dag
+2;1396;3360-EAG-1;1396122676;1;Qkwel;ValueSeries;-1.77;;01-10;mm/dag
+3;1396;3360-EAG-1;1396122676;1;Qkwel;ValueSeries;-1.06;;01-04;mm/dag
+0;1396;3360-EAG-1;1396000000;1;Qkwel;ValueSeries;0.6;;01-04;mm/dag
+1;1396;3360-EAG-1;1396000000;1;Qkwel;ValueSeries;0.99;;01-10;mm/dag
+2;1396;3360-EAG-1;1396000000;1;Qwegz;Constant;0.0;;;mm/dag
+0;1396;3360-EAG-1;1396000000;1;hTargetMax;ValueSeries;-1.08;;01-10;mNAP
+1;1396;3360-EAG-1;1396000000;1;hTargetMax;ValueSeries;-1.08;;15-03;mNAP
+2;1396;3360-EAG-1;1396000000;1;hTargetMax;ValueSeries;-0.98;;01-05;mNAP
+3;1396;3360-EAG-1;1396000000;1;hTargetMax;ValueSeries;-0.98;;15-08;mNAP
+4;1396;3360-EAG-1;1396000000;1;hTargetMin;ValueSeries;-1.12;;01-10;mNAP
+5;1396;3360-EAG-1;1396000000;1;hTargetMin;ValueSeries;-1.12;;15-03;mNAP
+6;1396;3360-EAG-1;1396000000;1;hTargetMin;ValueSeries;-1.02;;01-05;mNAP
+7;1396;3360-EAG-1;1396000000;1;hTargetMin;ValueSeries;-1.02;;15-08;mNAP
+0;1396;3360-EAG-1;-9999;-9999;Inlaat1;ValueSeries;0.0;;01-10;m3/dag
+1;1396;3360-EAG-1;-9999;-9999;Inlaat1;ValueSeries;0.0;;01-04;m3/dag
+2;1396;3360-EAG-1;-9999;-9999;Inlaat2;ValueSeries;0.0;;01-04;m3/dag
+3;1396;3360-EAG-1;-9999;-9999;Inlaat2;ValueSeries;0.0;;01-10;m3/dag
+4;1396;3360-EAG-1;-9999;-9999;Inlaat3;ValueSeries;0.0;;01-04;m3/dag
+5;1396;3360-EAG-1;-9999;-9999;Inlaat3;ValueSeries;0.0;;01-10;m3/dag
+6;1396;3360-EAG-1;-9999;-9999;Inlaat4;ValueSeries;0.0;;01-10;m3/dag
+7;1396;3360-EAG-1;-9999;-9999;Inlaat4;ValueSeries;0.0;;01-04;m3/dag
+8;1396;3360-EAG-1;-9999;-9999;Uitlaat1;ValueSeries;0.0;;01-10;m3/dag
+9;1396;3360-EAG-1;-9999;-9999;Uitlaat1;ValueSeries;0.0;;01-04;m3/dag
+10;1396;3360-EAG-1;-9999;-9999;Uitlaat2;ValueSeries;0.0;;01-04;m3/dag
+11;1396;3360-EAG-1;-9999;-9999;Uitlaat2;ValueSeries;0.0;;01-10;m3/dag
+12;1396;3360-EAG-1;-9999;-9999;Uitlaat3;ValueSeries;0.0;;01-04;m3/dag
+13;1396;3360-EAG-1;-9999;-9999;Uitlaat3;ValueSeries;0.0;;01-10;m3/dag
+14;1396;3360-EAG-1;-9999;-9999;Uitlaat4;ValueSeries;0.0;;01-10;m3/dag
+15;1396;3360-EAG-1;-9999;-9999;Uitlaat4;ValueSeries;0.0;;01-04;m3/dag
+0;1396;3360-EAG-1;-9999;-9999;Inlaat1;Local;;;;m3/dag
+1;1396;3360-EAG-1;-9999;-9999;Inlaat2;Local;;;;m3/dag
+2;1396;3360-EAG-1;-9999;-9999;Inlaat3;Local;;;;m3/dag
+3;1396;3360-EAG-1;-9999;-9999;Inlaat4;Local;;;;m3/dag
+4;1396;3360-EAG-1;-9999;-9999;Uitlaat1;Local;;;;m3/dag
+5;1396;3360-EAG-1;-9999;-9999;Uitlaat2;Local;;;;m3/dag
+6;1396;3360-EAG-1;-9999;-9999;Uitlaat3;Local;;;;m3/dag
+7;1396;3360-EAG-1;-9999;-9999;Uitlaat4;Local;;;;m3/dag
+0;1396;3360-EAG-1;-9999;-9999;Neerslag;FEWS;;meteo_meetstation_KNMI|ImportCAW|66011cal|P.meting.dagcal;;mm/dag
+1;1396;3360-EAG-1;-9999;-9999;Peil;FEWS;;polder|Statistiek|62090_Benedenstroomspeil_stuw_1|H.meting.gem;;mNAP
+2;1396;3360-EAG-1;-9999;-9999;Verdamping;FEWS;;ImportCAW|66002_VerdampingCAL|E.metingcal;;mm/dag
+0;1396;3360-EAG-1;-9999;-9999;Gemaal1Debiet Pomp 1;Local;;;;m3/dag
+1;1396;3360-EAG-1;-9999;-9999;Gemaal1Debiet Pomp 2;Local;;;;m3/dag
+2;1396;3360-EAG-1;-9999;-9999;Gemaal2Debiet Pomp 1;Local;;;;m3/dag
+3;1396;3360-EAG-1;-9999;-9999;Gemaal2Debiet Pomp 2;Local;;;;m3/dag
+4;1396;3360-EAG-1;-9999;-9999;Gemaal3Debiet Pomp 1;Local;;;;m3/dag
+5;1396;3360-EAG-1;-9999;-9999;Gemaal3Debiet Pomp 2;Local;;;;m3/dag
+6;1396;3360-EAG-1;-9999;-9999;Neerslag;Local;;;;mm/dag
+7;1396;3360-EAG-1;-9999;-9999;Peil;Local;;;;mNAP
+8;1396;3360-EAG-1;-9999;-9999;Verdamping;Local;;;;mm/dag

@@ -1,4 +1,4 @@
-;datum;Gemaal1|Gemaal 1 Pomp 1;Gemaal2|Gemaal 1 Pomp 2;Gemaal3|Gemaal 2 Pomp 1;Gemaal4|Gemaal 2 Pomp 2;Inlaat2|waterschapsinlaat opgedrukt;Inlaat3|park de Braak;Neerslag1|Neerslag;Peil1|Verdamping;q_cso1|Gemengd Gerioleerd Stelsel;Verdamping1|Verdamping
+;datum;Gemaal1|Debiet Pomp 1;Gemaal1|Debiet Pomp 2;Gemaal2|Debiet Pomp 1;Gemaal2|Debiet Pomp 2;Inlaat2|Debiet;Inlaat3|Debiet;Neerslag1|Neerslag;Peil1|Peil;q_cso1|Gemengd Gerioleerd Stelsel;Verdamping1|Verdamping
 0;1996-01-01;;2350.0;0.0;;;0.0;0.0;-5.482;0.0;0.1
 1;1996-01-02;;2200.0;41350.0;;;0.0;0.1;-5.481;0.0;0.2
 2;1996-01-03;;2200.0;1900.0;;;0.0;0.0;-5.48;0.0;0.3

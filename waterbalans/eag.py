@@ -302,10 +302,16 @@ class Eag:
         else:
             tmax = pd.Timestamp(tmax)
 
+        # Get fluxes
+        fluxes = self.aggregate_fluxes()
+        fluxes.columns = [icol.lower() for icol in fluxes.columns]
+        
         # Parse wq_params table
         # Should result in C_series -> per flux a series in one DataFrame, 
         # if FEWS or local data is used, data is ffilled 
-        incols = [icol.lower() for icol in wq_params.Inlaattype if icol != "initieel"]
+        incols = [icol.lower() for icol in wq_params.Inlaattype if icol.lower() != "initieel"]
+        incols = [i for i in incols if i in fluxes.columns]
+        
         C_series = pd.DataFrame(index=self.water.fluxes.loc[tmin:tmax].index, columns=incols)
         
         C_init = 0.0  # if no initial value passed
@@ -340,11 +346,7 @@ class Eag:
             # Series is often not measured on each day -> ffill to fill gaps
             if series.isna().sum() > 0:
                 C_series.loc[:, inlaat_type].fillna(method='ffill')
-
-        # Get fluxes
-        fluxes = self.aggregate_fluxes()
-        fluxes.columns = [icol.lower() for icol in fluxes.columns]
-        
+      
         # Calculate initial mass and concentration
         hTarget = self.parameters.loc[self.parameters.loc[:, "ParamCode"] ==
                                       "hTarget", "Waarde"].values[0]
