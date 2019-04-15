@@ -32,7 +32,7 @@ def test_eag_run():
     # load parameters
     params = pd.read_csv(os.path.join(test_data, "param_1396_3360-EAG-1.csv"), delimiter=";",
                          decimal=",")
-    params.rename(columns={"ParamCode": "Code"}, inplace=True)
+    # params.rename(columns={"ParamCode": "Code"}, inplace=True)
     params["Waarde"] = pd.to_numeric(params.Waarde)
     # simulate
     e.simulate(params=params, tmin="2000", tmax="2000-01-10")
@@ -114,7 +114,7 @@ def test_add_real_series_and_simulate():
     # load parameters
     params = pd.read_csv(os.path.join(test_data, "param_1396_3360-EAG-1.csv"), delimiter=";",
                          decimal=",")
-    params.rename(columns={"ParamCode": "Code"}, inplace=True)
+    # params.rename(columns={"ParamCode": "Code"}, inplace=True)
     params["Waarde"] = pd.to_numeric(params.Waarde)
     # simulate
     e.simulate(params=params, tmin="2000", tmax="2005")
