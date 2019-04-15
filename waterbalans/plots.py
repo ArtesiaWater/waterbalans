@@ -251,7 +251,7 @@ class Eag_Plots:
 
         return ax
     
-    def fractions(self, tmin=None, tmax=None, chloride_conc=None):
+    def fractions(self, tmin=None, tmax=None, concentration=None):
         # get tmin, tmax if not defined
         if tmin is None:
             self.eag.series.index[0]
@@ -298,10 +298,10 @@ class Eag_Plots:
         ax.legend(loc="upper center", ncol=2)
         ax.set_ylabel("Percentage (%)")
 
-        if chloride_conc is not None:
+        if concentration is not None:
             ax2 = ax.twinx()
-            ax2.plot(chloride_conc.index, chloride_conc, color="k")
-            ax2.set_ylabel("Chloride concentration (mg/L)")
+            ax2.plot(concentration.index, concentration, color="k")
+            ax2.set_ylabel("Concentration (mg/L)")
         
         # ax.set_xlim(Timestamp(tmin), Timestamp(tmax))
         ax.set_ylim(0, 1)
