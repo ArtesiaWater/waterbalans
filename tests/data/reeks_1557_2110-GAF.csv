@@ -1,24 +1,58 @@
-;EAGID;EAGCode;BakjeID;Laagvolgorde;ClusterType;ParamType;Waarde;WaardeAlfa;StartDag
-0;1557;2110-GAF;1557000000;-9999;ClAfstroming;-9999;10.0;;
-1;1557;2110-GAF;1557000000;-9999;ClDrain;-9999;400.0;;
-2;1557;2110-GAF;1557000000;-9999;ClKwel;-9999;400.0;;
-3;1557;2110-GAF;1557000000;-9999;ClNeerslag;-9999;6.0;;
-4;1557;2110-GAF;1557000000;-9999;ClRiolering;-9999;80.0;;
-5;1557;2110-GAF;1557000000;-9999;ClUitspoeling;-9999;200.0;;
-6;1557;2110-GAF;1557000000;-9999;ClVerhard;-9999;200.0;;
-0;1557;2110-GAF;1557045640;1;Qkwel;Constant;0.1989411575;;
-1;1557;2110-GAF;1557045641;1;Qkwel;Constant;0.4;;
-2;1557;2110-GAF;1557045645;1;Qkwel;Constant;0.1989411575;;
-3;1557;2110-GAF;1557045646;1;Qkwel;Constant;0.4;;
-4;1557;2110-GAF;1557045650;1;Qkwel;Constant;0.1989411575;;
-5;1557;2110-GAF;1557045651;1;Qkwel;Constant;-0.2;;
-0;1557;2110-GAF;1557000000;1;Qkwel;Constant;0.1989411575;;
-1;1557;2110-GAF;1557000000;1;Qwegz;Constant;0.0;;
-0;1557;2110-GAF;1557000000;1;hTargetMax;ValueSeries;-5.48;;01-10
-1;1557;2110-GAF;1557000000;1;hTargetMax;ValueSeries;-5.48;;15-03
-2;1557;2110-GAF;1557000000;1;hTargetMax;ValueSeries;-5.33;;01-05
-3;1557;2110-GAF;1557000000;1;hTargetMax;ValueSeries;-5.33;;15-08
-4;1557;2110-GAF;1557000000;1;hTargetMin;ValueSeries;-5.52;;01-10
-5;1557;2110-GAF;1557000000;1;hTargetMin;ValueSeries;-5.52;;15-03
-6;1557;2110-GAF;1557000000;1;hTargetMin;ValueSeries;-5.37;;01-05
-7;1557;2110-GAF;1557000000;1;hTargetMin;ValueSeries;-5.37;;15-08
+;EAGID;EAGCode;BakjeID;Laagvolgorde;ClusterType;ParamType;Waarde;WaardeAlfa;StartDag;Eenheid
+0;1557;2110-GAF;1557121230;2;Qkwel;Constant;0.4;;;mm/dag
+1;1557;2110-GAF;1557121231;1;Qkwel;Constant;0.4;;;mm/dag
+2;1557;2110-GAF;1557121235;2;Qkwel;Constant;0.4;;;mm/dag
+3;1557;2110-GAF;1557121236;1;Qkwel;Constant;0.4;;;mm/dag
+4;1557;2110-GAF;1557121240;2;Qkwel;Constant;0.4;;;mm/dag
+5;1557;2110-GAF;1557121241;1;Qkwel;Constant;-0.2;;;mm/dag
+6;1557;2110-GAF;1557121245;2;Qkwel;Constant;0.4;;;mm/dag
+7;1557;2110-GAF;1557121246;1;Qkwel;Constant;0.0;;;mm/dag
+0;1557;2110-GAF;1557000000;1;Qkwel;Constant;0.1989411575;;;mm/dag
+1;1557;2110-GAF;1557000000;1;Qwegz;Constant;0.0;;;mm/dag
+0;1557;2110-GAF;1557000000;1;hTargetMax;ValueSeries;-5.48;;01-10;mNAP
+1;1557;2110-GAF;1557000000;1;hTargetMax;ValueSeries;-5.48;;15-03;mNAP
+2;1557;2110-GAF;1557000000;1;hTargetMax;ValueSeries;-5.33;;01-05;mNAP
+3;1557;2110-GAF;1557000000;1;hTargetMax;ValueSeries;-5.33;;15-08;mNAP
+4;1557;2110-GAF;1557000000;1;hTargetMin;ValueSeries;-5.52;;01-10;mNAP
+5;1557;2110-GAF;1557000000;1;hTargetMin;ValueSeries;-5.52;;15-03;mNAP
+6;1557;2110-GAF;1557000000;1;hTargetMin;ValueSeries;-5.37;;01-05;mNAP
+7;1557;2110-GAF;1557000000;1;hTargetMin;ValueSeries;-5.37;;15-08;mNAP
+0;1557;2110-GAF;-9999;-9999;Inlaat1;ValueSeries;1000.0;;01-10;m3/dag
+1;1557;2110-GAF;-9999;-9999;Inlaat1;ValueSeries;1500.0;;01-04;m3/dag
+2;1557;2110-GAF;-9999;-9999;Inlaat2;ValueSeries;0.0;;01-04;m3/dag
+3;1557;2110-GAF;-9999;-9999;Inlaat2;ValueSeries;0.0;;01-10;m3/dag
+4;1557;2110-GAF;-9999;-9999;Inlaat3;ValueSeries;0.0;;01-04;m3/dag
+5;1557;2110-GAF;-9999;-9999;Inlaat3;ValueSeries;0.0;;01-10;m3/dag
+6;1557;2110-GAF;-9999;-9999;Inlaat4;ValueSeries;0.0;;01-10;m3/dag
+7;1557;2110-GAF;-9999;-9999;Inlaat4;ValueSeries;0.0;;01-04;m3/dag
+8;1557;2110-GAF;-9999;-9999;Uitlaat1;ValueSeries;0.0;;01-10;m3/dag
+9;1557;2110-GAF;-9999;-9999;Uitlaat1;ValueSeries;0.0;;01-04;m3/dag
+10;1557;2110-GAF;-9999;-9999;Uitlaat2;ValueSeries;0.0;;01-04;m3/dag
+11;1557;2110-GAF;-9999;-9999;Uitlaat2;ValueSeries;0.0;;01-10;m3/dag
+12;1557;2110-GAF;-9999;-9999;Uitlaat3;ValueSeries;0.0;;01-04;m3/dag
+13;1557;2110-GAF;-9999;-9999;Uitlaat3;ValueSeries;0.0;;01-10;m3/dag
+14;1557;2110-GAF;-9999;-9999;Uitlaat4;ValueSeries;0.0;;01-10;m3/dag
+15;1557;2110-GAF;-9999;-9999;Uitlaat4;ValueSeries;0.0;;01-04;m3/dag
+0;1557;2110-GAF;-9999;-9999;Inlaat1;Local;;;;m3/dag
+1;1557;2110-GAF;-9999;-9999;Inlaat2;Local;;;;m3/dag
+2;1557;2110-GAF;-9999;-9999;Inlaat3;Local;;;;m3/dag
+3;1557;2110-GAF;-9999;-9999;Inlaat4;Local;;;;m3/dag
+4;1557;2110-GAF;-9999;-9999;Uitlaat1;Local;;;;m3/dag
+5;1557;2110-GAF;-9999;-9999;Uitlaat2;Local;;;;m3/dag
+6;1557;2110-GAF;-9999;-9999;Uitlaat3;Local;;;;m3/dag
+7;1557;2110-GAF;-9999;-9999;Uitlaat4;Local;;;;m3/dag
+0;1557;2110-GAF;-9999;-9999;Gemaal1Debiet Pomp 1;FEWS;;polder|Pompvolumes|60130_pomp_1|Vol.berekend.dag;;m3/dag
+1;1557;2110-GAF;-9999;-9999;Gemaal1Debiet Pomp 2;FEWS;;polder|Pompvolumes|60130_pomp_2|Vol.berekend.dag;;m3/dag
+2;1557;2110-GAF;-9999;-9999;Gemaal2Debiet Pomp 1;FEWS;;polder|Pompvolumes|60130_pomp_3|Vol.berekend.dag;;m3/dag
+3;1557;2110-GAF;-9999;-9999;Gemaal2Debiet Pomp 2;FEWS;;polder|Pompvolumes|60130_dieselpomp|Vol.berekend.dag;;m3/dag
+4;1557;2110-GAF;-9999;-9999;Peil;FEWS;;polder|Statistiek|60130_poldera|H.meting.gem;;mNAP
+5;1557;2110-GAF;-9999;-9999;Verdamping;FEWS;;ImportCAW|66002_VerdampingCAL|E.metingcal;;mm/dag
+0;1557;2110-GAF;-9999;-9999;Gemaal1Debiet Pomp 1;Local;;;;m3/dag
+1;1557;2110-GAF;-9999;-9999;Gemaal1Debiet Pomp 2;Local;;;;m3/dag
+2;1557;2110-GAF;-9999;-9999;Gemaal2Debiet Pomp 1;Local;;;;m3/dag
+3;1557;2110-GAF;-9999;-9999;Gemaal2Debiet Pomp 2;Local;;;;m3/dag
+4;1557;2110-GAF;-9999;-9999;Gemaal3Debiet Pomp 1;Local;;;;m3/dag
+5;1557;2110-GAF;-9999;-9999;Gemaal3Debiet Pomp 2;Local;;;;m3/dag
+6;1557;2110-GAF;-9999;-9999;Neerslag;Local;;;;mm/dag
+7;1557;2110-GAF;-9999;-9999;Peil;Local;;;;mNAP
+8;1557;2110-GAF;-9999;-9999;Verdamping;Local;;;;mm/dag

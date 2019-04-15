@@ -9,24 +9,24 @@ def test_plot_aggregated():
 
 def test_plot_bucket():
     e = test_eag_run()
-    ax = e.plot.bucket(name=139640116)
+    ax = e.plot.bucket(name=1396122676)
     plt.close(ax.figure)
     return
 
 def test_plot_chloride():
     e, cl = test_calculate_chloride()
-    ax = e.plot.chloride(cl)
+    ax = e.plot.wq_concentration(cl)
     plt.close(ax.figure)
     return
 
 def test_plot_chloride_fractions():
     e = test_eag_run()
-    ax = e.plot.chloride_fractions(tmin="2000", tmax="2000-01-10")
+    ax = e.plot.fractions(tmin="2000", tmax="2000-01-10")
     plt.close(ax.figure)
     return
 
 def test_plot_waterlevel():
     e = test_eag_run()
     ax = e.plot.water_level()
-    plt.close(ax.figure)
+    # plt.close(ax.figure)
     return

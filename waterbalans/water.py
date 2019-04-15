@@ -24,9 +24,6 @@ class WaterBase(ABC):
 
         self.chloride = pd.DataFrame()
 
-    def __repr__(self):
-        return "<{0}: {1} bucket with area {2:.1f}>".format(self.id, "Water", self.area)
-
     def initialize(self, tmin=None, tmax=None):
         """Method to initialize a Bucket with a clean DataFrame for the
         fluxes and storage time series. This method is called by the init
@@ -126,6 +123,9 @@ class Water(WaterBase):
 
         self.hTargetSeries = pd.DataFrame()  # for setting waterlevel targets as series
         self.eag.add_water(self)
+    
+    def __repr__(self):
+        return "<{0}: {1} bucket with area {2:.1f}>".format(self.id, "Water", self.area)
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
@@ -140,7 +140,6 @@ class Water(WaterBase):
             hTargetMin_1 = self.hTargetSeries["hTargetMin"]
             hTargetMax_1 = self.hTargetSeries["hTargetMax"]
 
-        # TODO: check with dbase if this can be done differently.
         if QInMax_1 == 0.:
             print(
                 "Warning! 'QInMax_1' is equal to 0. Assuming this means there is no limit to inflow.")

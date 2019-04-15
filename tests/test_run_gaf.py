@@ -33,12 +33,13 @@ def test_gaf_run():
     e, = g.get_eags()
     bm = e.get_buckets(buckettype="MengRiool")
     for b in bm:
+        b.use_eag_cso_series = False
         b.path_to_cso_series = r"./tests/data/240_cso_timeseries.csv"
 
     # load parameters
     params = pd.read_csv(os.path.join(test_data, "param_1557_2110-GAF.csv"),
                          delimiter=";", decimal=",")
-    params.rename(columns={"ParamCode": "Code"}, inplace=True)
+    # params.rename(columns={"ParamCode": "Code"}, inplace=True)
     params["Waarde"] = pd.to_numeric(params.Waarde)
     g.simulate(params, tmin="2000", tmax="2000-01-10")
 

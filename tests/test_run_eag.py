@@ -32,7 +32,7 @@ def test_eag_run():
     # load parameters
     params = pd.read_csv(os.path.join(test_data, "param_1396_3360-EAG-1.csv"), delimiter=";",
                          decimal=",")
-    params.rename(columns={"ParamCode": "Code"}, inplace=True)
+    # params.rename(columns={"ParamCode": "Code"}, inplace=True)
     params["Waarde"] = pd.to_numeric(params.Waarde)
     # simulate
     e.simulate(params=params, tmin="2000", tmax="2000-01-10")
@@ -54,7 +54,11 @@ def test_calculate_fractions():
 
 def test_calculate_chloride():
     e = test_eag_run()
-    cl = e.calculate_chloride_concentration()
+    chloride_params = pd.read_csv(os.path.join(test_data, "stoffen_chloride_1396_3360-EAG-1.csv"), 
+                                  decimal=".", delimiter=";")
+    chloride_params.columns = [icol.capitalize() for icol in chloride_params.columns]
+    chloride_params.replace("Riolering", "q_cso", inplace=True)
+    cl = e.simulate_wq(chloride_params)
     return e, cl
 
 
@@ -114,7 +118,7 @@ def test_add_real_series_and_simulate():
     # load parameters
     params = pd.read_csv(os.path.join(test_data, "param_1396_3360-EAG-1.csv"), delimiter=";",
                          decimal=",")
-    params.rename(columns={"ParamCode": "Code"}, inplace=True)
+    # params.rename(columns={"ParamCode": "Code"}, inplace=True)
     params["Waarde"] = pd.to_numeric(params.Waarde)
     # simulate
     e.simulate(params=params, tmin="2000", tmax="2005")

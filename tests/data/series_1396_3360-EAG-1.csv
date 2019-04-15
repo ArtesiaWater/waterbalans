@@ -1,4 +1,4 @@
-;datum;Inlaat1|Huis Te Hart (Kelderpolder) - overschot;Inlaat2|Buitenweg - overschot;Inlaat3|Volkstuinen - overschot;Inlaat4|Nedereindsche Vaart - winteroverschot;neerslag1|Neerslag;peil1|Verdamping;q_cso1|Gemengd Gerioleerd Stelsel;Uitlaat1|vraag Kleine Plas;verdamping1|Verdamping
+;datum;Inlaat1|Debiet;Inlaat2|Debiet;Inlaat3|Debiet;Inlaat4|Debiet;Neerslag1|Neerslag;Peil1|Peil;q_cso1|Gemengd Gerioleerd Stelsel;Uitlaat1|Debiet;Verdamping1|Verdamping
 0;1996-01-01;2475.8715254919925;3686.3786459999983;1328.9197423362;128.6103963950369;1.2;;0.0;0.0;0.1
 1;1996-01-02;3554.193598734487;4413.344742;990.2085630220054;2265.0156268699575;0.0;;0.0;0.0;0.2
 2;1996-01-03;2272.301313396967;2519.4037500000004;476.52242630206905;1627.8298562338914;0.0;;0.0;0.0;0.3
