@@ -291,6 +291,7 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
         for jcol in range(series.shape[1]):
             # Check if empty
             if series.iloc[:, jcol].dropna().empty:
+                print("'{}' is empty. Continuing...".format(series.columns[jcol]))
                 continue
             # Check if series is already in EAG
             if data_from_excel:
@@ -299,7 +300,7 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
                 colnam = series.columns[jcol].split("|")[0]
             if colnam in eag_series:
                 if overwrite:
-                    o.add_timeseries(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
+                    o.add_timeseries(factor*series.iloc[:, jcol], name="{}".format(colnam),
                                      tmin=tmin, tmax=tmax, fillna=True, method=0.0)
                 else:
                     print("'{}' already in EAG. No action taken.".format(
@@ -307,7 +308,7 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
             else:
                 print("Adding '{}' series to EAG.".format(
                     colnam))
-                o.add_timeseries(factor*series.iloc[:, jcol], name="{}{}".format(inam, jcol+1),
+                o.add_timeseries(factor*series.iloc[:, jcol], name="{}".format(colnam),
                                  tmin=tmin, tmax=tmax, fillna=True, method=0.0)
 
     # Peil
@@ -325,6 +326,22 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
         o.add_timeseries(peil, name="Peil", tmin=tmin, tmax=tmax,
                          fillna=True, method="ffill")
 
+    # q_cso MengRiool overstortreeks
+    colmask = [True if icol.lower().startswith("q_cso")
+               else False for icol in columns]
+    if np.sum(colmask) > 0: 
+        q_cso = df.loc[:, colmask] / 100**2
+        if "q_cso" in eag_series:
+            if overwrite:
+                o.add_timeseries(q_cso, name="q_cso", tmin=tmin, tmax=tmax,
+                                fillna=True, method=0.0)
+            else:
+                print("'q_cso' already in EAG. No action taken.")
+        else:
+            print("Adding 'q_cso' series to EAG.")
+            o.add_timeseries(q_cso, name="q_cso", tmin=tmin, tmax=tmax,
+                            fillna=True, method=0.0)
+
     # Neerslag/Verdamping
     for inam in ["Neerslag", "Verdamping"]:
         colmask = [True if icol.lower().startswith(inam.lower())
@@ -340,3 +357,29 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
             print("Adding '{}' series to EAG.".format(inam))
             o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
                              fillna=True, method=0.0)
+
+def create_csvfile_table(csvdir):
+    """Creates a DataFrame containing all csv file
+    names for EAGs or GAFS in that folder.
+    
+    Parameters
+    ----------
+    csvdir : path to dir
+        folder in which csvs are stored
+    
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame containing each CSV for a specific EAG or GAF
+    """
+
+    files = [i for i in os.listdir(csvdir) if i.endswith(".csv")]
+    eag_df = pd.DataFrame(data=files, columns=["filenames"])
+    eag_df["ID"] = eag_df.filenames.apply(
+        lambda s: s.split("_")[2].split(".")[0])
+    eag_df["type"] = eag_df.filenames.apply(lambda s: s.split("_")[0] if not s.startswith("stoffen") else "_".join(s.split("_")[:2]))
+    eag_df.drop_duplicates(subset=["ID", "type"], keep="last", inplace=True)
+    file_df = eag_df.pivot(index="ID", columns="type", values="filenames")
+    file_df.dropna(how="any", subset=[
+                    "opp", "param", "reeks"], axis=0, inplace=True)
+    return file_df
