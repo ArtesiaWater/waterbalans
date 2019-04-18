@@ -260,27 +260,9 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
 
     eag_series = o.series.columns
 
-    # Gemaal
-    colmask = [True if icol.lower().startswith("gemaal")
-               else False for icol in columns]
-
-    gemaal_series = df.loc[:, colmask]
-    gemaal_series = gemaal_series.dropna(how="all", axis=1)
-    gemaal = gemaal_series.sum(axis=1)
-    if "Gemaal" in eag_series:
-        if overwrite:
-            o.add_timeseries(gemaal, name="Gemaal", tmin=tmin,
-                             tmax=tmax, fillna=True, method=0.0)
-        else:
-            print("'Gemaal' already in EAG. No action taken.")
-    else:
-        print("Adding 'Gemaal' series to EAG.")
-        o.add_timeseries(gemaal, name="Gemaal", tmin=tmin,
-                         tmax=tmax, fillna=True, method=0.0)
-
     # Inlaat/Uitlaat
     factor = 1.0
-    for inam in ["Inlaat", "Uitlaat"]:
+    for inam in ["Gemaal", "Inlaat", "Uitlaat"]:
         colmask = [True if icol.lower().startswith(inam.lower())
                    else False for icol in columns]
         series = df.loc[:, colmask]
@@ -357,6 +339,7 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
             print("Adding '{}' series to EAG.".format(inam))
             o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
                              fillna=True, method=0.0)
+
 
 def create_csvfile_table(csvdir):
     """Creates a DataFrame containing all csv file
