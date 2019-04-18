@@ -186,8 +186,9 @@ class Eag_Plots:
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax.plot(calculated_out.index, -1*calculated_out, lw=2, label="berekende uitlaat")
         
-        if "Gemaal" in self.eag.series.columns:
-            gemaal = self.eag.series["Gemaal"].loc[tmin:tmax]
+        gemaal_cols = [icol for icol in self.eag.series.columns if icol.lower().startswith("gemaal")]
+        if len(gemaal_cols) > 0:
+            gemaal = self.eag.series.loc[:, gemaal_cols].loc[tmin:tmax].sum(axis=1)
             ax.plot(gemaal.index, gemaal, lw=2, label="gemeten bij gemaal")
 
         ax.set_ylabel("Afvoer (m$^3$/dag)")
@@ -202,28 +203,30 @@ class Eag_Plots:
                       period="year", month_offset=9):
         
         if len(self.eag.series.columns.intersect(set(eagseries_names))) > 0:
-            cumsum_fluxes, cumsum_series = self.eag.cumulative_period_sum(fluxes_names=fluxes_names,
-                                                                          eagseries_names=eagseries_names,
-                                                                          cumsum_period=period, 
-                                                                          month_offset=month_offset,
-                                                                          tmin=tmin, tmax=tmax)
+            cumsum_fluxes, cumsum_series = self.eag.calculate_cumsum(fluxes_names=fluxes_names,
+                                                                     eagseries_names=eagseries_names,
+                                                                     cumsum_period=period, 
+                                                                     month_offset=month_offset,
+                                                                     tmin=tmin, tmax=tmax)
         else:
-            cumsum_fluxes = self.eag.cumulative_period_sum(fluxes_names=fluxes_names,
-                                                           eagseries_names=None,
-                                                           cumsum_period=period, 
-                                                           month_offset=month_offset,
-                                                           tmin=tmin, tmax=tmax)
+            cumsum_fluxes = self.eag.calculate_cumsum(fluxes_names=fluxes_names,
+                                                      eagseries_names=None,
+                                                      cumsum_period=period, 
+                                                      month_offset=month_offset,
+                                                      tmin=tmin, tmax=tmax)
             cumsum_series = None
 
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         for flux_nam in fluxes_names:
-            ax.plot(cumsum_fluxes[flux_nam].index, cumsum_fluxes[flux_nam], lw=2, label=flux_nam)
+            ax.plot(cumsum_fluxes[flux_nam].index, cumsum_fluxes[flux_nam], lw=2, 
+                    label=flux_nam)
 
         if cumsum_series is not None:
             for eseries_nam in eagseries_names:
-                ax.fill_between(cumsum_series[eseries_nam].index, 0.0, -cumsum_series[eseries_nam], 
-                                label=eseries_nam, color="C1")
+                ax.fill_between(cumsum_series[eseries_nam].index, 0.0, 
+                                -cumsum_series[eseries_nam], 
+                                label=eseries_nam)
 
         ax.set_ylabel("Cumulatieve afvoer (m$^3$)")
         ax.legend(loc="best")
@@ -307,6 +310,65 @@ class Eag_Plots:
         fig.tight_layout()
         return ax
 
+    def wq_loading(self, mass_in, mass_out, tmin=None, tmax=None, freq="Y"):
+        
+        # get tmin, tmax if not defined
+        if tmin is None:
+            mass_in.index[0]
+        if tmax is None:
+            mass_in.index[-1]
+
+        plotdata_in = mass_in.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
+        plotdata_out = mass_out.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
+
+        # get correct colors per flux
+        rgbcolors_in = []
+        i = 0
+        for icol in plotdata_in.columns:
+            if icol in self.colordict.keys():
+                rgbcolors_in.append(colors.to_rgba(self.colordict[icol]))
+            else:
+                # if no color defined get one of the default ones
+                rgbcolors_in.append(colors.to_rgba("C{}".format(i%10)))
+                i += 1
+        
+        rgbcolors_out = []
+        i = 0
+        for icol in plotdata_out.columns:
+            if icol in self.colordict.keys():
+                rgbcolors_out.append(colors.to_rgba(self.colordict[icol]))
+            else:
+                # if no color defined get one of the default ones
+                rgbcolors_out.append(colors.to_rgba("C{}".format(i%10)))
+                i += 1
+
+        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
+        ax = plotdata_in.plot.bar(stacked=True, width=1, ax=ax, edgecolor="k", 
+                                  color=rgbcolors_in)
+        
+        ax = plotdata_out.plot.bar(stacked=True, width=1, ax=ax, edgecolor="k", 
+                                   color=rgbcolors_out)
+        ax.set_title(self.eag.name)
+        ax.set_ylabel("belasting (mg/m$^2$/d)")
+        ax.grid(axis="y")
+        
+        ax.legend(ncol=4)
+
+        # set ticks
+        if freq == "M":
+            ax.set_xticks(ax.get_xticks()[::2])
+            ax.set_xticklabels([dt.strftime('%b-%y') for dt in 
+                                plotdata_in.index.to_pydatetime()[::2]])
+            # ax.xaxis.set_major_locator(mdates.YearLocator())
+            # ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
+        elif freq == "Y":
+            ax.set_xticklabels([dt.strftime('%Y') for dt in 
+                                plotdata_in.index.to_pydatetime()])
+
+        fig.tight_layout()
+        
+        return ax
+
     def water_level(self, label_obs=False):
 
         hTarget = self.eag.water.parameters.loc["hTarget_1", "Waarde"]
@@ -374,18 +436,18 @@ class Eag_Plots:
                         'drain':       5,
                         'uitspoeling': 6,
                         'afstroming':  7,
-                        'Inlaat1':     8,
-                        'Inlaat2':     9,
-                        'Inlaat3':    10,
-                        'Inlaat4':    11,
+                        'inlaat1':     8,
+                        'inlaat2':     9,
+                        'inlaat3':    10,
+                        'inlaat4':    11,
                         'berekende inlaat':     12,
                         'verdamping': 13,
                         'wegzijging': 14,
                         'intrek':     15,
-                        'Uitlaat1':   16,
-                        'Uitlaat2':   17,
-                        'Uitlaat3':   18,
-                        'Uitlaat4':   19,
+                        'uitlaat1':   16,
+                        'uitlaat2':   17,
+                        'uitlaat3':   18,
+                        'uitlaat4':   19,
                         'berekende uitlaat':    20}
 
         fluxes = self.eag.aggregate_fluxes()
