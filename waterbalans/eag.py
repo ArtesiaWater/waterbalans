@@ -118,48 +118,57 @@ class Eag:
 
         for id, df in series.groupby(["ParamType", "BakjeID", "ClusterType"], sort=False):
             ParamType, BakjeID, ClusterType  = id
-            
+            series_list = []
             # check if ValueSeries actually contains information
-            if ParamType == "ValueSeries":
-                if df.loc[:, "Waarde"].sum() == 0.0:
-                    continue  
-            series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
-            # Check if series contains data
-            if series is None:
+            if ParamType == "ValueSeries" and df.loc[:, "Waarde"].sum() == 0.0:
                 continue
-            # Fill NaNs if specified
-            if fillna:
-                if (series.isna().sum() > 0).all():
-                    print("Filled {} NaN-values with 0.0 in series {}.".format(
-                        np.int(series.isna().sum()), ClusterType))
-                    series = series.fillna(0.0)
-            # Add series to appropriate object
-            if BakjeID in self.buckets.keys():  # add to Land Bucket
-                if ClusterType in self.buckets[BakjeID].series.columns:  # check if already exists
-                    orig_series = self.buckets[BakjeID].series[ClusterType]
-                    new_series = update_series(orig_series, series, method=method)
-                    self.buckets[BakjeID].series[ClusterType] = new_series  # add updated series
-                else:  # add new series
-                    self.buckets[BakjeID].series[ClusterType] = series
-            elif BakjeID == self.water.id:  # add to Water Bucket
-                if ClusterType.startswith("hTarget"):
-                    self.water.hTargetSeries[ClusterType] = series
-                else:  # non-targetlevel series
-                    if ClusterType in self.water.series.columns:  # check if already exists
-                        orig_series = self.water.series[ClusterType]
-                        new_series = update_series(orig_series, series, method=method)
-                        self.water.series[ClusterType] = new_series  # add updated series
+            elif ParamType == "FEWS" and df.shape[0] > 1:
+                # deal with multiple FEWS IDs for one ClusterType
+                print("Warning! Multiple FEWS series found for {}.".format(ClusterType))
+                for i in range(df.shape[0]):
+                    series_list.append(get_series(ClusterType, ParamType, df.iloc[i:i+1], tmin, tmax, freq))
+            else:  # single series
+                series_list.append(get_series(ClusterType, ParamType, df, tmin, tmax, freq))
+            
+            for s in series_list:
+                # Check if series contains data
+                if s is None:
+                    continue
+                # Fill NaNs if specified
+                if fillna:
+                    if (s.isna().sum() > 0).all():
+                        print("Filled {} NaN-values with 0.0 in series {}.".format(
+                              np.int(s.isna().sum()), ClusterType))
+                        s = s.fillna(0.0)
+                # Add series to appropriate object
+                if BakjeID in self.buckets.keys():  # add to Land Bucket
+                    if ClusterType in self.buckets[BakjeID].series.columns:  # check if already exists
+                        orig_series = self.buckets[BakjeID].series[ClusterType]
+                        new_series = update_series(orig_series, s, method=method)
+                        self.buckets[BakjeID].series[ClusterType] = new_series  # add updated series
                     else:  # add new series
-                        self.water.series[ClusterType] = series
-            elif BakjeID == -9999:  # add to EAG, no specific bucket defined
-                if ClusterType in self.series.columns:  # check if already exists
-                    orig_series = self.series[ClusterType]
-                    new_series = update_series(orig_series, series, method=method)
-                    if new_series.empty:
-                        raise(ValueError("Empty series!"))
-                    self.series[ClusterType] = new_series  # add updated series
-                else:  # add new series
-                    self.series[ClusterType] = series
+                        self.buckets[BakjeID].series[ClusterType] = s
+                elif BakjeID == self.water.id:  # add to Water Bucket
+                    if ClusterType.startswith("hTarget"):
+                        self.water.hTargetSeries[ClusterType] = s
+                    else:  # non-targetlevel series
+                        if ClusterType in self.water.series.columns:  # check if already exists
+                            orig_series = self.water.series[ClusterType]
+                            new_series = update_series(orig_series, s, method=method)
+                            self.water.series[ClusterType] = new_series  # add updated series
+                        else:  # add new series
+                            self.water.series[ClusterType] = s
+                elif BakjeID == -9999:  # add to EAG, no specific bucket defined
+                    if ClusterType in self.series.columns:  # check if already exists
+                        orig_series = self.series[ClusterType]
+                        new_series = update_series(orig_series, s, method=method)
+                        if new_series.empty:
+                            raise(ValueError("Empty series!"))
+                        self.series[ClusterType] = new_series  # add updated series
+                    else:  # add new series
+                        self.series[ClusterType] = s
+                else:
+                    print("Warning! Series '{}' not added.".format(ClusterType))
 
         # Create index based on tmin/tmax if no series are added to EAG!
         if self.series.empty:
@@ -328,7 +337,8 @@ class Eag:
             series = get_series(inlaat_type, reeks_type, df, tmin=tmin, tmax=tmax, freq=freq)
 
             if series.sum() == 0.0:
-                incols.remove(inlaat_type)
+                if inlaat_type in incols:
+                    incols.remove(inlaat_type)
                 continue
             
             # If increment is True, add increment to concentration
@@ -360,10 +370,10 @@ class Eag:
         # Sum of outgoing fluxes from water bucket
         outcols = ["intrek", "berekende uitlaat", "wegzijging"] 
         outcols += [jcol.lower() for jcol in self.water.fluxes if jcol.startswith("Uitlaat")]
-        V_out = fluxes.loc[:, outcols].sum(axis=1)
+        V_out = fluxes.loc[:, outcols]
 
-        mass_tot = pd.Series(index=fluxes.index)
-        mass_out = pd.Series(index=fluxes.index)
+        mass_tot = pd.Series(index=fluxes.index, name="mass_tot", dtype=np.float)
+        mass_out = pd.DataFrame(index=fluxes.index, columns=outcols, dtype=np.float)
         mass_in = fluxes.loc[:, incols].multiply(C_series)
         
         for t in fluxes.index:
@@ -372,16 +382,13 @@ class Eag:
             M_out = V_out.loc[t] * C_out
             mass_out.loc[t] = M_out
 
-            M = M + M_in + M_out
+            M = M + M_in + M_out.sum()
 
             mass_tot.loc[t] = M
             C_out = M / self.water.storage.loc[t, "storage"]
 
-        C = mass_tot / self.water.storage["storage"]
-        
         print("Simulation water quality succesfully completed.")
-        
-        return C
+        return mass_in, mass_out, mass_tot
 
     def aggregate_fluxes(self):
         """Method to aggregate fluxes to those used for visualisation in the
@@ -403,9 +410,7 @@ class Eag:
             "q_in": "berekende inlaat",
             "q_out": "berekende uitlaat",
             "q_dr": "drain",
-            "Uitlaat": "uitlaat",
-            "Inlaat": "inlaat"
-        }
+            }
 
         fluxes = self.water.fluxes.reindex(columns=d.keys())
         parsed_cols = fluxes.dropna(how="all", axis=1).columns.tolist()
@@ -464,18 +469,19 @@ class Eag:
                 parsed_cols.append(icol)
         missed_cols = self.water.fluxes.columns.difference(parsed_cols)
         for icol in missed_cols:
-            fluxes[icol] = self.water.fluxes[icol]
+            fluxes[icol.lower()] = self.water.fluxes[icol]
 
         return fluxes
 
     def aggregate_fluxes_w_pumpstation(self):
         fluxes = self.aggregate_fluxes()
-        if "Gemaal" not in self.series.columns:
+        gemaal_cols = [icol for icol in self.series.columns if icol.lower().startswith("gemaal")]
+        if len(gemaal_cols) == 0:
             print("Warning! No timeseries for pumping station. Cannot aggregate.")
             return fluxes
         fluxes.rename(columns={"berekende uitlaat": "sluitfout"}, inplace=True)
         # Add pumping station timeseries to fluxes
-        fluxes["maalstaat"] = -1*self.series["Gemaal"]
+        fluxes["maalstaat"] = -1*self.series.loc[:, gemaal_cols].sum(axis=1)
         # Calculate difference between calculated and measured pumped volume
         fluxes["sluitfout"] = fluxes["sluitfout"].subtract(fluxes["maalstaat"])
         # Correct inlet volume with difference between calculated and measured
@@ -484,8 +490,8 @@ class Eag:
         return fluxes
 
     def calculate_cumsum(self, fluxes_names=None, eagseries_names=None, 
-                              cumsum_period="year", month_offset=9, tmin=None, 
-                              tmax=None):
+                         cumsum_period="year", month_offset=9, tmin=None, 
+                         tmax=None):
         # Get fluxes
         fluxes = self.aggregate_fluxes()
 
@@ -597,14 +603,14 @@ class Eag:
         pd.Series
             Series containing the calcualted missing influx per day
         """
-
-        if not "Gemaal" in self.series.columns:
-            raise ValueError("No series 'Gemaal' in eag.series!")
+        gemaal_cols = [icol for icol in self.series.columns if icol.lower().startswith("gemaal")]
+        if len(gemaal_cols) == 0:
+            raise ValueError("No series names starting with 'Gemaal' in eag.series!")
         if self.water.fluxes.empty:
             raise AttributeError("No simulation data! Simulate model!")
         fluxes = self.aggregate_fluxes()
         
-        diff = self.series["Gemaal"] - -1*fluxes["berekende uitlaat"]
+        diff = self.series.loc[:, gemaal_cols].sum(axis=1) - -1*fluxes["berekende uitlaat"]
         diff.loc[diff <= 0.0] = 0.0
         
         inlaat_monthly = diff.resample("M").mean()
@@ -619,7 +625,8 @@ class Eag:
         output_dict["{}_fluxes.csv".format(self.name)] = self.aggregate_fluxes()
         
         eagseries_names = None
-        if "Gemaal" in self.series.columns:
+        gemaal_cols = [icol for icol in self.series.columns if icol.lower().startswith("gemaal")]
+        if len(gemaal_cols) > 0:
             eagseries_names = ["Gemaal"]
             output_dict["{}_fluxes_w_ps.csv".format(self.name)] = \
                 self.aggregate_fluxes_w_pumpstation()

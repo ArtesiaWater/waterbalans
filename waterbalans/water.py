@@ -69,10 +69,11 @@ class WaterBase(ABC):
             if icol.lower().startswith("uitlaat"):
                 colset.append(icol)
                 self.series[icol] = -self.eag.series[icol] / self.area
+            if icol.lower().startswith("gemaal"):
+                colset.append(icol)
 
         # add remaining series to water bucket.
-        colset += ["Neerslag", "Verdamping", "Inlaat",
-                   "Uitlaat", "Peil", "Gemaal", "q_cso"]
+        colset += ["Neerslag", "Verdamping", "Peil", "Gemaal", "q_cso"]
         otherseries = set(self.eag.series.columns) - set(colset)
 
         for name in otherseries:
@@ -190,8 +191,10 @@ class Water(WaterBase):
         q_totals = self.fluxes.sum(axis=1)
 
         # Static/dynamic target levels:
-        #   - Negative offsets will result in offset being set statically, i.e. it will not vary over simulation
-        #   - Positive offsets will result in offset being set dynamically relative to observed level if available
+        #   - Negative offsets will result in offset being set statically, 
+        #     i.e. it will not vary over simulation
+        #   - Positive offsets will result in offset being set dynamically 
+        #     relative to observed level if available
 
         if not self.hTargetSeries.empty and not self.use_waterlevel_series:
             # Convert to volume:
