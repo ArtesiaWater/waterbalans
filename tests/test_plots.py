@@ -14,8 +14,8 @@ def test_plot_bucket():
     return
 
 def test_plot_chloride():
-    e, cl = test_calculate_chloride()
-    ax = e.plot.wq_concentration(cl)
+    e, m = test_calculate_chloride()
+    ax = e.plot.wq_concentration(m[-1] / e.water.storage["storage"])
     plt.close(ax.figure)
     return
 

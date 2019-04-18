@@ -58,8 +58,8 @@ def test_calculate_chloride():
                                   decimal=".", delimiter=";")
     chloride_params.columns = [icol.capitalize() for icol in chloride_params.columns]
     chloride_params.replace("Riolering", "q_cso", inplace=True)
-    cl = e.simulate_wq(chloride_params)
-    return e, cl
+    m = e.simulate_wq(chloride_params)
+    return e, m
 
 
 def test_add_real_series_and_simulate():
