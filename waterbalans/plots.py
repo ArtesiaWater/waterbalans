@@ -9,7 +9,6 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
-from pandas import Timedelta
 
 from .timeseries import get_series
 
@@ -126,9 +125,9 @@ class Eag_Plots:
 
         # get tmin, tmax if not defined
         if tmin is None:
-            fluxes.index[0]
+            tmin = fluxes.index[0]
         if tmax is None:
-            fluxes.index[-1]
+            tmax = fluxes.index[-1]
 
         # get data and sort columns
         plotdata = fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
@@ -255,9 +254,9 @@ class Eag_Plots:
     def fractions(self, tmin=None, tmax=None, concentration=None):
         # get tmin, tmax if not defined
         if tmin is None:
-            self.eag.series.index[0]
+            tmin = self.eag.series.index[0]
         if tmax is None:
-            self.eag.series.index[-1]
+            tmax = self.eag.series.index[-1]
 
         colordict = OrderedDict(
                     {"kwel": "brown",

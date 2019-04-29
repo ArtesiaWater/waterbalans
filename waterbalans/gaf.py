@@ -24,7 +24,7 @@ class Gaf:
 
     """
 
-    def __init__(self, idn=None, name=None, eags=[], series=None):
+    def __init__(self, idn=None, name=None, eags=None, series=None):
         # Basic information
         self.idn = idn
         self.name = name
@@ -32,11 +32,12 @@ class Gaf:
         # EAG
         self.eags = OrderedDict()
 
-        for e in eags:
-            if isinstance(e, Eag):
-                self.eags[e.name] = e
-            else:
-                print("Warning! added Eags must be instance of Eag object.")
+        if eags is not None:
+            for e in eags:
+                if isinstance(e, Eag):
+                    self.eags[e.name] = e
+                else:
+                    print("Warning! added Eags must be instance of Eag object.")
 
         self.data = pd.DataFrame()
         self.parameters = pd.DataFrame()

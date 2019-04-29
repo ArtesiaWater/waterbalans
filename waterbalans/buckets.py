@@ -4,7 +4,7 @@
 
 """
 from abc import ABC
-
+# from ast import literal_eval
 import pandas as pd
 from pastas.read import KnmiStation
 
@@ -113,7 +113,7 @@ class Verhard(BucketBase):
                    'EFacMax_1', 'RFacIn_2', 'RFacOut_2', 'por_2'],
             columns=["Waarde"])
 
-    def simulate(self, params, tmin=None, tmax=None, dt=1.0):
+    def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
         # Get parameters
         self.parameters.update(params)
@@ -175,7 +175,7 @@ class Onverhard(BucketBase):
                    'RFacIn_1', 'RFacOut_1', 'por_1'],
             columns=["Waarde"])
 
-    def simulate(self, params, tmin=None, tmax=None, dt=1.0):
+    def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
         Parameters
@@ -241,7 +241,7 @@ class Drain(BucketBase):
             columns=["Waarde"])
         self.parameters.loc[:, "pname"] = self.parameters.index
 
-    def simulate(self, params, tmin=None, tmax=None, dt=1.0):
+    def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
         Parameters
@@ -320,7 +320,7 @@ class MengRiool(BucketBase):
         self.use_eag_cso_series = use_eag_cso_series
         self.path_to_cso_series = path_to_cso_series
 
-    def simulate(self, params, tmin, tmax, dt=1.0):
+    def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
 
         # get params
