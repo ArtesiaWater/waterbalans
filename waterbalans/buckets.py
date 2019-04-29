@@ -15,7 +15,7 @@ from .utils import calculate_cso
 
 
 class Bucket:
-    __doc__ = """Class to construct a Bucket instance from a string. 
+    __doc__ = """Class to construct a Bucket instance from a string.
 
     """
 
@@ -25,14 +25,14 @@ class Bucket:
 
 class BucketBase(ABC):
     __doc__ = """Base class from which all bucket classes inherit.
-    
+
     Parameters
     ----------
     id: int, optional
         Integer id of the bucket. This id is also used to connect parameters.
     eag: waterbalans.Eag, optional
         Eag instance where this bucket is appended to the Eag.buckets dict.
-    
+
     """
 
     def __init__(self, id=None, eag=None, series=None, area=0.0):
@@ -100,7 +100,7 @@ class BucketBase(ABC):
 
         """
         pass
-    
+
     def __repr__(self):
         return "<{0}: {1} bucket with area {2:.1f}>".format(self.id, self.name, self.area)
 
@@ -261,7 +261,8 @@ class Drain(BucketBase):
         # Get parameters
         non_defined_params = set(self.parameters.index) - set(params.index)
         if len(non_defined_params) > 0:
-            print("Warning: {} not set in parameters, using default values!".format(non_defined_params))
+            print("Warning: {} not set in parameters, using default values!".format(
+                non_defined_params))
 
         self.parameters.update(params)
 

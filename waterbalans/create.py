@@ -58,19 +58,19 @@ def create_gaf(id, name, gafbuckets=None, eags=[], series=None,
     name : str
         name of Gaf
     gafbuckets : pd.DataFrame, optional
-        pandas.DataFrame containing modelstructure of the Gaf, 
-        use if the Gaf has not been split into subunits (Eags) 
-        (the default is None, which makes function look in 
+        pandas.DataFrame containing modelstructure of the Gaf,
+        use if the Gaf has not been split into subunits (Eags)
+        (the default is None, which makes function look in
         eags). If provided ignores eags kwarg.
     eags : list, optional
-        list of Eags that are located in the Gaf (the default 
-        is an empty list, which means there are no EAGs in GAF). 
+        list of Eags that are located in the Gaf (the default
+        is an empty list, which means there are no EAGs in GAF).
         Only read if gafbuckets is not provided.
     series : pandas.DataFrame, optional
         DataFrame with the timeseries necessary for simulation of the water
         balance.
     use_waterlevel_series : bool, optional
-        setting whether to calculate water balance with measured 
+        setting whether to calculate water balance with measured
         water level series as (the default is False)
 
     Returns

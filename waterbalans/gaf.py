@@ -58,15 +58,15 @@ class Gaf:
 
     def add_timeseries(self, series, name=None, tmin="2000", tmax="2015", freq="D",
                        fillna=False, method=None):
-        """Method to add series directly to EAG. Series must contain volumes (so 
-        not divided by area). Series must be negative for water taken out of the 
+        """Method to add series directly to EAG. Series must contain volumes (so
+        not divided by area). Series must be negative for water taken out of the
         EAG and positive for water coming into the EAG.
 
         Parameters
         ----------
         series: pandas.DataFrame or pandas.Series
         name: str, default None
-            name of series to add, if not provided uses 
+            name of series to add, if not provided uses
             first column name in DataFrame or Series name
         tmin: str or pandas.Timestamp, optional
         tmax: str or pandas.Timestamp, optional

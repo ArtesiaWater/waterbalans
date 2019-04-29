@@ -124,7 +124,7 @@ class Water(WaterBase):
 
         self.hTargetSeries = pd.DataFrame()  # for setting waterlevel targets as series
         self.eag.add_water(self)
-    
+
     def __repr__(self):
         return "<{0}: {1} bucket with area {2:.1f}>".format(self.id, "Water", self.area)
 
@@ -191,9 +191,9 @@ class Water(WaterBase):
         q_totals = self.fluxes.sum(axis=1)
 
         # Static/dynamic target levels:
-        #   - Negative offsets will result in offset being set statically, 
+        #   - Negative offsets will result in offset being set statically,
         #     i.e. it will not vary over simulation
-        #   - Positive offsets will result in offset being set dynamically 
+        #   - Positive offsets will result in offset being set dynamically
         #     relative to observed level if available
 
         if not self.hTargetSeries.empty and not self.use_waterlevel_series:
@@ -225,10 +225,12 @@ class Water(WaterBase):
 
         for t in h.index[1:]:
             if np.isnan(hTargetMax_1.loc[t]):
-                hTargetMax_1.loc[t] = hTargetMax_1.loc[t - pd.Timedelta(days=1)]
+                hTargetMax_1.loc[t] = hTargetMax_1.loc[t -
+                                                       pd.Timedelta(days=1)]
             if np.isnan(hTargetMin_1.loc[t]):
-                hTargetMin_1.loc[t] = hTargetMin_1.loc[t - pd.Timedelta(days=1)]
-            
+                hTargetMin_1.loc[t] = hTargetMin_1.loc[t -
+                                                       pd.Timedelta(days=1)]
+
             hTargetMax_obs = hTargetMax_1.loc[t]
             hTargetMin_obs = hTargetMin_1.loc[t]
 
@@ -246,7 +248,7 @@ class Water(WaterBase):
                             q_out.loc[t] = hTargetMax_obs - h_plus_q
                         else:
                             q_out.loc[t] = max(-1*QOutMax_1,
-                                            hTargetMax_obs - h_plus_q)
+                                               hTargetMax_obs - h_plus_q)
                 elif h_plus_q < hTargetMin_obs:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):  # no limit on in flux
                         q_in.loc[t] = hTargetMin_obs - h_plus_q
@@ -270,7 +272,7 @@ class Water(WaterBase):
                             q_out.loc[t] = hTargetMax_obs - h_plus_q
                         else:
                             q_out.loc[t] = max(-1*QOutMax_1,
-                                            hTargetMax_obs - h_plus_q)
+                                               hTargetMax_obs - h_plus_q)
                 elif h_plus_q < hTargetMin_obs:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):
                         q_in.loc[t] = hTargetMin_obs - h_plus_q

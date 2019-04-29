@@ -129,7 +129,7 @@ class Eag:
                     series_list.append(get_series(ClusterType, ParamType, df.iloc[i:i+1], tmin, tmax, freq))
             else:  # single series
                 series_list.append(get_series(ClusterType, ParamType, df, tmin, tmax, freq))
-            
+
             for s in series_list:
                 # Check if series contains data
                 if s is None:
@@ -177,15 +177,15 @@ class Eag:
 
     def add_timeseries(self, series, name=None, tmin="2000", tmax="2015", freq="D",
                        fillna=False, method=None):
-        """Method to add series directly to EAG. Series must contain volumes (so 
-        not divided by area). Series must be negative for water taken out of the 
+        """Method to add series directly to EAG. Series must contain volumes (so
+        not divided by area). Series must be negative for water taken out of the
         EAG and positive for water coming into the EAG.
 
         Parameters
         ----------
         series: pandas.DataFrame or pandas.Series
         name: str, default None
-            name of series to add, if not provided uses 
+            name of series to add, if not provided uses
             first column name in DataFrame or Series name
         tmin: str or pandas.Timestamp, optional
         tmax: str or pandas.Timestamp, optional
@@ -292,15 +292,15 @@ class Eag:
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
         print("Simulation succesfully completed.")
 
-    def simulate_wq(self, wq_params, increment=False, tmin=None, 
+    def simulate_wq(self, wq_params, increment=False, tmin=None,
                     tmax=None, freq="D"):
-        
+
         print("Simulating water quality: {}...".format(self.name))
 
         if not hasattr(self.water, "fluxes"):
-            raise AttributeError("No calculated fluxes in water bucket." 
+            raise AttributeError("No calculated fluxes in water bucket."
                                  "Please simulate water quantity first!")
-        
+
         # Get tmin and tmax
         if tmin is None:
             tmin = self.series.index.min()
@@ -314,15 +314,15 @@ class Eag:
         # Get fluxes
         fluxes = self.aggregate_fluxes()
         fluxes.columns = [icol.lower() for icol in fluxes.columns]
-        
+
         # Parse wq_params table
-        # Should result in C_series -> per flux a series in one DataFrame, 
-        # if FEWS or local data is used, data is ffilled 
+        # Should result in C_series -> per flux a series in one DataFrame,
+        # if FEWS or local data is used, data is ffilled
         incols = [icol.lower() for icol in wq_params.Inlaattype if icol.lower() != "initieel"]
         incols = [i for i in incols if i in fluxes.columns]
-        
+
         C_series = pd.DataFrame(index=self.water.fluxes.loc[tmin:tmax].index, columns=incols)
-        
+
         C_init = 0.0  # if no initial value passed
 
         for ID, df in wq_params.groupby(["Inlaattype", "Reekstype"]):
@@ -340,7 +340,7 @@ class Eag:
                 if inlaat_type in incols:
                     incols.remove(inlaat_type)
                 continue
-            
+
             # If increment is True, add increment to concentration
             if increment:
                 series += df["Stofincrement"].iloc[0]
@@ -356,7 +356,7 @@ class Eag:
             # Series is often not measured on each day -> ffill to fill gaps
             if series.isna().sum() > 0:
                 C_series.loc[:, inlaat_type].fillna(method='ffill')
-      
+
         # Calculate initial mass and concentration
         hTarget = self.parameters.loc[self.parameters.loc[:, "ParamCode"] ==
                                       "hTarget", "Waarde"].values[0]
@@ -368,14 +368,14 @@ class Eag:
         C_out = C_init
 
         # Sum of outgoing fluxes from water bucket
-        outcols = ["intrek", "berekende uitlaat", "wegzijging"] 
+        outcols = ["intrek", "berekende uitlaat", "wegzijging"]
         outcols += [jcol.lower() for jcol in self.water.fluxes if jcol.startswith("Uitlaat")]
         V_out = fluxes.loc[:, outcols]
 
         mass_tot = pd.Series(index=fluxes.index, name="mass_tot", dtype=np.float)
         mass_out = pd.DataFrame(index=fluxes.index, columns=outcols, dtype=np.float)
         mass_in = fluxes.loc[:, incols].multiply(C_series)
-        
+
         for t in fluxes.index:
             M_in = mass_in.loc[t].sum()
 
@@ -489,8 +489,8 @@ class Eag:
 
         return fluxes
 
-    def calculate_cumsum(self, fluxes_names=None, eagseries_names=None, 
-                         cumsum_period="year", month_offset=9, tmin=None, 
+    def calculate_cumsum(self, fluxes_names=None, eagseries_names=None,
+                         cumsum_period="year", month_offset=9, tmin=None,
                          tmax=None):
         # Get fluxes
         fluxes = self.aggregate_fluxes()
@@ -523,9 +523,9 @@ class Eag:
             cumsum_flux = fluxes.groupby(by=grouper).cumsum()
         else:
             cumsum_flux = fluxes.cumsum()
-    
+
         # If eagseries_names defined calculate cumsum
-        if eagseries_names is not None:        
+        if eagseries_names is not None:
             # Get series based on column names
             series = self.series.loc[tmin:tmax, eagseries_names]
             # Get grouper for series
@@ -535,7 +535,7 @@ class Eag:
             if grouper is not None:
                 cumsum_series = series.groupby(by=grouper).cumsum()
             else:
-                cumsum_series = series.cumsum()  
+                cumsum_series = series.cumsum()
             # Return both cumsum_flux and cumsum_series
             return cumsum_flux, cumsum_series
         # Return only cumsum_flux
@@ -586,18 +586,18 @@ class Eag:
         return fractions
 
     def calculate_missing_influx(self):
-        """Calculate missing influx to the system by averaging the 
+        """Calculate missing influx to the system by averaging the
         difference between the calculated outflux versus the measured
-        outflux at the pumping station. The missing influx is equal to 
+        outflux at the pumping station. The missing influx is equal to
         the average difference per month.
-        
+
         Raises
         ------
         ValueError
             if no Pumping Station ("Gemaal") timeseries is in Eag.series
         AttributeError
             if the model has not yet been simulated
-        
+
         Returns
         -------
         pd.Series
@@ -609,29 +609,29 @@ class Eag:
         if self.water.fluxes.empty:
             raise AttributeError("No simulation data! Simulate model!")
         fluxes = self.aggregate_fluxes()
-        
+
         diff = self.series.loc[:, gemaal_cols].sum(axis=1) - -1*fluxes["berekende uitlaat"]
         diff.loc[diff <= 0.0] = 0.0
-        
+
         inlaat_monthly = diff.resample("M").mean()
         inlaat_sluitfout = inlaat_monthly.resample("D").bfill()
 
         return inlaat_sluitfout
 
     def output_for_plots(self):
-        
+
         output_dict = {}
 
         output_dict["{}_fluxes.csv".format(self.name)] = self.aggregate_fluxes()
-        
+
         eagseries_names = None
         gemaal_cols = [icol for icol in self.series.columns if icol.lower().startswith("gemaal")]
         if len(gemaal_cols) > 0:
             eagseries_names = ["Gemaal"]
             output_dict["{}_fluxes_w_ps.csv".format(self.name)] = \
                 self.aggregate_fluxes_w_pumpstation()
-            
-        cumsum = self.calculate_cumsum(eagseries_names=eagseries_names)    
+
+        cumsum = self.calculate_cumsum(eagseries_names=eagseries_names)
         if len(cumsum) == 2:
             for nam, iseries in zip(["inuitflux", "gemaal"], cumsum):
                 output_dict["{}_{}_cumsum.csv".format(self.name, nam)] = iseries
@@ -639,9 +639,9 @@ class Eag:
         output_dict["{}_fractions.csv".format(self.name)] = self.calculate_fractions()
 
         return output_dict
-    
+
     def output_to_zipfile(self, zipfname, outputdict=None):
-        
+
         import zipfile
 
         if outputdict is None:

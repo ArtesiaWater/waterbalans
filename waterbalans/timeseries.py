@@ -9,7 +9,7 @@ Auteur: R.A. Collenteur, Artesia Water
 import numpy as np
 from hkvfewspy import Pi
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
-from pastas.read import KnmiStation 
+from pastas.read import KnmiStation
 
 
 def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
@@ -77,10 +77,11 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
             data = data.iloc[0]
         else:
             data = data.loc["WaardeAlfa"].values[0]
-        
+
         # TODO: clean this try/except stuff up
         try:
-            _, moduleInstanceId, locationId, parameterId = data.split("|")  # new FEWS Code
+            _, moduleInstanceId, locationId, parameterId = data.split(
+                "|")  # new FEWS Code
         except ValueError as e:
             try:
                 moduleInstanceId, locationId, parameterId, _ = data.split("|")
@@ -105,7 +106,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         series = df.loc[:, ["date", "value"]].set_index("date")
         series = series.tz_localize(None)  # Remove timezone from FEWS series
         series = series.astype(float)
-        
+
         # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
         if np.any(series.index.hour != 9):
             series.index = series.index.floor(freq="D") - Timedelta(days=1)
@@ -121,16 +122,19 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     # if KNMI data is required:
     elif kind == "KNMI":
         stn = int(data.loc[:, "Waarde"].iloc[0])
-        print("Downloading {0} from KNMI for station {1}...".format(name, stn), end="")
+        print("Downloading {0} from KNMI for station {1}...".format(
+            name, stn), end="")
         if name == "Neerslag":
-            s = KnmiStation.download(stns=[stn], start=tmin, end=tmax, vars="RD")
+            s = KnmiStation.download(
+                stns=[stn], start=tmin, end=tmax, vars="RD")
             series = s.data.loc[:, "RD"]
             if np.any(series.index.hour == 9):
                 series.index = series.index.floor(freq="D") - Timedelta(days=1)
             elif np.any(series.index.hour == 1):
                 series.index = series.index.normalize() - Timedelta(days=1)
         elif name == "Verdamping":
-            s = KnmiStation.download(stns=[stn], start=tmin, end=tmax, vars="EV24")
+            s = KnmiStation.download(
+                stns=[stn], start=tmin, end=tmax, vars="EV24")
             series = s.data.loc[:, "EV24"]
             if np.any(series.index.hour == 1):
                 series.index = series.index.normalize() - Timedelta(days=1)
@@ -152,7 +156,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         series = create_block_series(df, tindex)
         if name in ["Qkwel", "Qwegz"]:
             series = series * 1e-3  # TODO: is this always true?
-   
+
     # elif kind == "Local":
         # if kind is Local, read Series from CSV provided by dbase!
         # TODO: intuitive method to read CSV/Series from Database
@@ -161,8 +165,9 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         # pass
 
     else:
-        print("Warning! Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
-        return 
+        print(
+            "Warning! Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
+        return
 
     series.name = name
 
@@ -204,7 +209,7 @@ def update_series(series_orig, series_new, method="append"):
     """Update timeseries with new timeseries. Either append data or overwrite
     old series wherever new series has data. Assumes daily timesteps. Will not
     work with non-daily timestamps.
-    
+
     Parameters
     ----------
     series_orig : pandas.Series
@@ -213,21 +218,21 @@ def update_series(series_orig, series_new, method="append"):
         Series used to update original series
     method : str, optional
         update method (the default is "append", which adds all data from new
-        series after last entry in original). Method "overwrite", overwrites 
+        series after last entry in original). Method "overwrite", overwrites
         all data in original series where new series contains data
-    
+
     Returns
     -------
     pandas.Series
         updated series
-    
+
     """
     series_new = series_new.dropna()
     series_orig = series_orig.dropna()
 
     tmin = np.min([series_orig.index[0], series_new.index[0]])
     tmax = np.max([series_orig.index[-1], series_new.index[-1]])
-    
+
     updated_series = Series(index=date_range(tmin, tmax, freq="D"))
     updated_series.loc[series_orig.index] = series_orig
 
