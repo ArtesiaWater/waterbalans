@@ -1,12 +1,10 @@
 from setuptools import setup, find_packages
 
-l_d = ''
 try:
     import pypandoc
-
     l_d = pypandoc.convert('README.md', 'rst')
 except:
-    pass
+    l_d = ''
 
 # Get the version.
 version = {}
@@ -34,8 +32,8 @@ setup(
                       'pandas>=0.20',
                       'scipy>=0.19',
                       'xmltodict',
-                      'hkvfewspy>=0.5.9',
-                      'pastas>=0.9.7'],
+                      'hkvfewspy>=0.6.2',
+                      'pastas>=0.9.9'],
     packages=find_packages(exclude=[]),
     include_package_data=True,
 )

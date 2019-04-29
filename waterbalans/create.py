@@ -4,13 +4,13 @@ from .gaf import Gaf
 from .water import Water
 
 
-def create_eag(id, name, buckets, gaf=None, series=None, use_waterlevel_series=False):
+def create_eag(idn, name, buckets, gaf=None, series=None, use_waterlevel_series=False):
     """Method to create an instance of EAG.
 
     Parameters
     ----------
-    id: int
-        integer id of the EAG.
+    idn: int
+        integer ID of the EAG.
     name: str
         string with the name of the EAG.
     buckets: pandas.DataFrame
@@ -31,30 +31,30 @@ def create_eag(id, name, buckets, gaf=None, series=None, use_waterlevel_series=F
 
 
     """
-    eag = Eag(id=id, name=name, gaf=gaf, series=series)
+    eag = Eag(idn=idn, name=name, gaf=gaf, series=series)
 
     # Voeg bakjes toe
     for _, bucket in buckets.iterrows():
         kind = bucket.loc["BakjePyCode"]
-        id = bucket.loc["BakjeID"]
+        idn = bucket.loc["BakjeID"]
         area = bucket.loc["OppWaarde"]
         if kind == "Water":
-            Water(id=id, eag=eag, series=series, area=area,
+            Water(idn=idn, eag=eag, series=series, area=area,
                   use_waterlevel_series=use_waterlevel_series)
         else:
-            Bucket(kind=kind, eag=eag, id=id, area=area, series=None)
+            Bucket(kind=kind, eag=eag, idn=idn, area=area, series=None)
 
     return eag
 
 
-def create_gaf(id, name, gafbuckets=None, eags=[], series=None,
+def create_gaf(idn, name, gafbuckets=None, eags=None, series=None,
                use_waterlevel_series=False):
     """Create instance of a GAF.
 
     Parameters
     ----------
-    id : int
-        integer id of the Gaf
+    idn : int
+        integer ID of the Gaf
     name : str
         name of Gaf
     gafbuckets : pd.DataFrame, optional
@@ -79,7 +79,7 @@ def create_gaf(id, name, gafbuckets=None, eags=[], series=None,
         instance of Gaf object
 
     """
-    gaf = Gaf(id=id, name=name, series=series)
+    gaf = Gaf(idn=idn, name=name, series=series)
 
     # if Gaf has not been split into EAGs use gafbucket df as model structure
     if gafbuckets is not None:
@@ -87,7 +87,7 @@ def create_gaf(id, name, gafbuckets=None, eags=[], series=None,
                        gafbuckets, gaf=gaf, series=series,
                        use_waterlevel_series=use_waterlevel_series)
         gaf.add_eag(e)
-    else:  # add eags if they are provided
+    elif eags is not None:  # add eags if they are provided
         for e in eags:
             gaf.add_eag(e)
     return gaf

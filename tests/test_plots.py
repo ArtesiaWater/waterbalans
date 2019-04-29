@@ -1,5 +1,5 @@
-from .test_run_eag import test_eag_run, test_calculate_chloride
 import matplotlib.pyplot as plt
+from .test_run_eag import test_eag_run, test_calculate_chloride
 
 
 def test_plot_aggregated():
@@ -33,5 +33,5 @@ def test_plot_chloride_fractions():
 def test_plot_waterlevel():
     e = test_eag_run()
     ax = e.plot.water_level()
-    # plt.close(ax.figure)
+    plt.close(ax.figure)
     return

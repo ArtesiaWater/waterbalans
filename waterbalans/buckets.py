@@ -3,11 +3,8 @@
 
 
 """
-
-import warnings
 from abc import ABC
 
-import numpy as np
 import pandas as pd
 from pastas.read import KnmiStation
 
@@ -28,15 +25,15 @@ class BucketBase(ABC):
 
     Parameters
     ----------
-    id: int, optional
-        Integer id of the bucket. This id is also used to connect parameters.
+    idn: int, optional
+        Integer ID of the bucket. This ID is also used to connect parameters.
     eag: waterbalans.Eag, optional
         Eag instance where this bucket is appended to the Eag.buckets dict.
 
     """
 
-    def __init__(self, id=None, eag=None, series=None, area=0.0):
-        self.id = id
+    def __init__(self, idn=None, eag=None, series=None, area=0.0):
+        self.idn = idn
         self.eag = eag  # Reference to mother object.
 
         # Add bucket to the eag
@@ -84,7 +81,7 @@ class BucketBase(ABC):
         if "Verdamping" in self.eag.series.columns:
             self.series["Verdamping"] = self.eag.series["Verdamping"]
 
-    def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
+    def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
         Parameters
@@ -102,12 +99,12 @@ class BucketBase(ABC):
         pass
 
     def __repr__(self):
-        return "<{0}: {1} bucket with area {2:.1f}>".format(self.id, self.name, self.area)
+        return "<{0}: {1} bucket with area {2:.1f}>".format(self.idn, self.name, self.area)
 
 
 class Verhard(BucketBase):
-    def __init__(self, id, eag, series, area=0.0):
-        BucketBase.__init__(self, id, eag, series, area)
+    def __init__(self, idn, eag, series, area=0.0):
+        BucketBase.__init__(self, idn, eag, series, area)
         self.name = "Verhard"
 
         self.parameters = pd.DataFrame(
@@ -168,8 +165,8 @@ class Verhard(BucketBase):
 
 
 class Onverhard(BucketBase):
-    def __init__(self, id, eag, series, area=0.0):
-        BucketBase.__init__(self, id, eag, series, area)
+    def __init__(self, idn, eag, series, area=0.0):
+        BucketBase.__init__(self, idn, eag, series, area)
         self.name = "Onverhard"
 
         self.parameters = pd.DataFrame(
@@ -231,8 +228,8 @@ class Onverhard(BucketBase):
 
 
 class Drain(BucketBase):
-    def __init__(self, id, eag, series, area=0.0):
-        BucketBase.__init__(self, id, eag, series, area)
+    def __init__(self, idn, eag, series, area=0.0):
+        BucketBase.__init__(self, idn, eag, series, area)
         self.name = "Drain"
 
         self.parameters = pd.DataFrame(
@@ -286,7 +283,7 @@ class Drain(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            print("Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!".format(self.name, self.id,
+            print("Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!".format(self.name, self.idn,
                                                                                           {"Neerslag", "Verdamping", "Qkwel"} -
                                                                                           set(series.columns)))
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
@@ -312,9 +309,9 @@ class Drain(BucketBase):
 
 
 class MengRiool(BucketBase):
-    def __init__(self, id, eag, series, area=0.0, use_eag_cso_series=True,
+    def __init__(self, idn, eag, series, area=0.0, use_eag_cso_series=True,
                  path_to_cso_series=None):
-        BucketBase.__init__(self, id, eag, series, area)
+        BucketBase.__init__(self, idn, eag, series, area)
         self.name = "MengRiool"
         self.parameters = pd.DataFrame(
             data=[240, 5e-3, 0.5e-3],

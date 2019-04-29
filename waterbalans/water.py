@@ -11,7 +11,7 @@ class WaterBase(ABC):
 
     """
 
-    def __init__(self, id=None, eag=None, series=None, area=0.0):
+    def __init__(self, idn=None, eag=None, series=None, area=0.0):
         self.eag = eag  # Reference to mother object.
 
         self.series = pd.DataFrame()
@@ -79,17 +79,7 @@ class WaterBase(ABC):
         for name in otherseries:
             self.series[name] = self.eag.series[name] / self.area
 
-    def simulate(self, parameters, tmin=None, tmax=None, dt=1.0):
-        pass
-
-    def validate(self):
-        """Method to validate the water balance based on the total input,
-        output and the change in storage of the model for each time step.
-
-        Returns
-        -------
-
-        """
+    def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         pass
 
 
@@ -100,8 +90,8 @@ class Water(WaterBase):
 
     Parameters
     ----------
-    id: int
-        id of the waterbucket.
+    idn: int
+        ID of the waterbucket.
     eag: waterbalans.Eag
         The eag the water bucket belongs to.
     series: list of pandas.Series or pandas.DataFrame
@@ -109,9 +99,9 @@ class Water(WaterBase):
 
     """
 
-    def __init__(self, id, eag, series, area=0.0, use_waterlevel_series=False):
-        WaterBase.__init__(self, id, eag, series, area)
-        self.id = id
+    def __init__(self, idn, eag, series, area=0.0, use_waterlevel_series=False):
+        WaterBase.__init__(self, idn, eag, series, area)
+        self.idn = idn
         self.eag = eag
         self.name = "Water"
         self.use_waterlevel_series = use_waterlevel_series
@@ -126,7 +116,7 @@ class Water(WaterBase):
         self.eag.add_water(self)
 
     def __repr__(self):
-        return "<{0}: {1} bucket with area {2:.1f}>".format(self.id, "Water", self.area)
+        return "<{0}: {1} bucket with area {2:.1f}>".format(self.idn, "Water", self.area)
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
@@ -153,7 +143,7 @@ class Water(WaterBase):
             names = ["q_ui", "q_oa", "q_dr", "q_cso"]
             names = [name for name in names if name in bucket.fluxes.columns]
             fluxes = bucket.fluxes.loc[:, names] * -bucket.area
-            fluxes.columns = [name + "_" + str(bucket.id) for name in names]
+            fluxes.columns = [name + "_" + str(bucket.idn) for name in names]
             self.fluxes = self.fluxes.join(fluxes, how="outer")
 
         # 2. calculate water bucket specific fluxes

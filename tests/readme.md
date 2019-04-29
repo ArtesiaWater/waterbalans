@@ -5,7 +5,7 @@ This folder contains all the tests that can be run to automatically test if
 waterbalans runs correctly.
 
 All tests in this folder can be run with the following command:
->>> pytest ./tests
+>>>pytest ./tests
 
 This requires the pytest package to be installed. If not installed run:
->>> pip install pytest
+>>>pip install pytest

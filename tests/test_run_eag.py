@@ -42,13 +42,13 @@ def test_eag_run():
 
 def test_calculate_fluxes():
     e = test_eag_run()
-    fluxes = e.aggregate_fluxes()
+    _ = e.aggregate_fluxes()
     return
 
 
 def test_calculate_fractions():
     e = test_eag_run()
-    fractions = e.calculate_fractions()
+    _ = e.calculate_fractions()
     return
 
 

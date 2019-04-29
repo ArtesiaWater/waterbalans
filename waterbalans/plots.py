@@ -6,11 +6,10 @@ Author: R.A. Collenteur, Artesia Water, 2017-11-20
 """
 from collections import OrderedDict
 
-import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
-from pandas import Timedelta, Timestamp
+from pandas import Timedelta
 
 from .timeseries import get_series
 
@@ -62,8 +61,8 @@ class Eag_Plots:
         """
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
 
-        for id, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
-            BakjeID, ClusterType, ParamType = id
+        for idn, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
+            BakjeID, ClusterType, ParamType = idn
             if mask is not None:
                 if (BakjeID == mask) or (ClusterType == mask) or (ParamType == mask):
                     for j in range(df.shape[0]):
@@ -84,9 +83,9 @@ class Eag_Plots:
 
         # get tmin, tmax if not defined
         if tmin is None:
-            bucket.fluxes.index[0]
+            tmin = bucket.fluxes.index[0]
         if tmax is None:
-            bucket.fluxes.index[-1]
+            tmax = bucket.fluxes.index[-1]
 
         # get data
         plotdata = bucket.fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
@@ -175,9 +174,9 @@ class Eag_Plots:
 
         # get tmin, tmax if not defined
         if tmin is None:
-            fluxes.index[0]
+            tmin = fluxes.index[0]
         if tmax is None:
-            fluxes.index[-1]
+            tmax = fluxes.index[-1]
 
         fluxes = fluxes.loc[tmin:tmax]
         calculated_out = fluxes.loc[:, ["berekende uitlaat"]]
@@ -198,8 +197,8 @@ class Eag_Plots:
 
         return ax
 
-    def cumsum_series(self, fluxes_names=["berekende inlaat", "berekende uitlaat"],
-                      eagseries_names=["Gemaal"], tmin=None, tmax=None,
+    def cumsum_series(self, fluxes_names=("berekende inlaat", "berekende uitlaat"),
+                      eagseries_names=("Gemaal",), tmin=None, tmax=None,
                       period="year", month_offset=9):
 
         if len(self.eag.series.columns.intersect(set(eagseries_names))) > 0:
@@ -238,9 +237,9 @@ class Eag_Plots:
     def wq_concentration(self, c, tmin=None, tmax=None):
         # get tmin, tmax if not defined
         if tmin is None:
-            self.eag.series.index[0]
+            tmin = self.eag.series.index[0]
         if tmax is None:
-            self.eag.series.index[-1]
+            tmax = self.eag.series.index[-1]
 
         c = c.loc[tmin:tmax]
 
@@ -314,9 +313,9 @@ class Eag_Plots:
 
         # get tmin, tmax if not defined
         if tmin is None:
-            mass_in.index[0]
+            tmin = mass_in.index[0]
         if tmax is None:
-            mass_in.index[-1]
+            tmax = mass_in.index[-1]
 
         plotdata_in = mass_in.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
         plotdata_out = mass_out.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3

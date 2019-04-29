@@ -15,8 +15,8 @@ class Gaf:
 
     Parameters
     ----------
-    id: int
-        Integer id for the Gaf.
+    idn: int
+        Integer ID for the Gaf.
 
     Notes
     -----
@@ -24,9 +24,9 @@ class Gaf:
 
     """
 
-    def __init__(self, id=None, name=None, eags=[], series=None):
+    def __init__(self, idn=None, name=None, eags=[], series=None):
         # Basic information
-        self.id = id
+        self.idn = idn
         self.name = name
 
         # EAG
