@@ -73,7 +73,7 @@ def test_add_real_series_and_simulate():
     e = test_make_eag()
 
     # add default series
-    e.add_series(reeksen, tmin=tmin, tmax=tmax)
+    e.add_series_from_database(reeksen, tmin=tmin, tmax=tmax)
 
     # add external series
     series = pd.read_csv(os.path.join(
