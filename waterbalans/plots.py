@@ -9,6 +9,7 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
+from pandas import Series
 
 from .timeseries import get_series
 
@@ -395,10 +396,18 @@ class Eag_Plots:
         ax.axhline(hTarget, linestyle="dashed", lw=1.5, label="hTarget", color="k")
 
         if add_target_levels:
-            ax.plot(hTargetMin.index, hTargetMin, linestyle="dashed", lw=1.5, label="hTargetMin", color="r")
-            ax.plot(hTargetMax.index, hTargetMax, linestyle="dashed", lw=1.5, label="hTargetMax", color="b")
+            if isinstance(hTargetMin, Series):
+                ax.plot(hTargetMin.index, hTargetMin, linestyle="dashed",
+                        lw=1.5, label="hTargetMin", color="r")
+                ax.plot(hTargetMax.index, hTargetMax, linestyle="dashed",
+                        lw=1.5, label="hTargetMax", color="b")
+            else:
+                ax.axhline(hTarget - np.abs(hTargetMin), linestyle="dashed", linewidth=1.5,
+                           label="hTargetMin", color="r")
+                ax.axhline(hTarget + np.abs(hTargetMax), linestyle="dashed", linewidth=1.5,
+                           label="hTargetMax", color="b")
 
-        ax.axhline(hBottom, linestyle="dashdot", lw=1.5, label="hBottom", color="brown")
+        ax.axhline(hBottom, linestyle="dashdot", lw=1.5, label="hBottom", color="C2")
 
         ax.set_ylabel("peil (m NAP)")
         ax.legend(loc="best")
@@ -463,7 +472,7 @@ class Eag_Plots:
             diff = fluxes.loc[:, pycol].copy() # hacky method to subtract excel series from diff
 
             if pycol not in exceldf.columns and pycol not in column_names.keys():
-                print("Column '{}' not found in Excel Balance!".format(pycol))
+                self.eag.logger.warning("Column '{}' not found in Excel Balance!".format(pycol))
                 iax.legend(loc="best")
                 iax.grid(b=True)
                 continue
