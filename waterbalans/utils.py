@@ -264,14 +264,11 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
         colmask = [True if icol.lower().startswith(inam.lower())
                    else False for icol in columns]
         series = df.loc[:, colmask]
-        # Water bucket already does this, so outgoing fluxes can be entered positive:
-        # TODO: check if can be removed
-        # if inam == "Uitlaat":
-        #     factor = -1.0
+        # Water bucket converts outgoing fluxes to negative, so outgoing fluxes can be entered positive
         for jcol in range(series.shape[1]):
             # Check if empty
             if series.iloc[:, jcol].dropna().empty:
-                print("'{}' is empty. Continuing...".format(
+                o.logger.warning("'{}' is empty. Continuing...".format(
                     series.columns[jcol]))
                 continue
             # Check if series is already in EAG
@@ -284,28 +281,29 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
                     o.add_timeseries(factor*series.iloc[:, jcol], name="{}".format(colnam),
                                      tmin=tmin, tmax=tmax, fillna=True, method=0.0)
                 else:
-                    print("'{}' already in EAG. No action taken.".format(
+                    o.logger.warning("'{}' already in EAG. No action taken.".format(
                         colnam))
             else:
-                print("Adding '{}' series to EAG.".format(
-                    colnam))
+                # o.logger.info("Adding '{}' series to EAG.".format(
+                #     colnam))
                 o.add_timeseries(factor*series.iloc[:, jcol], name="{}".format(colnam),
                                  tmin=tmin, tmax=tmax, fillna=True, method=0.0)
 
     # Peil
     colmask = [True if icol.lower().startswith("peil")
                else False for icol in columns]
-    peil = df.loc[:, colmask]
-    if "Peil" in eag_series:
-        if overwrite:
+    if np.sum(colmask) > 0:
+        peil = df.loc[:, colmask]
+        if "Peil" in eag_series:
+            if overwrite:
+                o.add_timeseries(peil, name="Peil", tmin=tmin, tmax=tmax,
+                                 fillna=True, method="ffill")
+            else:
+                o.logger.warning("'Peil' already in EAG. No action taken.")
+        else:
+            # o.logger.info("Adding 'Peil' series to EAG.")
             o.add_timeseries(peil, name="Peil", tmin=tmin, tmax=tmax,
                              fillna=True, method="ffill")
-        else:
-            print("'Peil' already in EAG. No action taken.")
-    else:
-        print("Adding 'Peil' series to EAG.")
-        o.add_timeseries(peil, name="Peil", tmin=tmin, tmax=tmax,
-                         fillna=True, method="ffill")
 
     # q_cso MengRiool overstortreeks
     colmask = [True if icol.lower().startswith("q_cso")
@@ -317,9 +315,9 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
                 o.add_timeseries(q_cso, name="q_cso", tmin=tmin, tmax=tmax,
                                  fillna=True, method=0.0)
             else:
-                print("'q_cso' already in EAG. No action taken.")
+                o.logger.warning("'q_cso' already in EAG. No action taken.")
         else:
-            print("Adding 'q_cso' series to EAG.")
+            # o.logger.info("Adding 'q_cso' series to EAG.")
             o.add_timeseries(q_cso, name="q_cso", tmin=tmin, tmax=tmax,
                              fillna=True, method=0.0)
 
@@ -327,17 +325,19 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
     for inam in ["Neerslag", "Verdamping"]:
         colmask = [True if icol.lower().startswith(inam.lower())
                    else False for icol in columns]
-        pe = df.loc[:, colmask] * 1e-3
-        if inam in eag_series:
-            if overwrite:
+        if np.sum(colmask) > 0:
+            pe = df.loc[:, colmask] * 1e-3
+            if inam in eag_series:
+                if overwrite:
+                    o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
+                                     fillna=True, method=0.0)
+                else:
+                    o.logger.warning(
+                        "'{}' already in EAG. No action taken.".format(inam))
+            else:
+                # o.logger.info("Adding '{}' series to EAG.".format(inam))
                 o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
                                  fillna=True, method=0.0)
-            else:
-                print("'{}' already in EAG. No action taken.".format(inam))
-        else:
-            print("Adding '{}' series to EAG.".format(inam))
-            o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
-                             fillna=True, method=0.0)
 
 
 def create_csvfile_table(csvdir):

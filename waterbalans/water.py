@@ -132,11 +132,11 @@ class Water(WaterBase):
             hTargetMax_1 = self.hTargetSeries["hTargetMax"]
 
         if QInMax_1 == 0.:
-            print(
-                "Warning! 'QInMax_1' is equal to 0. Assuming this means there is no limit to inflow.")
+            self.eag.logger.warning(
+                "'QInMax_1' is equal to 0. Assuming this means there is no limit to inflow.")
         if QOutMax_1 == 0.:
-            print(
-                "Warning! 'QOutMax_1' is equal to 0. Assuming this means there is no limit to outflow.")
+            self.eag.logger.warning(
+                "'QOutMax_1' is equal to 0. Assuming this means there is no limit to outflow.")
 
         # 1. Add incoming fluxes from other buckets
         for bucket in self.eag.buckets.values():
@@ -150,7 +150,9 @@ class Water(WaterBase):
         series = self.series.multiply(self.area)
 
         # Add series to fluxes without knowing the amount of series up front
-        # TODO: change back to False!!
+        # NOTE: currently defaults to using excel factors for Evap
+        # This means evaporation is 0.0 in december. This is wrong, but
+        # that's how it's always been done...
         series.loc[:, "Verdamping"] = - \
             makkink_to_penman(
                 series.loc[:, "Verdamping"], use_excel_factors=True)
@@ -161,7 +163,6 @@ class Water(WaterBase):
         if self.use_waterlevel_series:
             h = (self.eag.series.loc[tmin:tmax,
                                      "Peil"] - hBottom_1) * self.area
-            # TODO: currently set to start with target level regardless of observations. Check if correct for all EAGs.
             # starting level calculated based on hTarget
             h.loc[h.index[0]-pd.Timedelta(days=1)
                   ] = (hTarget_1 - hBottom_1) * self.area
@@ -172,10 +173,8 @@ class Water(WaterBase):
             h.iloc[0] = (hTarget_1 - hBottom_1) * self.area
 
         # pre-allocate empty series
-        q_in = pd.Series(index=self.eag.series.loc[tmin:tmax].index,
-                         data=np.zeros(self.eag.series.loc[tmin:tmax].shape[0]))
-        q_out = pd.Series(index=self.eag.series.loc[tmin:tmax].index,
-                          data=np.zeros(self.eag.series.loc[tmin:tmax].shape[0]))
+        q_in = pd.Series(index=self.storage.index, data=0.0)
+        q_out = pd.Series(index=self.storage.index, data=0.0)
 
         # net flux
         q_totals = self.fluxes.sum(axis=1)
