@@ -4,7 +4,8 @@ from .gaf import Gaf
 from .water import Water
 
 
-def create_eag(idn, name, buckets, gaf=None, series=None, use_waterlevel_series=False):
+def create_eag(idn, name, buckets, gaf=None, series=None, use_waterlevel_series=False,
+               logfile=None):
     """Method to create an instance of EAG.
 
     Parameters
@@ -31,7 +32,7 @@ def create_eag(idn, name, buckets, gaf=None, series=None, use_waterlevel_series=
 
 
     """
-    eag = Eag(idn=idn, name=name, gaf=gaf, series=series)
+    eag = Eag(idn=idn, name=name, gaf=gaf, series=series, logfile=logfile)
     eag.logger.info("Creating EAG object for '{}'".format(name))
 
     # Voeg bakjes toe

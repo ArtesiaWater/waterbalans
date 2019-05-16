@@ -36,9 +36,9 @@ class Eag:
 
     """
 
-    def __init__(self, idn=None, name=None, gaf=None, series=None):
+    def __init__(self, idn=None, name=None, gaf=None, series=None, logfile=None):
 
-        self.logger = self.get_logger()
+        self.logger = self.get_logger(filename=logfile)
 
         # Basic information
         self.gaf = gaf
@@ -66,14 +66,33 @@ class Eag:
 
     def get_logger(self, log_level=logging.INFO, filename=None):
 
-        logging.basicConfig(format='%(asctime)s | %(funcName)s - %(levelname)s : %(message)s',
-                            level=logging.INFO)
-        logger = logging.getLogger()
-        logger.setLevel(log_level)
+        # Create a custom logger
+        logger = logging.getLogger(__name__)
 
+        # Create handlers
+        c_handler = logging.StreamHandler()
+        c_handler.setLevel(logging.INFO)
+
+        # Create formatters and add it to handlers
+        c_format = logging.Formatter(
+            '%(asctime)s | %(funcName)s - %(levelname)s : %(message)s')
+        c_handler.setFormatter(c_format)
+
+        # Add handlers to the logger
+        logger.addHandler(c_handler)
+
+        # If filename is passed
         if filename is not None:
-            fhandler = logging.FileHandler(filename=filename, mode='w')
-            logger.addHandler(fhandler)
+            f_handler = logging.FileHandler(filename)
+            f_handler.setLevel(logging.INFO)
+            # Create formatters and add it to handlers
+            f_format = logging.Formatter(
+                '%(asctime)s | %(funcName)s - %(levelname)s : %(message)s')
+            f_handler.setFormatter(f_format)
+            # add to logger
+            logger.addHandler(f_handler)
+
+        logger.setLevel(logging.INFO)
 
         return logger
 

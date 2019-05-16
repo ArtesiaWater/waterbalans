@@ -51,7 +51,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     -----
 
     """
-    logger = logging.getLogger()
+    logger = logging.getLogger('waterbalans.eag')
 
     try:
         pi = initialize_fews_pi()
