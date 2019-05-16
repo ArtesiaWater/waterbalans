@@ -39,6 +39,6 @@ wq_params = wb.utils.get_wqparams_from_excel(excelfile)
 
 chloride = e.simulate_wq(wq_params, increment=False, tmin=tmin, tmax=tmax)
 
-e.plot.chloride(chloride, tmin=tmin, tmax=tmax)
+e.plot.wq_concentration(chloride, tmin=tmin, tmax=tmax)
 
 plt.show()
