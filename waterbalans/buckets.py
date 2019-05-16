@@ -335,36 +335,38 @@ class MengRiool(BucketBase):
         # And also if a different period is calculated!
         try:
             if self.use_eag_cso_series:
-                self.eag.logger.info(
-                    "Pick up CSO timeseries from eag.series...")
                 ts_cso = self.eag.series.loc[pd.to_datetime(
                     tmin):pd.to_datetime(tmax), "q_cso"]
-                self.eag.logger.info("Success!")
-            else:
                 self.eag.logger.info(
-                    "Pick up CSO timeseries from pickle or csv...")
-                if self.path_to_cso_series is None:
-                    fcso = r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(
-                        knmistn)
-                else:
-                    fcso = self.path_to_cso_series
+                    "Picked up CSO timeseries from EAG object.")
+            else:
+                fcso = self.path_to_cso_series
+                if fcso is None:
+                    raise TypeError(
+                        "Set path to external cso timeseries file!")
                 if fcso.endswith(".pklz"):
                     ts_cso = pd.read_pickle(fcso, compression="zip")
-                else:
+                elif fcso.endswith(".csv"):
                     ts_cso = pd.read_csv(fcso, index_col=[0], parse_dates=True)
+                else:
+                    raise NotImplementedError(
+                        "External CSO timeseries file must have extension .pklz or .csv!")
                 ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
-                self.eag.logger.info("Success!")
+                self.eag.logger.info(
+                    "Picked up CSO timeseries from external file.")
         except (FileNotFoundError, KeyError) as e:
-            self.eag.logger.warning("Failed, calculating CSO series... Downloading hourly KNMI data for station {}".format(
-                knmistn))
+            self.eag.logger.error(
+                "Failed loading CSO series from EAG or from external file.")
+            self.eag.logger.warning(
+                "Calculating CSO series... (this can take a while).")
+            self.eag.logger.info(
+                "Downloading hourly KNMI data for station {}".format(knmistn))
             prec = KnmiStation.download(
                 stns=[knmistn], interval="hour", start=tmin, end=tmax, vars="RH")
             self.eag.logger.info(
                 "KNMI Download succeeded, calculating series...")
             ts_cso = calculate_cso(prec.data.RH, Bmax, POCmax, alphasmooth=0.1)
-            self.eag.logger.info("Success! (Pickling series for future use.)")
-            ts_cso.to_pickle(r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(knmistn),
-                             compression="zip")
+            self.eag.logger.info("CSO series calculated.")
 
         series = pd.DataFrame(index=ts_cso.index,
                               data=-1.*ts_cso.values,
