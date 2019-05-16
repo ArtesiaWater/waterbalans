@@ -19,7 +19,7 @@ eag_name = df_ms.loc[0, "EAGCode"]
 e = wb.create_eag(eag_id, eag_name, df_ms, use_waterlevel_series=False)
 
 # Add TimeSeries
-e.add_series(df_ts, tmin=tmin, tmax=tmax)
+e.add_series_from_database(df_ts, tmin=tmin, tmax=tmax)
 
 # Add extra series (optional)
 df_series = wb.utils.get_extra_series_from_excel(excelfile)
