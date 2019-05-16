@@ -368,9 +368,9 @@ class MengRiool(BucketBase):
             ts_cso = calculate_cso(prec.data.RH, Bmax, POCmax, alphasmooth=0.1)
             self.eag.logger.info("CSO series calculated.")
 
-        series = pd.DataFrame(index=ts_cso.index,
-                              data=-1.*ts_cso.values,
-                              columns=["q_cso"])
+        series = pd.Series(index=ts_cso.index,
+                           data=-1.*ts_cso.values)
+        series.name = "q_cso"
 
         self.fluxes = self.fluxes.assign(q_cso=series)
         self.storage = self.storage.assign(Storage=0.)
