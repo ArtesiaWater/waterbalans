@@ -17,8 +17,8 @@ setup(
     description='Python Package voor het maken van Waterbalansen bij Waternet',
     long_description=l_d,
     url='http://waternet.nl',
-    author='Raoul Collenteur',
-    author_email='r.collenteur@artesia-water.nl, ',
+    author='David Brakenhoff',
+    author_email='d.brakenhoff@artesia-water.nl, ',
     license='Unknown',
     classifiers=[
         'Development Status :: 4 - Beta',

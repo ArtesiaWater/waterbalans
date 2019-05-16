@@ -4,7 +4,7 @@
 
 """
 from abc import ABC
-# from ast import literal_eval
+
 import pandas as pd
 from pastas.read import KnmiStation
 
@@ -135,7 +135,7 @@ class Verhard(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            print("Warning: {} not in series. Assumed equal to 0!".format(
+            self.eag.logger.warning("Warning: {} not in series. Assumed equal to 0!".format(
                 {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
 
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
@@ -208,7 +208,7 @@ class Onverhard(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            print("Warning: {} not in series. Assumed equal to 0!".format(
+            self.eag.logger.warning("Warning: {} not in series. Assumed equal to 0!".format(
                 {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
                                      fill_value=0.0).iterrows():
@@ -258,7 +258,7 @@ class Drain(BucketBase):
         # Get parameters
         non_defined_params = set(self.parameters.index) - set(params.index)
         if len(non_defined_params) > 0:
-            print("Warning: {} not set in parameters, using default values!".format(
+            self.eag.logger.warning("Warning: {} not set in parameters, using default values!".format(
                 non_defined_params))
 
         self.parameters.update(params)
@@ -283,9 +283,9 @@ class Drain(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            print("Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!".format(self.name, self.idn,
-                                                                                          {"Neerslag", "Verdamping", "Qkwel"} -
-                                                                                          set(series.columns)))
+            self.eag.logger.warning("Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!".format(self.name, self.idn,
+                                                                                                            {"Neerslag", "Verdamping", "Qkwel"} -
+                                                                                                            set(series.columns)))
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
                                      fill_value=0.0).iterrows():
             p, e, s = pes
@@ -335,14 +335,14 @@ class MengRiool(BucketBase):
         # And also if a different period is calculated!
         try:
             if self.use_eag_cso_series:
-                print("Pick up CSO timeseries from eag.series...",
-                      end="", flush=True)
+                self.eag.logger.info(
+                    "Pick up CSO timeseries from eag.series...")
                 ts_cso = self.eag.series.loc[pd.to_datetime(
                     tmin):pd.to_datetime(tmax), "q_cso"]
-                print("Success!", end="\n")
+                self.eag.logger.info("Success!")
             else:
-                print("Try picking up CSO timeseries from pickle or csv...",
-                      end="", flush=True)
+                self.eag.logger.info(
+                    "Pick up CSO timeseries from pickle or csv...")
                 if self.path_to_cso_series is None:
                     fcso = r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(
                         knmistn)
@@ -353,15 +353,16 @@ class MengRiool(BucketBase):
                 else:
                     ts_cso = pd.read_csv(fcso, index_col=[0], parse_dates=True)
                 ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
-                print("Success!", end="\n")
-        except FileNotFoundError:
-            print("Failed, calculating CSO series... Downloading hourly KNMI data for station {}".format(
+                self.eag.logger.info("Success!")
+        except (FileNotFoundError, KeyError) as e:
+            self.eag.logger.warning("Failed, calculating CSO series... Downloading hourly KNMI data for station {}".format(
                 knmistn))
             prec = KnmiStation.download(
                 stns=[knmistn], interval="hour", start=tmin, end=tmax, vars="RH")
-            print("Download succeeded, calculating series...", end="", flush=True)
+            self.eag.logger.info(
+                "KNMI Download succeeded, calculating series...")
             ts_cso = calculate_cso(prec.data.RH, Bmax, POCmax, alphasmooth=0.1)
-            print("Success! (Pickling series for future use.)")
+            self.eag.logger.info("Success! (Pickling series for future use.)")
             ts_cso.to_pickle(r"./data/cso_series/{0:g}_cso_timeseries.pklz".format(knmistn),
                              compression="zip")
 

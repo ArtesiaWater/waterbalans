@@ -1,7 +1,7 @@
 """This file contains the polder class
 
 """
-
+import logging
 from collections import OrderedDict
 
 import numpy as np
@@ -25,6 +25,9 @@ class Gaf:
     """
 
     def __init__(self, idn=None, name=None, eags=None, series=None):
+
+        self.logger = self.get_logger()
+
         # Basic information
         self.idn = idn
         self.name = name
@@ -37,7 +40,8 @@ class Gaf:
                 if isinstance(e, Eag):
                     self.eags[e.name] = e
                 else:
-                    print("Warning! added Eags must be instance of Eag object.")
+                    self.logger.warning(
+                        "added Eags must be instance of Eag object.")
 
         self.data = pd.DataFrame()
         self.parameters = pd.DataFrame()
@@ -46,6 +50,22 @@ class Gaf:
             self.series = pd.DataFrame()
         else:
             self.series = series
+
+    def __repr__(self):
+        return "<GAF object: {0} containing {1} EAGs>".format(self.name, len(self.eags))
+
+    def get_logger(self, log_level=logging.INFO, filename=None):
+
+        logging.basicConfig(format='%(asctime)s | %(funcName)s - %(levelname)s : %(message)s',
+                            level=logging.INFO)
+        logger = logging.getLogger()
+        logger.setLevel(log_level)
+
+        if filename is not None:
+            fhandler = logging.FileHandler(filename=filename, mode='w')
+            logger.addHandler(fhandler)
+
+        return logger
 
     def add_eag(self, eag):
         self.eags[eag.name] = eag
@@ -86,7 +106,7 @@ class Gaf:
 
         if fillna:
             if (series.isna().sum() > 0).all():
-                print("Filled {0} NaN-values with '{1}' in series {2}.".format(
+                self.logger.info("Filled {0} NaN-values with '{1}' in series {2}.".format(
                     np.int(series.isna().sum()), method, name))
                 if isinstance(method, str):
                     series = series.fillna(method=method)
@@ -94,8 +114,8 @@ class Gaf:
                     series = series.fillna(method)
 
         if name in self.series.columns:
-            print(
-                "Warning! Series {} already present in EAG, overwriting data!".format(name))
+            self.logger.warning(
+                "Series {} already present in EAG, overwriting data!".format(name))
 
         self.series.loc[series.index.intersection(
             self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()

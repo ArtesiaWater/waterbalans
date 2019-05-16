@@ -5,7 +5,7 @@ Auteur: R.A. Collenteur, Artesia Water
         D.A. Brakenhoff, Artesia Water
 
 """
-
+import logging
 import numpy as np
 from hkvfewspy import Pi
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
@@ -51,10 +51,13 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     -----
 
     """
+    logger = logging.getLogger()
+
     try:
         pi = initialize_fews_pi()
     except Exception:
-        print("Warning! Pi service cannot be started. Module will not import series from FEWS!")
+        logger.warning(
+            "Pi service cannot be started. Module will not import series from FEWS!")
         pi = None
 
     if tmin is None:
@@ -72,8 +75,8 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         if isinstance(data, DataFrame):
             data = data.loc[:, "WaardeAlfa"]
             if len(data) > 1:
-                print("Warning! Multiple series found, selecting "
-                      "first one ({}) and continuing".format(data.iloc[0]))
+                logger.warning("Multiple series found, selecting "
+                               "first one ({}) and continuing".format(data.iloc[0]))
             data = data.iloc[0]
         else:
             data = data.loc["WaardeAlfa"].values[0]
@@ -84,23 +87,27 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
                 "|")  # new FEWS Code
         except ValueError as e:
             try:
-                moduleInstanceId, locationId, parameterId, _ = data.split("|")
+                moduleInstanceId, locationId, parameterId = data.split("|")
             except Exception as e:
+                logger.error(
+                    "Cannot parse FEWS Id for timeseries '{}'!".format(name))
                 return
 
         query = pi.setQueryParameters(prefill_defaults=True)
         query.query["onlyManualEdits"] = False
-        query.parameterIds([parameterId])
         query.moduleInstanceIds([moduleInstanceId])
         query.locationIds([locationId])
+        query.parameterIds([parameterId])
         query.startTime(tmin)
         query.endTime(tmax + Timedelta(days=1))  # add 1 day for prec/evap
+        # necessary for precip data after 2016-11-30...
+        query.useDisplayUnits(False)
         query.clientTimeZone('Europe/Amsterdam')
 
         try:
             df = pi.getTimeSeries(query, setFormat='df')
         except Exception as e:
-            print("FEWS ERROR! Timeseries '{}':".format(name), e)
+            logger.error("FEWS Timeseries '{}': {}".format(name, e))
             return
         df.reset_index(inplace=True)
         series = df.loc[:, ["date", "value"]].set_index("date")
@@ -122,8 +129,8 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     # if KNMI data is required:
     elif kind == "KNMI":
         stn = int(data.loc[:, "Waarde"].iloc[0])
-        print("Downloading {0} from KNMI for station {1}...".format(
-            name, stn), end="")
+        logger.info("Downloading {0} from KNMI for station {1}...".format(
+            name, stn))
         if name == "Neerslag":
             s = KnmiStation.download(
                 stns=[stn], start=tmin, end=tmax, vars="RD")
@@ -138,7 +145,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
             series = s.data.loc[:, "EV24"]
             if np.any(series.index.hour == 1):
                 series.index = series.index.normalize() - Timedelta(days=1)
-        print(" Success!")
+        logger.info("Success!")
 
     #  If a constant timeseries is required
     elif kind == "Constant":
@@ -165,8 +172,9 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
         # pass
 
     else:
-        print(
-            "Warning! Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
+        # TODO: fix logging, commented out now, because too much noise.
+        logger.warning(
+            "Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
         return
 
     series.name = name

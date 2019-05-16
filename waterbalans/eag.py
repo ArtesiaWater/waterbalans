@@ -5,6 +5,7 @@ David Brakenhoff, Artesia Water, September 2018
 
 """
 
+import logging
 from collections import OrderedDict
 
 import numpy as np
@@ -36,6 +37,9 @@ class Eag:
     """
 
     def __init__(self, idn=None, name=None, gaf=None, series=None):
+
+        self.logger = self.get_logger()
+
         # Basic information
         self.gaf = gaf
         self.idn = idn
@@ -56,6 +60,22 @@ class Eag:
 
         # Add functionality from other modules
         self.plot = Eag_Plots(self)
+
+    def __repr__(self):
+        return "<EAG object: {0}>".format(self.name)
+
+    def get_logger(self, log_level=logging.INFO, filename=None):
+
+        logging.basicConfig(format='%(asctime)s | %(funcName)s - %(levelname)s : %(message)s',
+                            level=logging.INFO)
+        logger = logging.getLogger()
+        logger.setLevel(log_level)
+
+        if filename is not None:
+            fhandler = logging.FileHandler(filename=filename, mode='w')
+            logger.addHandler(fhandler)
+
+        return logger
 
     def add_bucket(self, bucket, replace=False):
         """Add a single bucket to the Eag.
@@ -92,8 +112,16 @@ class Eag:
         else:
             self.water = water
 
-    def add_series(self, series, tmin="2000", tmax="2015", freq="D", fillna=False, method="append"):
-        """Method to add timeseries based on a pandas DataFrame.
+    def add_series_from_database(self, series, tmin="2000", tmax="2015",
+                                 freq="D", fillna=False, method="append"):
+        """Method to add timeseries based on a DataFrame containing
+        information about the series. Series are described by one or more
+        rows in the DataFrame with at least the following columns:
+
+         - Bucket ID: ID of the bucket the series should be added to
+         - SeriesType (unfortunately called ParamType at the moment): Origin or Type
+           of the Series: e.g. FEWS, KNMI, Local, ValueSeries, Constant
+         - ClusterType: Name of the parameter
 
         Parameters
         ----------
@@ -114,6 +142,8 @@ class Eag:
         """
         # Sort series to parse in order: Valueseries -> Local -> FEWS -> Constant
         series = series.sort_values(by="ParamType", ascending=False)
+        self.logger.info(
+            "Parsing timeseries from database export and adding to EAG.")
 
         for idn, df in series.groupby(["ParamType", "BakjeID", "ClusterType"], sort=False):
             ParamType, BakjeID, ClusterType = idn
@@ -123,7 +153,8 @@ class Eag:
                 continue
             elif ParamType == "FEWS" and df.shape[0] > 1:
                 # deal with multiple FEWS IDs for one ClusterType
-                print("Warning! Multiple FEWS series found for {}.".format(ClusterType))
+                self.logger.warning(
+                    "Multiple FEWS series found for {}.".format(ClusterType))
                 for i in range(df.shape[0]):
                     series_list.append(get_series(
                         ClusterType, ParamType, df.iloc[i:i+1], tmin, tmax, freq))
@@ -138,8 +169,8 @@ class Eag:
                 # Fill NaNs if specified
                 if fillna:
                     if (s.isna().sum() > 0).all():
-                        print("Filled {} NaN-values with 0.0 in series {}.".format(
-                              np.int(s.isna().sum()), ClusterType))
+                        self.logger.info("Filled {} NaN-values with 0.0 in series {}.".format(
+                            np.int(s.isna().sum()), ClusterType))
                         s = s.fillna(0.0)
                 # Add series to appropriate object
                 if BakjeID in self.buckets.keys():  # add to Land Bucket
@@ -176,7 +207,8 @@ class Eag:
                     else:  # add new series
                         self.series[ClusterType] = s
                 else:
-                    print("Warning! Series '{}' not added.".format(ClusterType))
+                    self.logger.warning(
+                        "Series '{}' not added.".format(ClusterType))
 
         # Create index based on tmin/tmax if no series are added to EAG!
         if self.series.empty:
@@ -211,8 +243,10 @@ class Eag:
                 name = series.name
 
         if name in self.series.columns:
-            print(
-                "Warning! Series {} already present in EAG, overwriting data where not NaN!".format(name))
+            self.logger.info(
+                "Adding timeseries '{0}' to EAG manually".format(name))
+            self.logger.warning(
+                "Series {} already present in EAG, overwriting data where not NaN!".format(name))
             first_valid_index = series.first_valid_index()
             last_valid_index = series.last_valid_index()
             series = series.loc[first_valid_index:last_valid_index].dropna()
@@ -220,7 +254,7 @@ class Eag:
 
         if fillna:
             if (series.isna().sum() > 0).all():
-                print("Filled {0} NaN-values with '{1}' in series {2}.".format(
+                self.logger.info("Filled {0} NaN-values with '{1}' in series {2}.".format(
                     np.int(series.isna().sum()), method, name))
                 if isinstance(method, str):
                     series = series.fillna(method=method)
@@ -283,7 +317,7 @@ class Eag:
         tmax: str or pandas.Timestamp
 
         """
-        print("Simulating: {}...".format(self.name))
+        self.logger.info("Simulating: {}...".format(self.name))
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "ParamCode"] + "_" +
                                   self.parameters.loc[:,
@@ -292,20 +326,20 @@ class Eag:
         for idn, bucket in self.buckets.items():
             p = params.loc[params.loc[:, "BakjeID"] == idn]
 
-            print("Simulating the waterbalance for bucket: %s %s" %
-                  (bucket.name, idn))
+            self.logger.info("Simulating the waterbalance for bucket: %s %s" %
+                             (bucket.name, idn))
             bucket.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
 
         p = params.loc[params.loc[:, "BakjeID"] == self.water.idn]
-        print("Simulating the waterbalance for bucket: %s %s" %
-              (self.water.name, self.water.idn))
+        self.logger.info("Simulating the waterbalance for bucket: %s %s" %
+                         (self.water.name, self.water.idn))
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
-        print("Simulation succesfully completed.")
+        self.logger.info("Simulation succesfully completed.")
 
     def simulate_wq(self, wq_params, increment=False, tmin=None,
                     tmax=None, freq="D"):
 
-        print("Simulating water quality: {}...".format(self.name))
+        self.logger.info("Simulating water quality: {}...".format(self.name))
 
         if not hasattr(self.water, "fluxes"):
             raise AttributeError("No calculated fluxes in water bucket."
@@ -403,7 +437,7 @@ class Eag:
             mass_tot.loc[t] = M
             C_out = M / self.water.storage.loc[t, "storage"]
 
-        print("Simulation water quality succesfully completed.")
+        self.logger.info("Simulation water quality succesfully completed.")
         return mass_in, mass_out, mass_tot
 
     def aggregate_fluxes(self):
@@ -494,7 +528,8 @@ class Eag:
         gemaal_cols = [
             icol for icol in self.series.columns if icol.lower().startswith("gemaal")]
         if len(gemaal_cols) == 0:
-            print("Warning! No timeseries for pumping station. Cannot aggregate.")
+            self.logger.warning(
+                "No timeseries for pumping station. Cannot aggregate.")
             return fluxes
         fluxes.rename(columns={"berekende uitlaat": "sluitfout"}, inplace=True)
         # Add pumping station timeseries to fluxes
