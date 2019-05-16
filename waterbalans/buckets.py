@@ -347,7 +347,8 @@ class MengRiool(BucketBase):
                 if fcso.endswith(".pklz"):
                     ts_cso = pd.read_pickle(fcso, compression="zip")
                 elif fcso.endswith(".csv"):
-                    ts_cso = pd.read_csv(fcso, index_col=[0], parse_dates=True)
+                    ts_cso = pd.read_csv(fcso, index_col=[0], parse_dates=True,
+                                         header=None)
                 else:
                     raise NotImplementedError(
                         "External CSO timeseries file must have extension .pklz or .csv!")
@@ -369,7 +370,7 @@ class MengRiool(BucketBase):
             self.eag.logger.info("CSO series calculated.")
 
         series = pd.Series(index=ts_cso.index,
-                           data=-1.*ts_cso.values)
+                           data=-1.*ts_cso.values.squeeze())
         series.name = "q_cso"
 
         self.fluxes = self.fluxes.assign(q_cso=series)
