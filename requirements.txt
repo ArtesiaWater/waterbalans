@@ -1,2 +1,0 @@
-pyodbc
-pandas=> 0.20
