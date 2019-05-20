@@ -366,3 +366,18 @@ def create_csvfile_table(csvdir):
     file_df.dropna(how="any", subset=[
         "opp", "param", "reeks"], axis=0, inplace=True)
     return file_df
+
+
+def compare_to_excel_balance(e, pickle_dir="./data/excel_pklz", **kwargs):
+    # Read Excel Balance Data (see scrape_excelbalansen.py for details)
+    excelbalance = pd.read_pickle(os.path.join(pickle_dir, "{}_wbalance.pklz".format(e.name)),
+                                  compression="zip")
+    for icol in excelbalance.columns:
+        excelbalance.loc[:, icol] = pd.to_numeric(
+            excelbalance[icol], errors="coerce")
+
+    # Waterbalance comparison
+    fig = e.plot.compare_fluxes_to_excel_balance(
+        excelbalance, **kwargs)
+
+    return fig
