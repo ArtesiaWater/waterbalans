@@ -38,7 +38,7 @@ class Eag:
 
     def __init__(self, idn=None, name=None, gaf=None, series=None, logfile=None):
 
-        self.logger = self.get_logger(filename=logfile)
+        self.logger = self.get_logger(name, filename=logfile)
 
         # Basic information
         self.gaf = gaf
@@ -64,10 +64,10 @@ class Eag:
     def __repr__(self):
         return "<EAG object: {0}>".format(self.name)
 
-    def get_logger(self, log_level=logging.INFO, filename=None):
+    def get_logger(self, loggername, log_level=logging.INFO, filename=None):
 
         # Create a custom logger
-        logger = logging.getLogger(__name__)
+        logger = logging.getLogger(loggername)
 
         # Create handlers
         c_handler = logging.StreamHandler()
@@ -83,7 +83,7 @@ class Eag:
 
         # If filename is passed
         if filename is not None:
-            f_handler = logging.FileHandler(filename)
+            f_handler = logging.FileHandler(filename, mode="a")
             f_handler.setLevel(logging.INFO)
             # Create formatters and add it to handlers
             f_format = logging.Formatter(
@@ -176,10 +176,12 @@ class Eag:
                     "Multiple FEWS series found for {}.".format(ClusterType))
                 for i in range(df.shape[0]):
                     series_list.append(get_series(
-                        ClusterType, ParamType, df.iloc[i:i+1], tmin, tmax, freq))
+                        ClusterType, ParamType, df.iloc[i:i + 1],
+                        tmin, tmax, freq, loggername=self.name))
             else:  # single series
                 series_list.append(get_series(
-                    ClusterType, ParamType, df, tmin, tmax, freq))
+                    ClusterType, ParamType, df, tmin, tmax, freq,
+                    loggername=self.name))
 
             for s in series_list:
                 # Check if series contains data
@@ -400,7 +402,8 @@ class Eag:
                 continue
 
             series = get_series(inlaat_type, reeks_type, df,
-                                tmin=tmin, tmax=tmax, freq=freq)
+                                tmin=tmin, tmax=tmax, freq=freq,
+                                loggername=self.name)
 
             if series.sum() == 0.0:
                 if inlaat_type in incols:

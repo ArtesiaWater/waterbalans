@@ -9,7 +9,6 @@ import logging
 import numpy as np
 from hkvfewspy import Pi
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
-from pastas.read import KnmiStation
 
 
 def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
@@ -22,7 +21,7 @@ def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice
     return pi
 
 
-def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
+def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None):
     """Method that return a time series downloaded from fews or constructed
     from its parameters.
 
@@ -51,7 +50,10 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
     -----
 
     """
-    logger = logging.getLogger('waterbalans.eag')
+    if loggername is None:
+        logger = logging.getLogger('waterbalans.eag')
+    else:
+        logger = logging.getLogger(loggername)
 
     try:
         pi = initialize_fews_pi()
@@ -128,6 +130,12 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D"):
 
     # if KNMI data is required:
     elif kind == "KNMI":
+        try:
+            from pastas.read import KnmiStation
+        except ModuleNotFoundError as e:
+            logger.exception("Module 'pastas' not installed! Please intall using "
+                             "pip to automatically donwload KNMI data!")
+            raise e
         stn = int(data.loc[:, "Waarde"].iloc[0])
         logger.info("Downloading {0} from KNMI for station {1}...".format(
             name, stn))
