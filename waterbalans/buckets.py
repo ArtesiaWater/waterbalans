@@ -6,7 +6,6 @@
 from abc import ABC
 
 import pandas as pd
-from pastas.read import KnmiStation
 
 from .utils import calculate_cso
 
@@ -356,6 +355,12 @@ class MengRiool(BucketBase):
                 self.eag.logger.info(
                     "Picked up CSO timeseries from external file.")
         except (FileNotFoundError, KeyError) as e:
+            try:
+                from pastas.read import KnmiStation
+            except ModuleNotFoundError as e:
+                self.eag.logger.exception("Module 'pastas' not installed! Please intall using "
+                                          "pip to automatically donwload KNMI data!")
+                raise e
             self.eag.logger.error(
                 "Failed loading CSO series from EAG or from external file.")
             self.eag.logger.warning(
