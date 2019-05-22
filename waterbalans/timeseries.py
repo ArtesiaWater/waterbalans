@@ -8,7 +8,7 @@ Auteur: R.A. Collenteur, Artesia Water
 import logging
 import numpy as np
 from hkvfewspy import Pi
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, concat
 
 
 def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
@@ -73,60 +73,85 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
     # Download a timeseries from FEWS
     if kind == "FEWS" and pi is not None:  # pragma: no cover
 
-        # Note: this selects only the first entry if there are multiple
-        if isinstance(data, DataFrame):
-            data = data.loc[:, "WaardeAlfa"]
-            if len(data) > 1:
-                logger.warning("Multiple series found, selecting "
-                               "first one ({}) and continuing".format(data.iloc[0]))
-            data = data.iloc[0]
+        if data.shape[0] > 1:
+            fews_waarde_alfa = "||".join(data["WaardeAlfa"])
         else:
-            data = data.loc["WaardeAlfa"].values[0]
-
-        # TODO: clean this try/except stuff up
-        try:
-            _, moduleInstanceId, locationId, parameterId = data.split(
-                "|")  # new FEWS Code
-        except ValueError as e:
+            fews_waarde_alfa = data["WaardeAlfa"].iloc[0]
+        # split if multiple fews ids provided in one string:
+        fewsid_list = fews_waarde_alfa.split("||")
+        fews_series = []
+        for fewsid in fewsid_list:
+            # parse fewsid
             try:
-                moduleInstanceId, locationId, parameterId = data.split("|")
-            except Exception as e:
+                filterId, moduleInstanceId, locationId, parameterId = fewsid.split(
+                    "|")
+            except ValueError as e:
                 logger.error(
-                    "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.  ".format(name, data))
+                    "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(name, fewsid))
+                continue
+
+            # get data from FEWS
+            try:
+                df = _get_fews_series(filterId=filterId, moduleInstanceId=moduleInstanceId,
+                                      parameterId=parameterId, locationId=locationId, tmin=tmin,
+                                      tmax=tmax + Timedelta(days=1), pi=pi)
+            except Exception as e:
+                logger.error("FEWS Timeseries '{}': {}".format(name, e))
+                continue
+
+            df.reset_index(inplace=True)
+            series = df.loc[:, ["date", "value",
+                                "parameterId"]].set_index("date")
+            # Remove timezone from FEWS series
+            series = series.tz_localize(None)
+            series["value"] = series["value"].astype(float)
+
+            # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
+            if np.any(series.index.hour != 9) or np.any(series.index.hour != 8):
+                series.index = series.index.floor(freq="D") - Timedelta(days=1)
+            series = series.squeeze()
+
+            # Delete nan-values (-999) (could be moved to fewspy)
+            series.replace(-999.0, np.nan, inplace=True)
+
+            # check units, TODO, check if others need to be fixed?
+            if name in ["Verdamping", "Neerslag"]:
+                series["value"] = series["value"].divide(1e3)
+
+            fews_series.append(series)
+            logger.info("Adding FEWS timeseries '{}': {}.".format(
+                name, fewsid))
+
+        # Logic to combine multiple FEWS series
+        if len(fews_series) > 1:
+            params = [i["parameterId"].iloc[0] for i in fews_series]
+            # check if all params are equal
+            if not np.all([ip == params[0] for ip in params]):
+                logger.error(
+                    "Not all FEWSIDs have the same parameter! {}".format(params))
                 return
-
-        query = pi.setQueryParameters(prefill_defaults=True)
-        query.query["onlyManualEdits"] = False
-        query.moduleInstanceIds([moduleInstanceId])
-        query.locationIds([locationId])
-        query.parameterIds([parameterId])
-        query.startTime(tmin)
-        query.endTime(tmax + Timedelta(days=1))  # add 1 day for prec/evap
-        # necessary for precip data after 2016-11-30...
-        query.useDisplayUnits(False)
-        query.clientTimeZone('Europe/Amsterdam')
-
-        try:
-            df = pi.getTimeSeries(query, setFormat='df')
-        except Exception as e:
-            logger.error("FEWS Timeseries '{}': {}".format(name, e))
+            # water levels: mean
+            elif params[0] == "H.meting.gem":
+                series = concat([s.value for s in fews_series], axis=1)
+                series = series.mean(axis=1)
+                logger.info(
+                    "Combined multiple FEWS Series with method 'mean'.")
+            # pump volumes: sum
+            elif params[0] == "Vol.berekend.dag":
+                series = concat([s.value for s in fews_series], axis=1)
+                series = series.sum(axis=1)
+                logger.info("Combined multiple FEWS Series with method 'sum'.")
+            else:
+                logger.error(
+                    "No logic defined for combining FEWS series with parameter '{}'!".format(params[0]))
+                raise NotImplementedError()
+        # only one fews series
+        elif len(fews_series) == 1:
+            series = fews_series[0]["value"]
+        # no fews series obtained
+        else:
+            logger.error("No FEWS series returned.")
             return
-        df.reset_index(inplace=True)
-        series = df.loc[:, ["date", "value"]].set_index("date")
-        series = series.tz_localize(None)  # Remove timezone from FEWS series
-        series = series.astype(float)
-
-        # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
-        if np.any(series.index.hour != 9):
-            series.index = series.index.floor(freq="D") - Timedelta(days=1)
-        series = series.squeeze()
-
-        # Delete nan-values (-999) (could be moved to fewspy)
-        series.replace(-999.0, np.nan, inplace=True)
-
-        # check units, TODO, check if others need to be fixed?
-        if name in ["Verdamping", "Neerslag"]:
-            series = series.divide(1e3)
 
     # if KNMI data is required:
     elif kind == "KNMI":
@@ -181,8 +206,8 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
     else:
         # TODO: fix logging, commented out now, because too much noise.
-        logger.warning(
-            "Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
+        # logger.warning(
+        #     "Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
         return
 
     series.name = name
@@ -263,3 +288,35 @@ def update_series(series_orig, series_new, method="append"):
         raise NotImplementedError("Method {} not implemented!".format(method))
 
     return updated_series
+
+
+def _get_fews_series(filterId=None, moduleInstanceId=None,
+                     locationId=None, parameterId=None, tmin=None,
+                     tmax=None, pi=None):
+
+    if pi is None:
+        pi = initialize_fews_pi()
+
+    query = pi.setQueryParameters(prefill_defaults=True)
+    query.moduleInstanceIds([moduleInstanceId])
+    query.parameterIds([parameterId])
+    query.locationIds([locationId])
+    query.useDisplayUnits(False)  # needed for precip after 2016-11-30
+    query.startTime(tmin)
+    query.endTime(tmax)
+    query.version("1.24")
+
+    df = pi.getTimeSeries(query, setFormat='df')
+
+    return df
+
+
+def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):
+    pi = initialize_fews_pi()
+    filterId, moduleInstanceId, locationId, parameterId = fewsid_string.split(
+        "|")
+    df = _get_fews_series(filterId=filterId, moduleInstanceId=moduleInstanceId,
+                          locationId=locationId, parameterId=parameterId,
+                          tmin=tmin, tmax=tmax, pi=pi)
+
+    return df
