@@ -92,7 +92,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
                 moduleInstanceId, locationId, parameterId = data.split("|")
             except Exception as e:
                 logger.error(
-                    "Cannot parse FEWS Id for timeseries '{}'!".format(name))
+                    "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.  ".format(name, data))
                 return
 
         query = pi.setQueryParameters(prefill_defaults=True)
