@@ -67,7 +67,7 @@ class Eag:
     def __repr__(self):
         return "<EAG object: {0}>".format(self.name)
 
-    def set_wsdl(wsdl):
+    def set_wsdl(self, wsdl):
         self.wsdl = wsdl
 
     def get_logger(self, loggername, log_level=logging.INFO, filename=None):
