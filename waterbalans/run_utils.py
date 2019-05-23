@@ -37,6 +37,10 @@ def run_eag_by_name(name, csvdir, tmin="1996", tmax="2019"):
 
     # Voeg overige tijdreeksen toe (overschrijf FEWS met Excel)
     if series is not None:
+        series.drop(
+            [icol for icol in series.columns if icol.lower(
+            ).startswith("inlaatcalibratie1")],
+            axis=1, inplace=True)
         add_timeseries_to_obj(e, series, overwrite=True)
 
     # Force MengRiool to use external timeseries
