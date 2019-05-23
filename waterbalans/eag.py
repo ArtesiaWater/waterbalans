@@ -61,25 +61,32 @@ class Eag:
         # Add functionality from other modules
         self.plot = Eag_Plots(self)
 
+        # FEWS WSDL: added here so it can be edited by a user
+        self.wsdl = 'http://localhost:8080/FewsWebServices/fewspiservice?wsdl'
+
     def __repr__(self):
         return "<EAG object: {0}>".format(self.name)
+
+    def set_wsdl(self, wsdl):
+        self.wsdl = wsdl
 
     def get_logger(self, loggername, log_level=logging.INFO, filename=None):
 
         # Create a custom logger
         logger = logging.getLogger(loggername)
 
-        # Create handlers
-        c_handler = logging.StreamHandler()
-        c_handler.setLevel(logging.INFO)
+        # Create handlers, avoid adding unnecessary handlers
+        if len(logger.handlers) == 0:
+            c_handler = logging.StreamHandler()
+            c_handler.setLevel(logging.INFO)
 
-        # Create formatters and add it to handlers
-        c_format = logging.Formatter(
-            '%(asctime)s | %(funcName)s - %(levelname)s : %(message)s')
-        c_handler.setFormatter(c_format)
+            # Create formatters and add it to handlers
+            c_format = logging.Formatter(
+                '%(asctime)s | %(funcName)s - %(levelname)s : %(message)s')
+            c_handler.setFormatter(c_format)
 
-        # Add handlers to the logger
-        logger.addHandler(c_handler)
+            # Add handlers to the logger
+            logger.addHandler(c_handler)
 
         # If filename is passed
         if filename is not None:
@@ -177,11 +184,12 @@ class Eag:
                 for i in range(df.shape[0]):
                     series_list.append(get_series(
                         ClusterType, ParamType, df.iloc[i:i + 1],
-                        tmin, tmax, freq, loggername=self.name))
+                        tmin, tmax, freq, loggername=self.name,
+                        wsdl=self.wsdl))
             else:  # single series
                 series_list.append(get_series(
                     ClusterType, ParamType, df, tmin, tmax, freq,
-                    loggername=self.name))
+                    loggername=self.name, wsdl=self.wsdl))
 
             for s in series_list:
                 # Check if series contains data
@@ -263,9 +271,9 @@ class Eag:
             elif isinstance(series, pd.Series):
                 name = series.name
 
+        self.logger.info(
+            "Adding timeseries '{0}' to EAG manually".format(name))
         if name in self.series.columns:
-            self.logger.info(
-                "Adding timeseries '{0}' to EAG manually".format(name))
             self.logger.warning(
                 "Series {} already present in EAG, overwriting data where not NaN!".format(name))
             first_valid_index = series.first_valid_index()
