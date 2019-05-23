@@ -6,7 +6,7 @@ from .create import create_eag
 from .utils import create_csvfile_table, add_timeseries_to_obj
 
 
-def run_eag_by_name(name, csvdir="./data/input_csv", tmin="1996", tmax="2019"):
+def run_eag_by_name(name, csvdir, tmin="1996", tmax="2019"):
     file_df = create_csvfile_table(csvdir)
     fbuckets, fparams, freeks, fseries, _, _ = file_df.loc[name]
 
@@ -44,7 +44,8 @@ def run_eag_by_name(name, csvdir="./data/input_csv", tmin="1996", tmax="2019"):
     if len(mengriool) > 0:
         for b in mengriool:
             b.use_eag_cso_series = False
-            b.path_to_cso_series = r"./data/cso_series/240_cso_timeseries.pklz"
+            b.path_to_cso_series = os.path.join(
+                csvdir, "../cso_series/240_cso_timeseries.pklz")
 
     # Simuleer waterbalans met parameters
     e.simulate(parameters, tmin=tmin, tmax=tmax)
@@ -52,8 +53,8 @@ def run_eag_by_name(name, csvdir="./data/input_csv", tmin="1996", tmax="2019"):
     return e
 
 
-def get_dataframes_from_files(fbuckets=None, freeks=None, fparams=None,
-                              fseries=None, csvdir="./data/input_csv"):
+def get_dataframes_from_files(csvdir, fbuckets=None, freeks=None, fparams=None,
+                              fseries=None):
     dflist = {}
     if fbuckets is not None:
         # bestand met deelgebieden en oppervlaktes:
@@ -79,10 +80,10 @@ def get_dataframes_from_files(fbuckets=None, freeks=None, fparams=None,
     return dflist
 
 
-def get_dataframes_by_name(name, csvdir="./data/input_csv"):
+def get_dataframes_by_name(name, csvdir):
     file_df = create_csvfile_table(csvdir)
     fbuckets, fparams, freeks, fseries, _, _ = file_df.loc[name]
 
-    dfdict = get_dataframes_from_files(fbuckets=fbuckets, fparams=fparams, freeks=freeks,
-                                       fseries=fseries, csvdir=csvdir)
+    dfdict = get_dataframes_from_files(csvdir=csvdir, fbuckets=fbuckets, fparams=fparams,
+                                       freeks=freeks, fseries=fseries)
     return dfdict

@@ -368,7 +368,7 @@ def create_csvfile_table(csvdir):
     return file_df
 
 
-def compare_to_excel_balance(e, pickle_dir="./data/excel_pklz", **kwargs):
+def compare_to_excel_balance(e, pickle_dir, **kwargs):
     # Read Excel Balance Data (see scrape_excelbalansen.py for details)
     excelbalance = pd.read_pickle(os.path.join(pickle_dir, "{}_wbalance.pklz".format(e.name)),
                                   compression="zip")
