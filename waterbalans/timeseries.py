@@ -21,7 +21,8 @@ def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice
     return pi
 
 
-def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None):
+def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None,
+               wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
     """Method that return a time series downloaded from fews or constructed
     from its parameters.
 
@@ -41,6 +42,9 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
     freq: str, optional
         string with the desired frequency, not really supported now. Default
         is "D" (Daily).
+    wsdl: str
+        url to the FewsWebService, default is for a local FEWS:
+        http://localhost:8080/FewsWebServices/fewspiservice?wsdl
 
     Returns
     -------
@@ -56,7 +60,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         logger = logging.getLogger(loggername)
 
     try:
-        pi = initialize_fews_pi()
+        pi = initialize_fews_pi(wsdl=wsdl)
     except Exception:
         logger.warning(
             "Pi service cannot be started. Module will not import series from FEWS!")
@@ -106,18 +110,24 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
             series = series.tz_localize(None)
             series["value"] = series["value"].astype(float)
 
+            # check units, TODO, check if others need to be fixed?
+            if name in ["Verdamping", "Neerslag"]:
+                series["value"] = series["value"].divide(1e3)
+
             # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
-            if np.any(series.index.hour != 9) or np.any(series.index.hour != 8):
-                series.index = series.index.floor(freq="D") - Timedelta(days=1)
+            if name == "Neerslag":
+                series.index = series.index.floor(
+                    freq="D") - Timedelta(days=1)
+            else:
+                # remove hours from index
+                series.index = series.index.floor(freq="D")
+
             series = series.squeeze()
 
             # Delete nan-values (-999) (could be moved to fewspy)
             series.replace(-999.0, np.nan, inplace=True)
 
-            # check units, TODO, check if others need to be fixed?
-            if name in ["Verdamping", "Neerslag"]:
-                series["value"] = series["value"].divide(1e3)
-
+            # append series
             fews_series.append(series)
             logger.info("Adding FEWS timeseries '{}': {}.".format(
                 name, fewsid))
