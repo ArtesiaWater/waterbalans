@@ -358,7 +358,8 @@ def create_csvfile_table(csvdir):
     files = [i for i in os.listdir(csvdir) if i.endswith(".csv")]
     eag_df = pd.DataFrame(data=files, columns=["filenames"])
     eag_df["ID"] = eag_df.filenames.apply(
-        lambda s: s.split("_")[2].split(".")[0])
+        lambda s: s.split("_")[2].split(".")[0] if not s.startswith("stoffen") else
+        s.split("_")[3].split(".")[0])
     eag_df["type"] = eag_df.filenames.apply(lambda s: s.split(
         "_")[0] if not s.startswith("stoffen") else "_".join(s.split("_")[:2]))
     eag_df.drop_duplicates(subset=["ID", "type"], keep="last", inplace=True)
