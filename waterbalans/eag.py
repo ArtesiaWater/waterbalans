@@ -7,6 +7,7 @@ David Brakenhoff, Artesia Water, September 2018
 
 import logging
 from collections import OrderedDict
+from timeit import default_timer as timer
 
 import numpy as np
 import pandas as pd
@@ -363,6 +364,7 @@ class Eag:
         tmax: str or pandas.Timestamp
 
         """
+        start = timer()
         self.logger.info("Simulating: {}...".format(self.name))
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "ParamCode"] + "_" +
@@ -380,9 +382,12 @@ class Eag:
         self.logger.info("Simulating the waterbalance for bucket: %s %s" %
                          (self.water.name, self.water.idn))
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
-        self.logger.info("Simulation succesfully completed.")
+        end = timer()
+        self.logger.info("Simulation succesfully completed in {0:.1f}s.".format(
+            end-start))
 
     def simulate_iterative(self, params, extra_iters=1, tmin=None, tmax=None):
+        start = timer()
         self.logger.info("*** Starting iterative simulation ***")
         self.simulate(params, tmin=tmin, tmax=tmax)
         self.add_missinginflux_to_eagseries()
@@ -390,7 +395,9 @@ class Eag:
             self.logger.info(" *** Iteration {0}/{1} ***".format(n+1, extra_iters))
             self.simulate(self.parameters.reset_index(drop=True))
             self.add_missinginflux_to_eagseries()
-        self.logger.info("*** Iteration Complete! ***")
+        end = timer()
+        self.logger.info("*** Iteration Complete! (duration {0:.1f}s) ***".format(
+            end - start))
 
     def simulate_wq(self, wq_params, increment=False, tmin=None,
                     tmax=None, freq="D"):

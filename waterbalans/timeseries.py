@@ -161,7 +161,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
             series = fews_series[0]["value"]
         # no fews series obtained
         else:
-            logger.error("No FEWS series returned.")
+            logger.error("No FEWS series returned for '{}'.".format(name))
             return
 
     # if KNMI data is required:
