@@ -238,7 +238,7 @@ class Drain(BucketBase):
                    'EFacMin_1', 'EFacMax_1', 'RFacIn_1', 'RFacIn_2',
                    'RFacOut_1', 'RFacOut_2', 'por_1', 'por_2'],
             columns=["Waarde"])
-        self.parameters.loc[:, "pname"] = self.parameters.index
+        # self.parameters.loc[:, "pname"] = self.parameters.index
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
