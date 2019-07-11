@@ -36,9 +36,11 @@ class Eag:
 
     """
 
-    def __init__(self, idn=None, name=None, gaf=None, series=None, logfile=None):
+    def __init__(self, idn=None, name=None, gaf=None, series=None, logfile=None,
+                 log_level=logging.INFO):
 
-        self.logger = self.get_logger(name, filename=logfile)
+        self.logger = self.get_logger(name, filename=logfile,
+                                      log_level=log_level)
 
         # Basic information
         self.gaf = gaf
@@ -78,7 +80,7 @@ class Eag:
         # Create handlers, avoid adding unnecessary handlers
         if len(logger.handlers) == 0:
             c_handler = logging.StreamHandler()
-            c_handler.setLevel(logging.INFO)
+            c_handler.setLevel(log_level)
 
             # Create formatters and add it to handlers
             c_format = logging.Formatter(
@@ -91,7 +93,7 @@ class Eag:
         # If filename is passed
         if filename is not None:
             f_handler = logging.FileHandler(filename, mode="a")
-            f_handler.setLevel(logging.INFO)
+            f_handler.setLevel(log_level)
             # Create formatters and add it to handlers
             f_format = logging.Formatter(
                 '%(asctime)s | %(funcName)s - %(levelname)s : %(message)s')
@@ -99,7 +101,7 @@ class Eag:
             # add to logger
             logger.addHandler(f_handler)
 
-        logger.setLevel(logging.INFO)
+        logger.setLevel(log_level)
 
         return logger
 
@@ -138,7 +140,7 @@ class Eag:
         else:
             self.water = water
 
-    def add_series_from_database(self, series, tmin="2000", tmax="2015",
+    def add_series_from_database(self, series, tmin, tmax,
                                  freq="D", fillna=False, method="append"):
         """Method to add timeseries based on a DataFrame containing
         information about the series. Series are described by one or more
@@ -244,7 +246,7 @@ class Eag:
             self.series = pd.DataFrame(index=date_range(Timestamp(tmin),
                                                         Timestamp(tmax), freq="D"))
 
-    def add_timeseries(self, series, name=None, tmin="2000", tmax="2015", freq="D",
+    def add_timeseries(self, series, name=None, tmin=None, tmax=None, freq="D",
                        fillna=False, method=None):
         """Method to add series directly to EAG. Series must contain volumes (so
         not divided by area). Series must be negative for water taken out of the
@@ -261,16 +263,25 @@ class Eag:
         freq: str
 
         """
+        # get start and end date
+        if tmin is None:
+            tmin = series.index[0]
+        if tmax is None:
+            tmax = series.index[-1]
+
+        # if no series present in EAG, make dataframe with index tmin:tmax
         if self.series.index.shape[0] == 0:
             self.series = pd.DataFrame(index=date_range(Timestamp(tmin),
                                                         Timestamp(tmax), freq="D"))
 
+        # get name from series
         if name is None:
             if isinstance(series, pd.DataFrame):
                 name = series.columns[0]
             elif isinstance(series, pd.Series):
                 name = series.name
 
+        # if series name already present in eag.series, cut out relevant part
         self.logger.info(
             "Adding timeseries '{0}' to EAG manually".format(name))
         if name in self.series.columns:
@@ -281,6 +292,7 @@ class Eag:
             series = series.loc[first_valid_index:last_valid_index].dropna()
             fillna = False
 
+        # if fillna
         if fillna:
             if (series.isna().sum() > 0).all():
                 self.logger.info("Filled {0} NaN-values with '{1}' in series {2}.".format(
@@ -290,6 +302,11 @@ class Eag:
                 elif isinstance(method, float) or isinstance(method, int):
                     series = series.fillna(method)
 
+        # update eag.series where eag.series and passed series overlap
+        # - if eag.series exists, only use part of new series that overlaps
+        #   with eag.series.index
+        # - if eag.series doesn't exist, the overlap is equal to series.index
+        #   because that index is used to instantiate eag.series
         shared_index = series.index.intersection(self.series.index)
         self.series.loc[shared_index,
                         name] = series.loc[shared_index].values.squeeze()
@@ -320,7 +337,7 @@ class Eag:
         return df
 
     def get_bucket_params(self):
-        bucketnames = [b.name for b in self.buckets.values()]
+        bucketnames = [b.name + "_" + str(b.idn) for b in self.buckets.values()]
         bucketparams = [b.parameters for b in self.buckets.values()]
         return pd.concat(bucketparams, axis=1, sort=False, keys=bucketnames)
 
@@ -349,8 +366,8 @@ class Eag:
         self.logger.info("Simulating: {}...".format(self.name))
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "ParamCode"] + "_" +
-                                  self.parameters.loc[:,
-                                                      "Laagvolgorde"].astype(str), inplace=True)
+                                  self.parameters.loc[:, "Laagvolgorde"].astype(str),
+                                  inplace=True)
 
         for idn, bucket in self.buckets.items():
             p = params.loc[params.loc[:, "BakjeID"] == idn]
@@ -364,6 +381,16 @@ class Eag:
                          (self.water.name, self.water.idn))
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
         self.logger.info("Simulation succesfully completed.")
+
+    def simulate_iterative(self, params, extra_iters=1, tmin=None, tmax=None):
+        self.logger.info("*** Starting iterative simulation ***")
+        self.simulate(params, tmin=tmin, tmax=tmax)
+        self.add_missinginflux_to_eagseries()
+        for n in range(extra_iters):
+            self.logger.info(" *** Iteration {0}/{1} ***".format(n+1, extra_iters))
+            self.simulate(self.parameters.reset_index(drop=True))
+            self.add_missinginflux_to_eagseries()
+        self.logger.info("*** Iteration Complete! ***")
 
     def simulate_wq(self, wq_params, increment=False, tmin=None,
                     tmax=None, freq="D"):
@@ -702,6 +729,12 @@ class Eag:
         inlaat_sluitfout = inlaat_monthly.resample("D").bfill()
 
         return inlaat_sluitfout
+
+    def add_missinginflux_to_eagseries(self):
+        missflux = self.calculate_missing_influx()
+        self.add_timeseries(missflux, "inlaat_sluitfout",
+                            tmin=missflux.index[0],
+                            tmax=missflux.index[-1])
 
     def output_for_plots(self):
 
