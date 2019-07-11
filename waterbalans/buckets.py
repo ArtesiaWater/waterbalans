@@ -98,7 +98,9 @@ class BucketBase(ABC):
         pass
 
     def __repr__(self):
-        return "<{0}: {1} bucket with area {2:.1f}>".format(self.idn, self.name, self.area)
+        return "<{0}: {1} bucket with area {2:.1f}>".format(self.idn,
+                                                            self.name,
+                                                            self.area)
 
 
 class Verhard(BucketBase):
@@ -124,7 +126,7 @@ class Verhard(BucketBase):
         hMax_2 = hMax_2 * por_2
 
         h_1 = [0]  # Initial storage is zero
-        h_2 = [hInit_2 * por_2]  # initial storage is 0.5 times the porosity
+        h_2 = [hInit_2 * por_2]
         q_no = []
         q_ui = []
         q_s = []
@@ -134,7 +136,8 @@ class Verhard(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            self.eag.logger.warning("Warning: {} not in series. Assumed equal to 0!".format(
+            msg = "Warning: {} not in series. Assumed equal to 0!"
+            self.eag.logger.warning(msg.format(
                 {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
 
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
@@ -257,8 +260,8 @@ class Drain(BucketBase):
         # Get parameters
         non_defined_params = set(self.parameters.index) - set(params.index)
         if len(non_defined_params) > 0:
-            self.eag.logger.warning("Warning: {} not set in parameters, using default values!".format(
-                non_defined_params))
+            msg = "Warning: {} not set in parameters, using default values!"
+            self.eag.logger.warning(msg.format(non_defined_params))
 
         self.parameters.update(params)
 
@@ -282,9 +285,11 @@ class Drain(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            self.eag.logger.warning("Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!".format(self.name, self.idn,
-                                                                                                            {"Neerslag", "Verdamping", "Qkwel"} -
-                                                                                                            set(series.columns)))
+            msg = "Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!"
+            self.eag.logger.warning(msg.format(
+                self.name, self.idn,
+                {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+
         for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
                                      fill_value=0.0).iterrows():
             p, e, s = pes
