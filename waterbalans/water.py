@@ -72,7 +72,7 @@ class WaterBase(ABC):
             if icol.lower().startswith("gemaal"):
                 colset.append(icol)
 
-        # add remaining series to water bucket.
+        # add remaining series to water bucket. Ignore the ones in colset
         colset += ["Neerslag", "Verdamping", "Peil", "Gemaal", "q_cso"]
         otherseries = set(self.eag.series.columns) - set(colset)
 
@@ -168,8 +168,8 @@ class Water(WaterBase):
                   ] = (hTarget_1 - hBottom_1) * self.area
             h.sort_index(inplace=True)
         else:
-            h = pd.Series(index=self.storage.loc[pd.Timestamp(tmin) -
-                                                 pd.Timedelta(days=1):pd.Timestamp(tmax)].index)
+
+            h = pd.Series(index=self.storage.index)
             h.iloc[0] = (hTarget_1 - hBottom_1) * self.area
 
         # pre-allocate empty series

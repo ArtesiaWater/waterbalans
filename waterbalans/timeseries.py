@@ -9,9 +9,10 @@ import logging
 import numpy as np
 from hkvfewspy import Pi
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, concat
+from .wsdl_settings import _wsdl
 
 
-def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
+def initialize_fews_pi(wsdl=_wsdl):
     """
     FEWS Webservice 2017.01: http://localhost:8081/FewsPiService/fewspiservice?wsdl
     FEWS Webservice 2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl
@@ -22,7 +23,7 @@ def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice
 
 
 def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None,
-               wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
+               wsdl=_wsdl):
     """Method that return a time series downloaded from fews or constructed
     from its parameters.
 
@@ -91,14 +92,15 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
                     "|")
             except ValueError as e:
                 logger.error(
-                    "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(name, fewsid))
+                    "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(name,
+                                                                                   fewsid))
                 continue
 
             # get data from FEWS
             try:
                 df = _get_fews_series(filterId=filterId, moduleInstanceId=moduleInstanceId,
-                                      parameterId=parameterId, locationId=locationId, tmin=tmin,
-                                      tmax=tmax + Timedelta(days=1), pi=pi)
+                                      parameterId=parameterId, locationId=locationId,
+                                      tmin=tmin, tmax=tmax + Timedelta(days=1), pi=pi)
             except Exception as e:
                 logger.error("FEWS Timeseries '{}': {}".format(name, e))
                 continue
@@ -160,7 +162,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
             series = fews_series[0]["value"]
         # no fews series obtained
         else:
-            logger.error("No FEWS series returned.")
+            logger.error("No FEWS series returned for '{}'.".format(name))
             return
 
     # if KNMI data is required:

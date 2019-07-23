@@ -1,12 +1,13 @@
 import os
-
+import logging
 import pandas as pd
 
 from .create import create_eag
 from .utils import create_csvfile_table, add_timeseries_to_obj
 
 
-def run_eag_by_name(name, csvdir, tmin="1996", tmax="2019"):
+def run_eag_by_name(name, csvdir, tmin="1996", tmax="2019", log_level=logging.INFO,
+                    logfile="waterbalans.log"):
     file_df = create_csvfile_table(csvdir)
     fbuckets, fparams, freeks, fseries, _, _ = file_df.loc[name]
 
@@ -30,7 +31,8 @@ def run_eag_by_name(name, csvdir, tmin="1996", tmax="2019"):
     # Maak bakjes model
     e = create_eag(name.split("-")[-1], name, deelgebieden,
                    use_waterlevel_series=use_wl,
-                   logfile="waterbalans.log")
+                   logfile=logfile,
+                   log_level=log_level)
 
     # Voeg tijdreeksen toe
     e.add_series_from_database(tijdreeksen, tmin=tmin, tmax=tmax)

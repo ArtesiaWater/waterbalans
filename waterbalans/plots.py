@@ -17,13 +17,13 @@ from .timeseries import get_series
 class Eag_Plots:
     def __init__(self, eag, dpi=150):
         self.eag = eag
-        self.colordict =  OrderedDict(
-                          {"kwel": "brown",
-                           "neerslag": "b",
-                           "uitspoeling": "lime",
-                           "drain": "orange",
-                           "verhard": "darkgray",
-                           "afstroming": "darkgreen",
+        self.colordict = OrderedDict(
+            {"kwel": "brown",
+             "neerslag": "b",
+             "uitspoeling": "lime",
+             "drain": "orange",
+             "verhard": "darkgray",
+             "afstroming": "darkgreen",
                            "q_cso": "olive",
                            "wegzijging": "brown",
                            "verdamping": "b",
@@ -38,45 +38,17 @@ class Eag_Plots:
 
     def series(self):
 
-        fig, axgr = plt.subplots(len(self.eag.series.columns), 1, sharex=True)
+        fig, axgr = plt.subplots(len(self.eag.series.columns), 1, sharex=True,
+                                 figsize=self.figsize, dpi=self.dpi)
 
         for icol, iax in zip(self.eag.series.columns, axgr):
-            iax.plot(self.eag.series.index, self.eag.series.loc[:, icol], label=icol)
+            iax.plot(self.eag.series.index,
+                     self.eag.series.loc[:, icol], label=icol)
             iax.grid(b=True)
             iax.legend(loc="best")
 
         fig.tight_layout()
         return axgr
-
-    def plot_series(self, series, tmin="2000", tmax="2018", freq="D", mask=None, labelcol="WaardeAlfa"):  # pragma: no cover
-        """Method to plot timeseries based on a pandas DataFrame with series names.
-
-        Parameters
-        ----------
-        series: pandas.DataFrame
-        tmin: str or pandas.Timestamp, optional
-        tmax: str or pandas.Timestamp, optional
-        freq: str
-
-        """
-        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
-
-        for idn, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
-            BakjeID, ClusterType, ParamType = idn
-            if mask is not None:
-                if (BakjeID == mask) or (ClusterType == mask) or (ParamType == mask):
-                    for j in range(df.shape[0]):
-                        series = get_series(ClusterType, ParamType, df.iloc[j:j+1], tmin, tmax, freq)
-                        ax.plot(series.index, series, label=df.iloc[j].loc[labelcol])
-            else:
-                for j in range(df.shape[0]):
-                    series = get_series(ClusterType, ParamType, df, tmin, tmax, freq)
-                    ax.plot(series.index, series, label=df.iloc[j].loc[labelcol])
-
-        ax.legend(loc="best")
-        fig.tight_layout()
-
-        return ax
 
     def bucket(self, name, freq="M", tmin=None, tmax=None):
         bucket = self.eag.buckets[name]
@@ -88,7 +60,8 @@ class Eag_Plots:
             tmax = bucket.fluxes.index[-1]
 
         # get data
-        plotdata = bucket.fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
+        plotdata = bucket.fluxes.loc[tmin:tmax].astype(
+            float).resample(freq).mean()
 
         # get correct colors per flux
         rgbcolors = []
@@ -98,7 +71,7 @@ class Eag_Plots:
                 rgbcolors.append(colors.to_rgba(self.colordict[icol]))
             else:
                 # if no color defined get one of the default ones
-                rgbcolors.append(colors.to_rgba("C{}".format(i%10)))
+                rgbcolors.append(colors.to_rgba("C{}".format(i % 10)))
                 i += 1
 
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
@@ -132,8 +105,10 @@ class Eag_Plots:
 
         # get data and sort columns
         plotdata = fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
-        missing_cols = fluxes.columns.difference(self.colordict.keys()).tolist()
-        column_order = [k for k in self.colordict.keys() if k in fluxes.columns] + missing_cols
+        missing_cols = fluxes.columns.difference(
+            self.colordict.keys()).tolist()
+        column_order = [k for k in self.colordict.keys(
+        ) if k in fluxes.columns] + missing_cols
         plotdata = plotdata.loc[:, column_order]
 
         # get correct colors per flux
@@ -144,7 +119,7 @@ class Eag_Plots:
                 rgbcolors.append(colors.to_rgba(self.colordict[icol]))
             else:
                 # if no color defined get one of the default ones
-                rgbcolors.append(colors.to_rgba("C{}".format(i%10)))
+                rgbcolors.append(colors.to_rgba("C{}".format(i % 10)))
                 i += 1
 
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
@@ -183,11 +158,14 @@ class Eag_Plots:
 
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
-        ax.plot(calculated_out.index, -1*calculated_out, lw=2, label="berekende uitlaat")
+        ax.plot(calculated_out.index, -1*calculated_out,
+                lw=2, label="berekende uitlaat")
 
-        gemaal_cols = [icol for icol in self.eag.series.columns if icol.lower().startswith("gemaal")]
+        gemaal_cols = [
+            icol for icol in self.eag.series.columns if icol.lower().startswith("gemaal")]
         if len(gemaal_cols) > 0:
-            gemaal = self.eag.series.loc[:, gemaal_cols].loc[tmin:tmax].sum(axis=1)
+            gemaal = self.eag.series.loc[:,
+                                         gemaal_cols].loc[tmin:tmax].sum(axis=1)
             ax.plot(gemaal.index, gemaal, lw=2, label="gemeten bij gemaal")
 
         ax.set_ylabel("Afvoer (m$^3$/dag)")
@@ -201,7 +179,7 @@ class Eag_Plots:
                       eagseries_names=("Gemaal",), tmin=None, tmax=None,
                       period="year", month_offset=9):
 
-        if len(self.eag.series.columns.intersect(set(eagseries_names))) > 0:
+        if len(self.eag.series.columns.intersection(set(eagseries_names))) > 0:
             cumsum_fluxes, cumsum_series = self.eag.calculate_cumsum(fluxes_names=fluxes_names,
                                                                      eagseries_names=eagseries_names,
                                                                      cumsum_period=period,
@@ -218,8 +196,8 @@ class Eag_Plots:
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         for flux_nam in fluxes_names:
-            ax.plot(cumsum_fluxes[flux_nam].index, cumsum_fluxes[flux_nam], lw=2,
-                    label=flux_nam)
+            ax.plot(cumsum_fluxes[flux_nam].index, cumsum_fluxes[flux_nam],
+                    lw=2, label=flux_nam)
 
         if cumsum_series is not None:
             for eseries_nam in eagseries_names:
@@ -260,7 +238,7 @@ class Eag_Plots:
             tmax = self.eag.series.index[-1]
 
         colordict = OrderedDict(
-                    {"kwel": "brown",
+            {"kwel": "brown",
                      "neerslag": "blue",
                      "uitspoeling": "lime",
                      "afstroming": "darkgreen",
@@ -317,8 +295,10 @@ class Eag_Plots:
         if tmax is None:
             tmax = mass_in.index[-1]
 
-        plotdata_in = mass_in.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
-        plotdata_out = mass_out.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
+        plotdata_in = mass_in.loc[tmin:tmax].resample(
+            freq).mean() / self.eag.water.area * 1e3
+        plotdata_out = mass_out.loc[tmin:tmax].resample(
+            freq).mean() / self.eag.water.area * 1e3
 
         # get correct colors per flux
         rgbcolors_in = []
@@ -328,7 +308,7 @@ class Eag_Plots:
                 rgbcolors_in.append(colors.to_rgba(self.colordict[icol]))
             else:
                 # if no color defined get one of the default ones
-                rgbcolors_in.append(colors.to_rgba("C{}".format(i%10)))
+                rgbcolors_in.append(colors.to_rgba("C{}".format(i % 10)))
                 i += 1
 
         rgbcolors_out = []
@@ -338,7 +318,7 @@ class Eag_Plots:
                 rgbcolors_out.append(colors.to_rgba(self.colordict[icol]))
             else:
                 # if no color defined get one of the default ones
-                rgbcolors_out.append(colors.to_rgba("C{}".format(i%10)))
+                rgbcolors_out.append(colors.to_rgba("C{}".format(i % 10)))
                 i += 1
 
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
@@ -386,14 +366,16 @@ class Eag_Plots:
 
         # Plot
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=self.dpi)
-        ax.plot(self.eag.water.level.index, self.eag.water.level, label="berekend peil")
+        ax.plot(self.eag.water.level.index,
+                self.eag.water.level, label="berekend peil")
 
         if label_obs:
             if "Peil" in self.eag.series.columns:
                 ax.plot(self.eag.series.Peil.index, self.eag.series.Peil, ls="",
                         marker=".", c="k", label="peil metingen")
 
-        ax.axhline(hTarget, linestyle="dashed", lw=1.5, label="hTarget", color="k")
+        ax.axhline(hTarget, linestyle="dashed",
+                   lw=1.5, label="hTarget", color="k")
 
         if add_target_levels:
             if isinstance(hTargetMin, Series):
@@ -407,7 +389,8 @@ class Eag_Plots:
                 ax.axhline(hTarget + np.abs(hTargetMax), linestyle="dashed", linewidth=1.5,
                            label="hTargetMax", color="b")
 
-        ax.axhline(hBottom, linestyle="dashdot", lw=1.5, label="hBottom", color="C2")
+        ax.axhline(hBottom, linestyle="dashdot",
+                   lw=1.5, label="hBottom", color="C2")
 
         ax.set_ylabel("peil (m NAP)")
         ax.legend(loc="best")
@@ -459,7 +442,8 @@ class Eag_Plots:
 
         fluxes = self.eag.aggregate_fluxes()
         fluxes.dropna(how="all", axis=1, inplace=True)
-        fluxes = fluxes.iloc[:-1]  # drop last day which isn't simulated (day after tmax)
+        # drop last day which isn't simulated (day after tmax)
+        fluxes = fluxes.iloc[:-1]
 
         # Plot
         fig, axgr = plt.subplots(int(np.ceil((fluxes.shape[1]+1)/3)), 3,
@@ -468,11 +452,14 @@ class Eag_Plots:
         for i, pycol in enumerate(fluxes.columns):
             iax = axgr.ravel()[i]
 
-            iax.plot(fluxes.index, fluxes.loc[:, pycol], label="{} (Python)".format(pycol))
-            diff = fluxes.loc[:, pycol].copy() # hacky method to subtract excel series from diff
+            iax.plot(fluxes.index,
+                     fluxes.loc[:, pycol], label="{} (Python)".format(pycol))
+            # hacky method to subtract excel series from diff
+            diff = fluxes.loc[:, pycol].copy()
 
             if pycol not in exceldf.columns and pycol not in column_names.keys():
-                self.eag.logger.warning("Column '{}' not found in Excel Balance!".format(pycol))
+                self.eag.logger.warning(
+                    "Column '{}' not found in Excel Balance!".format(pycol))
                 iax.legend(loc="best")
                 iax.grid(b=True)
                 continue
@@ -490,7 +477,8 @@ class Eag_Plots:
 
             if showdiff:
                 iax2 = iax.twinx()
-                diff -= exceldf.iloc[:, excol]  # hacky method to subtract excel balance (diff column names)
+                # hacky method to subtract excel balance (diff column names)
+                diff -= exceldf.iloc[:, excol]
                 iax2.plot(diff.index, diff, c="C4", lw=0.75)
                 yl = np.max(np.abs(iax2.get_ylim()))
                 iax2.set_ylim(-1*yl, yl)
@@ -509,9 +497,9 @@ class Eag_Plots:
 
         iax = axgr.ravel()[i+1]
         iax.plot(self.eag.water.level.iloc[1:].index, self.eag.water.level.iloc[1:],
-                label="Berekend peil (Python)")
+                 label="Berekend peil (Python)")
         iax.plot(exceldf.index, exceldf.loc[:, "peil"],
-                label="Berekend peil (Excel)", ls="dashed")
+                 label="Berekend peil (Excel)", ls="dashed")
         iax.grid(b=True)
         iax.legend(loc="best")
 
