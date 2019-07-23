@@ -50,40 +50,6 @@ class Eag_Plots:
         fig.tight_layout()
         return axgr
 
-    def plot_series(self, series, tmin="2000", tmax="2018", freq="D", mask=None, labelcol="WaardeAlfa"):  # pragma: no cover
-        """Method to plot timeseries based on a pandas DataFrame with series names.
-
-        Parameters
-        ----------
-        series: pandas.DataFrame
-        tmin: str or pandas.Timestamp, optional
-        tmax: str or pandas.Timestamp, optional
-        freq: str
-
-        """
-        fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
-
-        for idn, df in series.groupby(["BakjeID", "ClusterType", "ParamType"]):
-            BakjeID, ClusterType, ParamType = idn
-            if mask is not None:
-                if (BakjeID == mask) or (ClusterType == mask) or (ParamType == mask):
-                    for j in range(df.shape[0]):
-                        series = get_series(
-                            ClusterType, ParamType, df.iloc[j:j+1], tmin, tmax, freq)
-                        ax.plot(series.index, series,
-                                label=df.iloc[j].loc[labelcol])
-            else:
-                for j in range(df.shape[0]):
-                    series = get_series(
-                        ClusterType, ParamType, df, tmin, tmax, freq)
-                    ax.plot(series.index, series,
-                            label=df.iloc[j].loc[labelcol])
-
-        ax.legend(loc="best")
-        fig.tight_layout()
-
-        return ax
-
     def bucket(self, name, freq="M", tmin=None, tmax=None):
         bucket = self.eag.buckets[name]
 
@@ -213,7 +179,7 @@ class Eag_Plots:
                       eagseries_names=("Gemaal",), tmin=None, tmax=None,
                       period="year", month_offset=9):
 
-        if len(self.eag.series.columns.intersect(set(eagseries_names))) > 0:
+        if len(self.eag.series.columns.intersection(set(eagseries_names))) > 0:
             cumsum_fluxes, cumsum_series = self.eag.calculate_cumsum(fluxes_names=fluxes_names,
                                                                      eagseries_names=eagseries_names,
                                                                      cumsum_period=period,
@@ -230,8 +196,8 @@ class Eag_Plots:
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         for flux_nam in fluxes_names:
-            ax.plot(cumsum_fluxes[flux_nam].index, cumsum_fluxes[flux_nam], lw=2,
-                    label=flux_nam)
+            ax.plot(cumsum_fluxes[flux_nam].index, cumsum_fluxes[flux_nam],
+                    lw=2, label=flux_nam)
 
         if cumsum_series is not None:
             for eseries_nam in eagseries_names:
