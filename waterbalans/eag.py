@@ -16,6 +16,7 @@ from pandas.tseries.offsets import MonthOffset
 
 from .plots import Eag_Plots
 from .timeseries import get_series, update_series
+from .wsdl_settings import _wsdl
 
 
 class Eag:
@@ -64,8 +65,8 @@ class Eag:
         # Add functionality from other modules
         self.plot = Eag_Plots(self)
 
-        # FEWS WSDL: added here so it can be edited by a user
-        self.wsdl = 'http://localhost:8080/FewsWebServices/fewspiservice?wsdl'
+        # FEWS WSDL:
+        self.wsdl = _wsdl
 
     def __repr__(self):
         return "<EAG object: {0}>".format(self.name)
@@ -166,7 +167,7 @@ class Eag:
         --------
         series = pd.read_csv("data\\reeks_16088_2501-EAG-1.csv", delimiter=";",
                       decimal=",")
-        eag.add_series(series)
+        eag.add_series_from_database(series)
 
         """
         # Sort series to parse in order: Valueseries -> Local -> FEWS -> Constant
@@ -260,8 +261,16 @@ class Eag:
             name of series to add, if not provided uses
             first column name in DataFrame or Series name
         tmin: str or pandas.Timestamp, optional
+            start time for series to add to Eag
         tmax: str or pandas.Timestamp, optional
-        freq: str
+            end time for series to add to Eag
+        freq: str, optional
+            timestep of the series, should generally be left alone
+        fillna: bool, default False
+            if False, do not fill NaNs, if True fill NaNs according to method
+        method: str or float
+            if str (i.e. 'ffill') use this method to fill Nans, if float, use
+            this value to fill in the NaNs (i.e. 0.0)
 
         """
         # get start and end date
@@ -338,7 +347,8 @@ class Eag:
         return df
 
     def get_bucket_params(self):
-        bucketnames = [b.name + "_" + str(b.idn) for b in self.buckets.values()]
+        bucketnames = [b.name + "_" + str(b.idn)
+                       for b in self.buckets.values()]
         bucketparams = [b.parameters for b in self.buckets.values()]
         return pd.concat(bucketparams, axis=1, sort=False, keys=bucketnames)
 
@@ -351,6 +361,32 @@ class Eag:
                 if v.name == buckettype:
                     bucketlist.append(v)
             return bucketlist
+
+    def get_parameter_df(self):
+        """get parameter dataframe containing parameter values for
+        each bucket.
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            DataFrame containing all parameters in the model
+
+        """
+        df = pd.DataFrame(columns=["Bakje", "BakjeID", "ParamCode",
+                                   "Laagvolgorde", "Waarde"])
+        j = 0
+        for b in self.get_buckets() + [self.water]:
+            for ipar in b.parameters.index:
+                value = b.parameters.at[ipar, "Waarde"]
+                param, layer = ipar.split("_")
+                df.loc[j, "BakjeID"] = b.idn
+                df.loc[j, "Laagvolgorde"] = layer
+                df.loc[j, "ParamCode"] = param
+                df.loc[j, "Waarde"] = value
+                df.loc[j, "Bakje"] = b.name
+                j += 1
+
+        return df
 
     def simulate(self, params, tmin=None, tmax=None):
         """Method to validate the water balance based on the total input,
@@ -368,7 +404,8 @@ class Eag:
         self.logger.info("Simulating: {}...".format(self.name))
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "ParamCode"] + "_" +
-                                  self.parameters.loc[:, "Laagvolgorde"].astype(str),
+                                  self.parameters.loc[:, "Laagvolgorde"].astype(
+                                      str),
                                   inplace=True)
 
         for idn, bucket in self.buckets.items():
@@ -392,7 +429,8 @@ class Eag:
         self.simulate(params, tmin=tmin, tmax=tmax)
         self.add_missinginflux_to_eagseries()
         for n in range(extra_iters):
-            self.logger.info(" *** Iteration {0}/{1} ***".format(n+1, extra_iters))
+            self.logger.info(
+                " *** Iteration {0}/{1} ***".format(n+1, extra_iters))
             self.simulate(self.parameters.reset_index(drop=True))
             self.add_missinginflux_to_eagseries()
         end = timer()
@@ -401,7 +439,7 @@ class Eag:
 
     def simulate_wq(self, wq_params, increment=False, tmin=None,
                     tmax=None, freq="D"):
-
+        start = timer()
         self.logger.info("Simulating water quality: {}...".format(self.name))
 
         if not hasattr(self.water, "fluxes"):
@@ -501,7 +539,9 @@ class Eag:
             mass_tot.loc[t] = M
             C_out = M / self.water.storage.loc[t, "storage"]
 
-        self.logger.info("Simulation water quality succesfully completed.")
+        end = timer()
+        self.logger.info("Simulation water quality succesfully completed in {0:.1f}s.".format(
+            end-start))
         return mass_in, mass_out, mass_tot
 
     def aggregate_fluxes(self):

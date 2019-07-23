@@ -9,9 +9,10 @@ import logging
 import numpy as np
 from hkvfewspy import Pi
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, concat
+from .wsdl_settings import _wsdl
 
 
-def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
+def initialize_fews_pi(wsdl=_wsdl):
     """
     FEWS Webservice 2017.01: http://localhost:8081/FewsPiService/fewspiservice?wsdl
     FEWS Webservice 2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl
@@ -22,7 +23,7 @@ def initialize_fews_pi(wsdl='http://localhost:8080/FewsWebServices/fewspiservice
 
 
 def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None,
-               wsdl='http://localhost:8080/FewsWebServices/fewspiservice?wsdl'):
+               wsdl=_wsdl):
     """Method that return a time series downloaded from fews or constructed
     from its parameters.
 

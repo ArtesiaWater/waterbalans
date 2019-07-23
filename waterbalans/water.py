@@ -72,7 +72,7 @@ class WaterBase(ABC):
             if icol.lower().startswith("gemaal"):
                 colset.append(icol)
 
-        # add remaining series to water bucket.
+        # add remaining series to water bucket. Ignore the ones in colset
         colset += ["Neerslag", "Verdamping", "Peil", "Gemaal", "q_cso"]
         otherseries = set(self.eag.series.columns) - set(colset)
 
