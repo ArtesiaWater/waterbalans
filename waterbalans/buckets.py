@@ -116,6 +116,7 @@ class Verhard(BucketBase):
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
+
         # Get parameters
         self.parameters.update(params)
         hMax_1, hMax_2, hInit_2, EFacMin_1, EFacMax_1, RFacIn_2, RFacOut_2, \

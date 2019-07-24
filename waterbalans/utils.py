@@ -1,4 +1,5 @@
-"""This file contains practical classes and methods for use throughout the "Waterbalans" model.
+"""This file contains practical classes and methods for use throughout
+the "Waterbalans" model.
 
 """
 import os

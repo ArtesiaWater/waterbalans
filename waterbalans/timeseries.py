@@ -55,11 +55,13 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
     -----
 
     """
+    # get logger
     if loggername is None:
         logger = logging.getLogger('waterbalans.eag')
     else:
         logger = logging.getLogger(loggername)
 
+    # get pi-webservice
     try:
         pi = initialize_fews_pi(wsdl=wsdl)
     except Exception:
@@ -67,6 +69,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
             "Pi service cannot be started. Module will not import series from FEWS!")
         pi = None
 
+    # get tmin, tmax
     if tmin is None:
         tmin = Timestamp("2010")
     else:
@@ -75,6 +78,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         tmax = Timestamp.today()
     else:
         tmax = Timestamp(tmax)
+
     # Download a timeseries from FEWS
     if kind == "FEWS" and pi is not None:  # pragma: no cover
 
@@ -82,119 +86,27 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
             fews_waarde_alfa = "||".join(data["WaardeAlfa"])
         else:
             fews_waarde_alfa = data["WaardeAlfa"].iloc[0]
+
         # split if multiple fews ids provided in one string:
         fewsid_list = fews_waarde_alfa.split("||")
-        fews_series = []
-        for fewsid in fewsid_list:
-            # parse fewsid
-            try:
-                filterId, moduleInstanceId, locationId, parameterId = fewsid.split(
-                    "|")
-            except ValueError as e:
-                logger.error(
-                    "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(name,
-                                                                                   fewsid))
-                continue
-
-            # get data from FEWS
-            try:
-                df = _get_fews_series(filterId=filterId, moduleInstanceId=moduleInstanceId,
-                                      parameterId=parameterId, locationId=locationId,
-                                      tmin=tmin, tmax=tmax + Timedelta(days=1), pi=pi)
-            except Exception as e:
-                logger.error("FEWS Timeseries '{}': {}".format(name, e))
-                continue
-
-            df.reset_index(inplace=True)
-            series = df.loc[:, ["date", "value",
-                                "parameterId"]].set_index("date")
-            # Remove timezone from FEWS series
-            series = series.tz_localize(None)
-            series["value"] = series["value"].astype(float)
-
-            # check units, TODO, check if others need to be fixed?
-            if name in ["Verdamping", "Neerslag"]:
-                series["value"] = series["value"].divide(1e3)
-
-            # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
-            if name == "Neerslag":
-                series.index = series.index.floor(
-                    freq="D") - Timedelta(days=1)
-            else:
-                # remove hours from index
-                series.index = series.index.floor(freq="D")
-
-            series = series.squeeze()
-
-            # Delete nan-values (-999) (could be moved to fewspy)
-            series.replace(-999.0, np.nan, inplace=True)
-
-            # append series
-            fews_series.append(series)
-            logger.info("Adding FEWS timeseries '{}': {}.".format(
-                name, fewsid))
-
-        # Logic to combine multiple FEWS series
-        if len(fews_series) > 1:
-            params = [i["parameterId"].iloc[0] for i in fews_series]
-            # check if all params are equal
-            if not np.all([ip == params[0] for ip in params]):
-                logger.error(
-                    "Not all FEWSIDs have the same parameter! {}".format(params))
-                return
-            # water levels: mean
-            elif params[0] == "H.meting.gem":
-                series = concat([s.value for s in fews_series], axis=1)
-                series = series.mean(axis=1)
-                logger.info(
-                    "Combined multiple FEWS Series with method 'mean'.")
-            # pump volumes: sum
-            elif params[0] == "Vol.berekend.dag":
-                series = concat([s.value for s in fews_series], axis=1)
-                series = series.sum(axis=1)
-                logger.info("Combined multiple FEWS Series with method 'sum'.")
-            else:
-                logger.error(
-                    "No logic defined for combining FEWS series with parameter '{}'!".format(params[0]))
-                raise NotImplementedError()
-        # only one fews series
-        elif len(fews_series) == 1:
-            series = fews_series[0]["value"]
-        # no fews series obtained
-        else:
-            logger.error("No FEWS series returned for '{}'.".format(name))
-            return
+        fews_series = _collect_fews_series(fewsid_list, name, tmin, tmax,
+                                           logger, pi)
+        series = _combine_fews_series(fews_series, name, logger)
 
     # if KNMI data is required:
     elif kind == "KNMI":
-        try:
-            from pastas.read import KnmiStation
-        except ModuleNotFoundError as e:
-            logger.exception("Module 'pastas' not installed! Please intall using "
-                             "pip to automatically donwload KNMI data!")
-            raise e
         stn = int(data.loc[:, "Waarde"].iloc[0])
-        logger.info("Downloading {0} from KNMI for station {1}...".format(
+        logger.info("Downloading {0} from KNMI for station {1}.".format(
             name, stn))
-        if name == "Neerslag":
-            s = KnmiStation.download(
-                stns=[stn], start=tmin, end=tmax, vars="RD")
-            series = s.data.loc[:, "RD"]
-            if np.any(series.index.hour == 9):
-                series.index = series.index.floor(freq="D") - Timedelta(days=1)
-            elif np.any(series.index.hour == 1):
-                series.index = series.index.normalize() - Timedelta(days=1)
-        elif name == "Verdamping":
-            s = KnmiStation.download(
-                stns=[stn], start=tmin, end=tmax, vars="EV24")
-            series = s.data.loc[:, "EV24"]
-            if np.any(series.index.hour == 1):
-                series.index = series.index.normalize() - Timedelta(days=1)
-        logger.info("Success!")
+        series = _get_knmi_series(name, stn, tmin, tmax, logger)
 
     #  If a constant timeseries is required
     elif kind == "Constant":
+        logger.info("Adding Constant timeseries '{}' for Bucket '{}'.".format(
+            name, data["BakjeID"].iloc[0]))
         if name in ["Qkwel", "Qwegz"]:
+            logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
+                name, 1e-3))
             value = float(data.loc[:, "Waarde"].values[0]) * 1e-3
         else:
             value = float(data.loc[:, "Waarde"].values[0])
@@ -203,11 +115,15 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
     # If a alternating time series is required (e.g. summer/winter level)
     elif kind == "ValueSeries":
+        logger.info("Adding ValueSeries timeseries '{}' for Bucket '{}'.".format(
+            name, data["BakjeID"].iloc[0]))
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
         tindex = date_range(tmin, tmax, freq=freq)
         series = create_block_series(df, tindex)
         if name in ["Qkwel", "Qwegz"]:
-            series = series * 1e-3  # TODO: is this always true?
+            logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
+                name, 1e-3))
+            series = series * 1e-3
 
     # elif kind == "Local":
         # if kind is Local, read Series from CSV provided by dbase!
@@ -222,9 +138,11 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         #     "Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
         return
 
-    series.name = name
-
-    return series
+    if series is None:
+        return
+    else:
+        series.name = name
+        return series
 
 
 def create_block_series(data, tindex):
@@ -332,3 +250,121 @@ def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):
                           tmin=tmin, tmax=tmax, pi=pi)
 
     return df
+
+
+def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):
+    fews_series = []
+    for fewsid in fewsid_list:
+        # parse fewsid
+        try:
+            filterId, moduleInstanceId, locationId, parameterId = fewsid.split(
+                "|")
+        except ValueError as e:
+            logger.error(
+                "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(name,
+                                                                               fewsid))
+            continue
+
+        # get data from FEWS
+        try:
+            df = _get_fews_series(filterId=filterId, moduleInstanceId=moduleInstanceId,
+                                  parameterId=parameterId, locationId=locationId,
+                                  tmin=tmin, tmax=tmax + Timedelta(days=1), pi=pi)
+        except Exception as e:
+            logger.error("FEWS Timeseries '{}': {}".format(name, e))
+            continue
+
+        df.reset_index(inplace=True)
+        series = df.loc[:, ["date", "value",
+                            "parameterId"]].set_index("date")
+        # Remove timezone from FEWS series
+        series = series.tz_localize(None)
+        series["value"] = series["value"].astype(float)
+
+        # check units
+        if name in ["Verdamping", "Neerslag"]:
+            logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
+                name, 1e-3))
+            series["value"] = series["value"].divide(1e3)
+
+        # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
+        if name == "Neerslag":
+            series.index = series.index.floor(
+                freq="D") - Timedelta(days=1)
+        else:
+            # remove hours from index
+            series.index = series.index.floor(freq="D")
+
+        series = series.squeeze()
+
+        # Delete nan-values (-999) (could be moved to fewspy)
+        logger.debug("Replace '-999.0' with 'np.nan' in '{}'.".format(name))
+        series.replace(-999.0, np.nan, inplace=True)
+
+        # append series
+        fews_series.append(series)
+        logger.info("Adding FEWS timeseries '{}': {}.".format(
+            name, fewsid))
+    return fews_series
+
+
+def _combine_fews_series(fews_series, name, logger):
+    # Logic to combine multiple FEWS series
+    if len(fews_series) > 1:
+        params = [i["parameterId"].iloc[0] for i in fews_series]
+        # check if all params are equal
+        if not np.all([ip == params[0] for ip in params]):
+            logger.error(
+                "Not all FEWSIDs have the same parameter! {}".format(params))
+            return
+        # water levels: mean
+        elif params[0] == "H.meting.gem":
+            series = concat([s.value for s in fews_series], axis=1)
+            series = series.mean(axis=1)
+            logger.info(
+                "Combined multiple FEWS Series with method 'mean'.")
+        # pump volumes: sum
+        elif params[0] == "Vol.berekend.dag":
+            series = concat([s.value for s in fews_series], axis=1)
+            series = series.sum(axis=1)
+            logger.info("Combined multiple FEWS Series with method 'sum'.")
+        else:
+            logger.error(
+                "No logic defined for combining FEWS series with parameter '{}'!".format(params[0]))
+            raise NotImplementedError()
+
+    # only one fews series
+    elif len(fews_series) == 1:
+        series = fews_series[0]["value"]
+
+    # no fews series obtained
+    else:
+        # logger.error("No FEWS series returned for '{}'.".format(name))
+        return
+
+    return series
+
+
+def _get_knmi_series(name, stn, tmin, tmax, logger):
+    try:
+        from pastas.read import KnmiStation
+    except ModuleNotFoundError as e:
+        logger.exception("Module 'pastas' not installed! Please intall using "
+                         "pip to automatically donwload KNMI data!")
+        raise e
+    if name == "Neerslag":
+        s = KnmiStation.download(
+            stns=[stn], start=tmin, end=tmax, vars="RD")
+        series = s.data.loc[:, "RD"]
+        if np.any(series.index.hour == 9):
+            series.index = series.index.floor(freq="D") - Timedelta(days=1)
+        elif np.any(series.index.hour == 1):
+            series.index = series.index.normalize() - Timedelta(days=1)
+    elif name == "Verdamping":
+        s = KnmiStation.download(
+            stns=[stn], start=tmin, end=tmax, vars="EV24")
+        series = s.data.loc[:, "EV24"]
+        if np.any(series.index.hour == 1):
+            series.index = series.index.normalize() - Timedelta(days=1)
+
+    return series
