@@ -62,12 +62,13 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         logger = logging.getLogger(loggername)
 
     # get pi-webservice
-    try:
-        pi = initialize_fews_pi(wsdl=wsdl)
-    except Exception:
-        logger.warning(
-            "Pi service cannot be started. Module will not import series from FEWS!")
-        pi = None
+    if kind == "FEWS":
+        try:
+            pi = initialize_fews_pi(wsdl=wsdl)
+        except Exception:
+            logger.warning(
+                "Pi service cannot be started. Module will not import series from FEWS!")
+            pi = None
 
     # get tmin, tmax
     if tmin is None:
@@ -166,7 +167,7 @@ def create_block_series(data, tindex):
     """
     # start value series 1 year before given index to ensure first period is also filled correctly.
     series = Series(index=date_range(
-        tindex[0]-Timedelta(days=365), tindex[-1]))
+        tindex[0] - Timedelta(days=365), tindex[-1]))
     for t, val in data.iterrows():
         day, month = [int(x) for x in t.split("-")]
         mask = (series.index.month == month) & (series.index.day == day)
@@ -274,9 +275,10 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):
             logger.error("FEWS Timeseries '{}': {}".format(name, e))
             continue
 
+        index_name = df.index.name
         df.reset_index(inplace=True)
-        series = df.loc[:, ["date", "value",
-                            "parameterId"]].set_index("date")
+        series = df.loc[:, [index_name, "value",
+                            "parameterId"]].set_index(index_name)
         # Remove timezone from FEWS series
         series = series.tz_localize(None)
         series["value"] = series["value"].astype(float)
