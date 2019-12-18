@@ -55,6 +55,8 @@ class WaterBase(ABC):
     def load_series_from_eag(self):
         if self.eag is None:
             return
+
+        # get series from EAG
         colset = []
         for icol in self.eag.series.columns:
             if icol.lower().startswith("neerslag"):
@@ -77,6 +79,9 @@ class WaterBase(ABC):
         otherseries = set(self.eag.series.columns) - set(colset)
 
         for name in otherseries:
+            msg = ("Adding series '{}' to water bucket "
+                   "(series is divided by area to obtain flux).")
+            self.eag.logger.info(msg.format(name))
             self.series[name] = self.eag.series[name] / self.area
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):

@@ -7,7 +7,7 @@ from .utils import create_csvfile_table, add_timeseries_to_obj
 
 
 def run_eag_by_name(name, csvdir, tmin="1996", tmax="2019", log_level=logging.INFO,
-                    logfile="waterbalans.log"):
+                    logfile=None):
     file_df = create_csvfile_table(csvdir)
     fbuckets, fparams, freeks, fseries, _, _ = file_df.loc[name]
 
