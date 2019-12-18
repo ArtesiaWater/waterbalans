@@ -275,6 +275,11 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):
             logger.error("FEWS Timeseries '{}': {}".format(name, e))
             continue
 
+        # if only Nan data is returned (check if index is only NaN)
+        if df.index.dropna().size == 0:
+            logger.error("FEWS Timeseries '{}' contains no valid data!".format(name))
+            continue
+
         index_name = df.index.name
         df.reset_index(inplace=True)
         series = df.loc[:, [index_name, "value",
