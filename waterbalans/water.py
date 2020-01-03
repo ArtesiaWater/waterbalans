@@ -124,6 +124,8 @@ class Water(WaterBase):
         return "<{0}: {1} bucket with area {2:.1f}>".format(self.idn, "Water", self.area)
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
+        tmin = pd.Timestamp(tmin)
+        tmax = pd.Timestamp(tmax)
         self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters

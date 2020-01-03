@@ -6,8 +6,8 @@ from .create import create_eag
 from .utils import create_csvfile_table, add_timeseries_to_obj
 
 
-def run_eag_by_name(name, csvdir, tmin="1996", tmax="2019", log_level=logging.INFO,
-                    logfile=None):
+def run_eag_by_name(name, csvdir, extra_iter=0, tmin="1996", tmax="2019",
+                    log_level=logging.INFO, logfile=None):
     file_df = create_csvfile_table(csvdir)
     fbuckets, fparams, freeks, fseries, _, _ = file_df.loc[name]
 
@@ -54,7 +54,11 @@ def run_eag_by_name(name, csvdir, tmin="1996", tmax="2019", log_level=logging.IN
                 csvdir, "../cso_series/240_cso_timeseries.pklz")
 
     # Simuleer waterbalans met parameters
-    e.simulate(parameters, tmin=tmin, tmax=tmax)
+    if extra_iter == 0:
+        e.simulate(parameters, tmin=tmin, tmax=tmax)
+    elif extra_iter > 0:
+        e.simulate_iterative(parameters, extra_iters=extra_iter,
+                             tmin=tmin, tmax=tmax)
 
     return e
 
