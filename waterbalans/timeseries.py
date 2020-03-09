@@ -121,6 +121,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
         tindex = date_range(tmin, tmax, freq=freq)
         series = create_block_series(df, tindex)
+
         if name in ["Qkwel", "Qwegz"]:
             logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
                 name, 1e-3))
