@@ -110,7 +110,7 @@ class Verhard(BucketBase):
 
         self.parameters = pd.DataFrame(
             data=[0.002, 1, 0.5, 1, 1, 0.1, 0.1, 0.2],
-            index=['hMax_1', 'hMax_2', 'hInit_1', 'EFacMin_1',
+            index=['hMax_1', 'hMax_2', 'hInit_2', 'EFacMin_1',
                    'EFacMax_1', 'RFacIn_2', 'RFacOut_2', 'por_2'],
             columns=["Waarde"])
 
@@ -118,7 +118,13 @@ class Verhard(BucketBase):
         self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
+        msg = "{0} {1}: using default parameter value {2} for '{3}'"
+        for ipar in self.parameters.index.difference(params.index):
+            self.eag.logger.debug(msg.format(
+                self.name, self.idn, self.parameters.loc[ipar, "Waarde"], ipar))
+
         self.parameters.update(params)
+
         hMax_1, hMax_2, hInit_2, EFacMin_1, EFacMax_1, RFacIn_2, RFacOut_2, \
             por_2 = self.parameters.loc[:, "Waarde"]
 
@@ -150,12 +156,12 @@ class Verhard(BucketBase):
                 calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
             h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], 0.0, hMax_1, dt)
 
-            # The completely random choice to create a waterbalance rest term?
-            h_1.append(max(0.0, h))  # TODO is dit logisch?
+            # Interception reservoir storage cannot be negative
+            h_1.append(max(0.0, h))
             q_oa.append(q)
 
             # Bereken de waterbalans in laag 2
-            q_s.append(s)  # TODO kan er helemaal uit
+            q_s.append(s)
             q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
             h, _ = calc_h_q_oa(h_2[-1], s, 0.0, q_ui[-1], hMax_2, dt)
             h_2.append(h)
@@ -193,6 +199,11 @@ class Onverhard(BucketBase):
         self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
+        msg = "{0} {1}: using default parameter value {2} for '{3}'"
+        for ipar in self.parameters.index.difference(params.index):
+            self.eag.logger.debug(msg.format(
+                self.name, self.idn, self.parameters.loc[ipar, "Waarde"], ipar))
+
         self.parameters.update(params)
         hMax_1, hInit_1, EFacMin_1, EFacMax_1, RFacIn_1, RFacOut_1, por_1 = \
             self.parameters.loc[:, "Waarde"]
@@ -328,7 +339,11 @@ class MengRiool(BucketBase):
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         self.initialize(tmin=tmin, tmax=tmax)
 
-        # get params
+        # Get parameters
+        msg = "{0} {1}: using default parameter value {2} for '{3}'"
+        for ipar in self.parameters.index.difference(params.index):
+            self.eag.logger.debug(msg.format(
+                self.name, self.idn, self.parameters.loc[ipar, "Waarde"], ipar))
         self.parameters.update(params)
 
         knmistn = int(self.parameters.at["KNMIStation", "Waarde"])
@@ -471,7 +486,7 @@ def calc_h_q_oa(h, q_s, q_no, q_ui, hMax, dt=1.0):
     q_ui: float
         ... flux
     hMax: float
-        maximam storage volume
+        maximum storage volume
     dt: float
         timestep
 
