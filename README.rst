@@ -6,12 +6,12 @@
     :target: https://waterbalans.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-Waternet Waterbalansen Model in Python
-======================================
-
 .. raw:: html
 
     <img src="https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png" height="150px" width="150px" align="right">
+
+Waternet Waterbalansen Model in Python
+======================================
 
 Deze repository bevat het Waternet Waterbalansen model, zoals uitgewerkt door
 Maarten Ouboter in de Excel Waterbalans module.
