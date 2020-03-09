@@ -17,10 +17,9 @@ Auteurs:
 - R.A. Collenteur, Artesia Water 2018
 - D.A. Brakenhoff, Artesia Water 2018
 
-.. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png
-    :height: 150px
-    :width: 150px
-    :align: right
+.. raw:: html
+
+    <img src="https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png" height="150px" width="150px" align="right">
 
 Installatie
 ===========
