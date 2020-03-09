@@ -129,6 +129,11 @@ class Water(WaterBase):
         self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
+        msg = "{0} {1}: using default parameter value {2} for '{3}'"
+        for ipar in self.parameters.index.difference(params.index):
+            self.eag.logger.debug(msg.format(
+                self.name, self.idn, self.parameters.loc[ipar, "Waarde"], ipar))
+
         self.parameters.update(params)
         hTarget_1, hTargetMin_1, hTargetMax_1, hBottom_1, QInMax_1, QOutMax_1 = \
             self.parameters.loc[:, "Waarde"]
@@ -171,7 +176,7 @@ class Water(WaterBase):
             h = (self.eag.series.loc[tmin:tmax,
                                      "Peil"] - hBottom_1) * self.area
             # starting level calculated based on hTarget
-            h.loc[h.index[0]-pd.Timedelta(days=1)
+            h.loc[h.index[0] - pd.Timedelta(days=1)
                   ] = (hTarget_1 - hBottom_1) * self.area
             h.sort_index(inplace=True)
         else:
@@ -232,7 +237,7 @@ class Water(WaterBase):
 
             if ~np.isnan(h.loc[t]):  # there is a water level measurement
                 # volume[t] = volume[t-1] + q_net[t]
-                h_plus_q = h.loc[t-pd.Timedelta(days=1)] + q_totals.loc[t]
+                h_plus_q = h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t]
 
                 # test if new volume exceeds thresholds
                 if h_plus_q > hTargetMax_obs:
@@ -243,7 +248,7 @@ class Water(WaterBase):
                         if t == tmin:
                             q_out.loc[t] = hTargetMax_obs - h_plus_q
                         else:
-                            q_out.loc[t] = max(-1*QOutMax_1,
+                            q_out.loc[t] = max(-1 * QOutMax_1,
                                                hTargetMax_obs - h_plus_q)
                 elif h_plus_q < hTargetMin_obs:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):  # no limit on in flux
@@ -257,7 +262,7 @@ class Water(WaterBase):
 
             else:  # no water level measurement
                 # volume[t] = volume[t-1] + q_net[t]
-                h_plus_q = h.loc[t-pd.Timedelta(days=1)] + q_totals.loc[t]
+                h_plus_q = h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t]
 
                 if h_plus_q > hTargetMax_obs:
                     if np.isnan(QOutMax_1) or (QOutMax_1 == 0):
@@ -267,7 +272,7 @@ class Water(WaterBase):
                         if t == tmin:
                             q_out.loc[t] = hTargetMax_obs - h_plus_q
                         else:
-                            q_out.loc[t] = max(-1*QOutMax_1,
+                            q_out.loc[t] = max(-1 * QOutMax_1,
                                                hTargetMax_obs - h_plus_q)
                 elif h_plus_q < hTargetMin_obs:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):
