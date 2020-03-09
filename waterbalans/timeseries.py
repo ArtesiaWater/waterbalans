@@ -103,14 +103,20 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
     #  If a constant timeseries is required
     elif kind == "Constant":
-        logger.info("Adding Constant timeseries '{}' for Bucket '{}'.".format(
-            name, data["BakjeID"].iloc[0]))
+        if 'BakjeID' in data.columns:
+            logger.info("Get Constant timeseries"
+                        " '{}' for Bucket '{}'.".format(
+                            name, data["BakjeID"].iloc[0]))
+        else:
+            logger.info("Get Constant timeseries '{}'.".format(name))
+
         if name in ["Qkwel", "Qwegz"]:
             logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
                 name, 1e-3))
             value = float(data.loc[:, "Waarde"].values[0]) * 1e-3
         else:
             value = float(data.loc[:, "Waarde"].values[0])
+
         tindex = date_range(tmin, tmax, freq=freq)
         series = Series(value, index=tindex)
 
@@ -121,6 +127,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
         tindex = date_range(tmin, tmax, freq=freq)
         series = create_block_series(df, tindex)
+
         if name in ["Qkwel", "Qwegz"]:
             logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
                 name, 1e-3))
@@ -277,7 +284,8 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):
 
         # if only Nan data is returned (check if index is only NaN)
         if df.index.dropna().size == 0:
-            logger.error("FEWS Timeseries '{}' contains no valid data!".format(name))
+            logger.error(
+                "FEWS Timeseries '{}' contains no valid data!".format(name))
             continue
 
         index_name = df.index.name

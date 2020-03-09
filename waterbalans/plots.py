@@ -7,6 +7,7 @@ Author: R.A. Collenteur, Artesia Water, 2017-11-20
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib import colors
 from pandas import Series
@@ -92,6 +93,7 @@ class Eag_Plots:
         return ax
 
     def aggregated(self, freq="M", tmin=None, tmax=None, add_gemaal=False):
+
         if add_gemaal:
             fluxes = self.eag.aggregate_with_pumpstation()
         else:
@@ -125,21 +127,39 @@ class Eag_Plots:
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax = plotdata.plot.bar(stacked=True, width=1, color=rgbcolors, ax=ax)
 
+        if freq == "Y":
+            mask = np.ones(len(plotdata.index), dtype="bool")
+            fmt = "%Y"
+        elif freq == "M":
+            fmt = "%Y-%b"
+            if plotdata.shape[0] > 24:
+                mask = ((plotdata.index.month == 1) | (plotdata.index.month == 4)
+                        | (plotdata.index.month == 7) | (plotdata.index.month == 10))
+            else:
+                mask = np.ones(len(plotdata.index), dtype="bool")
+        elif freq == "D":
+            fmt = "%Y-%b-%d"
+            mask = plotdata.index.day == 1
+
+        ticklabels = plotdata.index.strftime(fmt).to_numpy()
+        ticklabels[~mask] = ""
+        ax.xaxis.set_major_formatter(mticker.FixedFormatter(ticklabels))
+
+        # fixes the tracker: https://matplotlib.org/users/recipes.html
+        def formatter(x, pos=0, max_i=len(ticklabels) - 1):
+            i = int(x)
+            i = 0 if i < 0 else max_i if i > max_i else i
+            return plotdata.index[i].strftime(fmt)
+        ax.fmt_xdata = formatter
+
+        # set legends and labels
         ax.set_title(self.eag.name)
         ax.set_ylabel("<- uitstroming | instroming ->")
         ax.grid(axis="y")
-
         ax.legend(ncol=4)
 
-        # set ticks (currently only correct for monthly data)
-        if freq == "M":
-            ax.set_xticks(ax.get_xticks()[::2])
-            ax.set_xticklabels([dt.strftime('%b-%y') for dt in
-                                plotdata.index.to_pydatetime()[::2]])
-
-            # ax.xaxis.set_major_locator(mdates.YearLocator())
-            # ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-
+        # format figure
+        ax.figure.autofmt_xdate()
         fig.tight_layout()
 
         return ax
@@ -158,7 +178,7 @@ class Eag_Plots:
 
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
-        ax.plot(calculated_out.index, -1*calculated_out,
+        ax.plot(calculated_out.index, -1 * calculated_out,
                 lw=2, label="berekende uitlaat")
 
         gemaal_cols = [
@@ -348,7 +368,7 @@ class Eag_Plots:
 
         return ax
 
-    def water_level(self, label_obs=False):
+    def water_level(self, plot_obs=None):
 
         hTarget = self.eag.water.parameters.loc["hTarget_1", "Waarde"]
 
@@ -369,13 +389,14 @@ class Eag_Plots:
         ax.plot(self.eag.water.level.index,
                 self.eag.water.level, label="berekend peil")
 
-        if label_obs:
-            if "Peil" in self.eag.series.columns:
-                ax.plot(self.eag.series.Peil.index, self.eag.series.Peil, ls="",
-                        marker=".", c="k", label="peil metingen")
-
-        ax.axhline(hTarget, linestyle="dashed",
-                   lw=1.5, label="hTarget", color="k")
+        if plot_obs is None or plot_obs:
+            if self.eag.water.use_waterlevel_series:
+                if "Peil" in self.eag.series.columns:
+                    ax.plot(self.eag.series.Peil.index, self.eag.series.Peil, ls="",
+                            marker=".", c="k", label="peil metingen")
+        else:
+            ax.axhline(hTarget, linestyle="dashed",
+                       lw=1.5, label="hTarget", color="k")
 
         if add_target_levels:
             if isinstance(hTargetMin, Series):
@@ -384,10 +405,20 @@ class Eag_Plots:
                 ax.plot(hTargetMax.index, hTargetMax, linestyle="dashed",
                         lw=1.5, label="hTargetMax", color="b")
             else:
-                ax.axhline(hTarget - np.abs(hTargetMin), linestyle="dashed", linewidth=1.5,
-                           label="hTargetMin", color="r")
-                ax.axhline(hTarget + np.abs(hTargetMax), linestyle="dashed", linewidth=1.5,
-                           label="hTargetMax", color="b")
+                if (hTargetMin < 0):
+                    ax.axhline(hTarget - np.abs(hTargetMin), linestyle="dashed", linewidth=1.5,
+                               label="hTargetMin", color="r")
+                else:
+                    ax.plot(self.eag.series.Peil.index,
+                            self.eag.series.Peil - np.abs(hTargetMin),
+                            c="r", ls="dashed", lw=1.5, label="hTargetMin")
+                if (hTargetMax < 0):
+                    ax.axhline(hTarget + np.abs(hTargetMax), linestyle="dashed", linewidth=1.5,
+                               label="hTargetMax", color="b")
+                else:
+                    ax.plot(self.eag.series.Peil.index,
+                            self.eag.series.Peil + np.abs(hTargetMax),
+                            c="b", ls="dashed", lw=1.5, label="hTargetMax")
 
         ax.axhline(hBottom, linestyle="dashdot",
                    lw=1.5, label="hBottom", color="C2")
@@ -418,27 +449,27 @@ class Eag_Plots:
             Python waterbalance to the Excel waterbalance.
 
         """
-        column_names = {'peil':        0,
-                        'neerslag':    1,
-                        'kwel':        2,
-                        'verhard':     3,
-                        'q_cso':       4,
-                        'drain':       5,
+        column_names = {'peil': 0,
+                        'neerslag': 1,
+                        'kwel': 2,
+                        'verhard': 3,
+                        'q_cso': 4,
+                        'drain': 5,
                         'uitspoeling': 6,
-                        'afstroming':  7,
-                        'inlaat1':     8,
-                        'inlaat2':     9,
-                        'inlaat3':    10,
-                        'inlaat4':    11,
-                        'berekende inlaat':     12,
+                        'afstroming': 7,
+                        'inlaat1': 8,
+                        'inlaat2': 9,
+                        'inlaat3': 10,
+                        'inlaat4': 11,
+                        'berekende inlaat': 12,
                         'verdamping': 13,
                         'wegzijging': 14,
-                        'intrek':     15,
-                        'uitlaat1':   16,
-                        'uitlaat2':   17,
-                        'uitlaat3':   18,
-                        'uitlaat4':   19,
-                        'berekende uitlaat':    20}
+                        'intrek': 15,
+                        'uitlaat1': 16,
+                        'uitlaat2': 17,
+                        'uitlaat3': 18,
+                        'uitlaat4': 19,
+                        'berekende uitlaat': 20}
 
         fluxes = self.eag.aggregate_fluxes()
         fluxes.dropna(how="all", axis=1, inplace=True)
@@ -446,7 +477,7 @@ class Eag_Plots:
         fluxes = fluxes.iloc[:-1]
 
         # Plot
-        fig, axgr = plt.subplots(int(np.ceil((fluxes.shape[1]+1)/3)), 3,
+        fig, axgr = plt.subplots(int(np.ceil((fluxes.shape[1] + 1) / 3)), 3,
                                  figsize=(20, 12), dpi=self.dpi, sharex=True)
 
         for i, pycol in enumerate(fluxes.columns):
@@ -481,7 +512,7 @@ class Eag_Plots:
                 diff -= exceldf.iloc[:, excol]
                 iax2.plot(diff.index, diff, c="C4", lw=0.75)
                 yl = np.max(np.abs(iax2.get_ylim()))
-                iax2.set_ylim(-1*yl, yl)
+                iax2.set_ylim(-1 * yl, yl)
 
                 # add check if difference is larger than 5% on average
                 perc_err = diff / exceldf.iloc[:, excol]
@@ -495,7 +526,7 @@ class Eag_Plots:
                     iax.patch.set_facecolor("lightgreen")
                     iax.patch.set_alpha(0.5)
 
-        iax = axgr.ravel()[i+1]
+        iax = axgr.ravel()[i + 1]
         iax.plot(self.eag.water.level.iloc[1:].index, self.eag.water.level.iloc[1:],
                  label="Berekend peil (Python)")
         iax.plot(exceldf.index, exceldf.loc[:, "peil"],
@@ -508,7 +539,7 @@ class Eag_Plots:
             diff = self.eag.water.level.level - exceldf.loc[:, "peil"]
             iax2.plot(diff.index, diff, c="C4", lw=0.75)
             yl = np.max(np.abs(iax2.get_ylim()))
-            iax2.set_ylim(-1*yl, yl)
+            iax2.set_ylim(-1 * yl, yl)
 
             mint = np.max([self.eag.water.level.index[0], exceldf.index[0]])
             maxt = np.min([self.eag.water.level.index[-1], exceldf.index[-1]])
