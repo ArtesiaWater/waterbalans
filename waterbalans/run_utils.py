@@ -83,7 +83,8 @@ def get_dataframes_from_files(csvdir, fbuckets=None, freeks=None, fparams=None,
         # bestand met overige tijdreeksen
         if not isinstance(fseries, float):
             series = pd.read_csv(os.path.join(csvdir, fseries),
-                                 delimiter=";", index_col=[0], parse_dates=True)
+                                 delimiter=";", index_col=[0], parse_dates=True,
+                                 dayfirst=True)
         else:
             series = None
         dflist["series"] = series

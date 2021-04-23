@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 try:
     import pypandoc
-    l_d = pypandoc.convert('README.md', 'rst')
+    l_d = pypandoc.convert_file('README.md', 'rst')
 except ModuleNotFoundError:
     l_d = ''
 
