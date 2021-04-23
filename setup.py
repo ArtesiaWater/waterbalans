@@ -29,10 +29,10 @@ setup(
     platforms='Windows, Mac OS-X',
     install_requires=['numpy>=1.12',
                       'matplotlib>=2.0',
-                      'pandas>=0.20',
+                      'pandas>=0.20,<1.0',
                       'scipy>=0.19',
                       'xmltodict',
-                      'hkvfewspy>=0.6.2'],
+                      'hkvfewspy==0.6.2'],
     packages=find_packages(exclude=[]),
     include_package_data=True,
 )

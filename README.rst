@@ -1,5 +1,5 @@
-.. image:: https://travis-ci.com/ArtesiaWater/waterbalans.svg?token=ms7z29YrqxNkVKkenBPh&branch=master
-    :target: https://travis-ci.com/ArtesiaWater/waterbalans
+.. image:: https://github.com/ArtesiaWater/waterbalans/actions/workflows/ci.yml/badge.svg
+     :target: https://github.com/ArtesiaWater/waterbalans/actions/workflows/ci.yml
 .. image:: https://api.codacy.com/project/badge/Grade/c061b4e4100a4a3dbed8764b792c2d26
     :target: https://www.codacy.com?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ArtesiaWater/waterbalans&amp;utm_campaign=Badge_Grade
 .. image:: https://readthedocs.org/projects/waterbalans/badge/?version=latest
