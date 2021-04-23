@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 try:
     import pypandoc
-    l_d = pypandoc.convert_file('README.md', 'rst')
+    l_d = pypandoc.convert_file('README.rst', 'rst')
 except ModuleNotFoundError:
     l_d = ''
 
@@ -27,10 +27,10 @@ setup(
         'Programming Language :: Python :: 3'
     ],
     platforms='Windows, Mac OS-X',
-    install_requires=['numpy>=1.12',
-                      'matplotlib>=2.0',
+    install_requires=['numpy>=1.12,<=1.19.2',
+                      'matplotlib>=2.0,<=3.4.1',
                       'pandas>=0.20,<1.0',
-                      'scipy>=0.19',
+                      'scipy>=0.19,<=1.6.2',
                       'xmltodict',
                       'hkvfewspy==0.6.2'],
     packages=find_packages(exclude=[]),
