@@ -51,8 +51,12 @@ def makkink_to_penman(e, use_excel_factors=False):
 
     """
     if use_excel_factors:
-        penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
-                  1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
+        # penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
+        #           1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
+        penman = 1.0 / np.array([0.4, 0.933333333, 1.266666667,
+                                 1.3, 1.3, 1.310000000,
+                                 1.266666667, 1.193333333, 1.170000000,
+                                 0.9, 0.7, 0.0])
     else:
         penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
                   1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
@@ -92,7 +96,7 @@ def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
     vol = p_smooth.copy()
 
     for i in range(1, len(p_smooth.index)):
-        vol.iloc[i] = p_smooth.iloc[i] + b.iloc[i-1] - poc.iloc[i-1]
+        vol.iloc[i] = p_smooth.iloc[i] + b.iloc[i - 1] - poc.iloc[i - 1]
         b.iloc[i] = np.min([vol.iloc[i], Bmax])
         poc.iloc[i] = np.min([b.iloc[i], POCmax])
         cso.iloc[i] = np.max([vol.iloc[i] - Bmax, 0.0])
@@ -269,7 +273,7 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
                 colnam = series.columns[jcol].split("|")[0]
             if colnam in eag_series:
                 if overwrite:
-                    o.add_timeseries(factor*series.iloc[:, jcol], name="{}".format(colnam),
+                    o.add_timeseries(factor * series.iloc[:, jcol], name="{}".format(colnam),
                                      tmin=tmin, tmax=tmax, fillna=True, method=0.0)
                 else:
                     o.logger.warning("'{}' already in EAG. No action taken.".format(
@@ -277,7 +281,7 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
             else:
                 # o.logger.info("Adding '{}' series to EAG.".format(
                 #     colnam))
-                o.add_timeseries(factor*series.iloc[:, jcol], name="{}".format(colnam),
+                o.add_timeseries(factor * series.iloc[:, jcol], name="{}".format(colnam),
                                  tmin=tmin, tmax=tmax, fillna=True, method=0.0)
 
     # Peil
@@ -558,7 +562,7 @@ def eag_params_to_excel_dict(eag):
     # areas
     ms = eag.get_modelstructure()
     areas = {
-        "D7":  ms.Area.sum(),
+        "D7": ms.Area.sum(),
         "D8": 0.0,  # verhard
         "D9": 0.0,  # gedraineerd
         "D10": 0.0,  # gemengd gerioleerd
@@ -732,9 +736,9 @@ def write_excel(eag, excel_file, write_series=False):
         }
 
         order = ['Neerslag', 'Verdamping', 'Peil', 'Gemaal1Pomp1', 'Gemaal1Pomp2',
-                'Gemaal2Pomp1', 'Gemaal2Pomp2', 'Inlaat voor Calibratie', 'q_cso',
-                'Inlaat1', 'Inlaat2', 'Inlaat3', 'Inlaat4',
-                'Uitlaat1', 'Uitlaat2', 'Uitlaat3', 'Uitlaat4']
+                 'Gemaal2Pomp1', 'Gemaal2Pomp2', 'Inlaat voor Calibratie', 'q_cso',
+                 'Inlaat1', 'Inlaat2', 'Inlaat3', 'Inlaat4',
+                 'Uitlaat1', 'Uitlaat2', 'Uitlaat3', 'Uitlaat4']
 
         # pick only columns that are in eag (in right order)
         has_cols = [col for col in order if col in series.columns]
@@ -754,7 +758,7 @@ def write_excel(eag, excel_file, write_series=False):
                 startcol = column_index_from_string(col_letter)
                 series.loc[:, col].to_excel(xl_writer, "uitgangspunten",
                                             index=False, header=False,
-                                            startcol=startcol-1, startrow=76)
+                                            startcol=startcol - 1, startrow=76)
         xl_writer.save()
 
     return
