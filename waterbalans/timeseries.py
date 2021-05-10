@@ -6,9 +6,13 @@ Auteur: R.A. Collenteur, Artesia Water
 
 """
 import logging
+
+import dateparser
 import numpy as np
 from hkvfewspy import Pi
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, concat
+from pandas import (DataFrame, Series, Timedelta, Timestamp, concat,
+                    date_range, read_csv)
+
 from .wsdl_settings import _wsdl
 
 
@@ -66,8 +70,8 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         try:
             pi = initialize_fews_pi(wsdl=wsdl)
         except Exception:
-            logger.warning(
-                "Pi service cannot be started. Module will not import series from FEWS!")
+            logger.warning("Pi service cannot be started. "
+                           "Module will not import series from FEWS!")
             pi = None
 
     # get tmin, tmax
@@ -122,8 +126,12 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
     # If a alternating time series is required (e.g. summer/winter level)
     elif kind == "ValueSeries":
-        logger.info("Adding ValueSeries timeseries '{}' for Bucket '{}'.".format(
-            name, data["BakjeID"].iloc[0]))
+        if 'BakjeID' in data.columns:
+            logger.info("Adding ValueSeries timeseries '{}' "
+                        "for Bucket '{}'.".format(
+                            name, data["BakjeID"].iloc[0]))
+        else:
+            logger.info("Adding ValueSeries timeseries '{}'.".format(name))
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
         tindex = date_range(tmin, tmax, freq=freq)
         series = create_block_series(df, tindex)
@@ -133,17 +141,42 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
                 name, 1e-3))
             series = series * 1e-3
 
-    # elif kind == "Local":
-        # if kind is Local, read Series from CSV provided by dbase!
-        # TODO: intuitive method to read CSV/Series from Database
-        # series = pd.read_csv(data.loc[])
-        # series = series[name]
-        # pass
+    # if timeseries must be read from local file
+    elif kind == "Local":
+        if 'BakjeID' in data.columns:
+            logger.info("Adding Local timeseries '{}' for Bucket '{}'.".format(
+                name, data["BakjeID"].iloc[0]))
+        else:
+            logger.info("Get Local timeseries '{}'.".format(name))
+        # if kind is Local, read Series from CSV
+        # only supports datetime and value column
+        if not data['WaardeAlfa'].isna().iloc[0]:
+            logger.debug(f"Reading Local CSV: {data['WaardeAlfa'].iloc[0]}")
+            series = read_csv(data["WaardeAlfa"].iloc[0], index_col=[0],
+                              delimiter=";", parse_dates=True,
+                              date_parser=dateparser.parse)
+
+            # select correct column
+            col = [icol for icol in series.columns if
+                icol.lower().startswith(name)]
+            if len(col) == 0:
+                msg = f"Local timeseries CSV does not contain data for {name}!"
+                logger.error(msg)
+                raise ValueError(msg)
+                # return
+            elif len(col) > 1:
+                msg = f"Local timeseries CSV contains multiple columns for {name}!"
+                logger.error(msg)
+                raise ValueError(msg)
+            elif len(col) == 1:
+                series = series.loc[:, col].squeeze()
+        else:
+            logger.debug("Local series not read, 'WaardeAlfa' is NaN!")
+            series = None
 
     else:
-        # TODO: fix logging, commented out now, because too much noise.
-        # logger.warning(
-        #     "Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
+        logger.warning("Adding series '{0}' of "
+                       "kind '{1}' not supported.".format(name, kind))
         return
 
     if series is None:
