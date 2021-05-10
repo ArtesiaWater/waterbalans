@@ -62,8 +62,9 @@ def makkink_to_penman(e, use_excel_factors=False):
                   1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
     e = e.copy()
     for i in range(1, 13):
-        e.loc[e.index.month == i] = e.loc[e.index.month == i] / \
-            penman[i - 1]  # for first list
+        with np.errstate(divide="ignore"):
+            e.loc[e.index.month == i] = e.loc[e.index.month == i] / \
+                penman[i - 1]  # for first list
     return e
 
 
@@ -682,8 +683,8 @@ def eag_params_to_excel_dict(eag):
 def write_excel(eag, excel_file, write_series=False):
 
     import openpyxl
-    from openpyxl.utils.cell import (coordinate_from_string,
-                                     column_index_from_string)
+    from openpyxl.utils.cell import (column_index_from_string,
+                                     coordinate_from_string)
 
     newfile = excel_file.split(".")[0] + "_wbpython.xlsx"
 
