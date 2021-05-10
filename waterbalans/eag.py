@@ -421,7 +421,7 @@ class Eag:
         self.water.simulate(params=p.loc[:, "Waarde"], tmin=tmin, tmax=tmax)
         end = timer()
         self.logger.info("Simulation succesfully completed in {0:.1f}s.".format(
-            end-start))
+            end - start))
 
     def simulate_iterative(self, params, extra_iters=1, tmin=None, tmax=None):
         start = timer()
@@ -430,7 +430,7 @@ class Eag:
         self.add_missinginflux_to_eagseries()
         for n in range(extra_iters):
             self.logger.info(
-                " *** Iteration {0}/{1} ***".format(n+1, extra_iters))
+                " *** Iteration {0}/{1} ***".format(n + 1, extra_iters))
             self.simulate(self.parameters.reset_index(drop=True))
             self.add_missinginflux_to_eagseries()
         end = timer()
@@ -438,7 +438,7 @@ class Eag:
             end - start))
 
     def simulate_wq(self, wq_params, increment=False, tmin=None,
-                    tmax=None, freq="D"):
+                    tmax=None, freq="D", return_series=False):
         start = timer()
         self.logger.info("Simulating water quality: {}...".format(self.name))
 
@@ -463,16 +463,30 @@ class Eag:
         # Parse wq_params table
         # Should result in C_series -> per flux a series in one DataFrame,
         # if FEWS or local data is used, data is ffilled
-        incols = [icol.lower()
-                  for icol in wq_params.Inlaattype if icol.lower() != "initieel"]
-        incols = [i for i in incols if i in fluxes.columns]
+        pcols = [icol.lower() for icol in wq_params["InlaatType"]
+                 if icol.lower() != "initieel"]
+        incols = fluxes.columns.intersection(pcols)
 
+        # no concentrations given, but column is in fluxes
+        defaults = set(incols).difference(pcols)
+        if len(defaults) > 0:
+            self.logger.warning("Using default concentration of 0.0 for "
+                                f"fluxes: {defaults}")
+        # concentrations provided, but not contained in fluxes
+        unused = set(pcols).difference(incols)
+        if len(unused) > 0:
+            self.logger.warning("Provided concentrations not used, "
+                                f"no fluxes for: {unused}")
+
+        # set default concentration to 0.0
         C_series = pd.DataFrame(
-            index=self.water.fluxes.loc[tmin:tmax].index, columns=incols)
+            index=self.water.fluxes.loc[tmin:tmax].index, 
+            columns=incols,
+            data=0.0)
 
         C_init = 0.0  # if no initial value passed
 
-        for ID, df in wq_params.groupby(["Inlaattype", "Reekstype"]):
+        for ID, df in wq_params.groupby(["InlaatType", "ReeksType"]):
             inlaat_type, reeks_type = ID
             inlaat_type = inlaat_type.lower()
 
@@ -481,30 +495,37 @@ class Eag:
                 C_init = df["Waarde"].iloc[0]
                 continue
 
+            # no use reading series if not in fluxes
+            if inlaat_type not in incols:
+                continue
+
             series = get_series(inlaat_type, reeks_type, df,
                                 tmin=tmin, tmax=tmax, freq=freq,
                                 loggername=self.name)
 
-            if series.sum() == 0.0:
-                if inlaat_type in incols:
-                    incols.remove(inlaat_type)
-                continue
-
             # If increment is True, add increment to concentration
             if increment:
-                series += df["Stofincrement"].iloc[0]
+                self.logger.info("Adding increment to concentrations!")
+                series += df["StofIncrement"].iloc[0]
 
             # add series to C_series DataFrame
             if reeks_type == "Constant":
                 C_series.loc[:, inlaat_type] = series
             else:
-                # Fill in series on dates with measurement
-                shared_index = series.index.intersection(C_series.index)
-                C_series.loc[shared_index, inlaat_type] = series
+                series = series.reindex(C_series.index)
+                # Series is often not measured on each day ->
+                # ffill to fill gaps
+                if series.isna().sum() > 0:
+                    self.logger.info(f"Filling {series.isna().sum()} NaNs "
+                                     f"in {inlaat_type} with 'ffill' "
+                                     " and then 'bfill'.")
+                    series.fillna(method='ffill', inplace=True)
+                    series.fillna(method='bfill', inplace=True)
 
-            # Series is often not measured on each day -> ffill to fill gaps
-            if series.isna().sum() > 0:
-                C_series.loc[:, inlaat_type].fillna(method='ffill')
+                C_series.loc[:, inlaat_type] = series
+
+        if return_series:
+            return C_series
 
         # Calculate initial mass and concentration
         hTarget = self.parameters.loc[self.parameters.loc[:, "ParamCode"] ==
@@ -540,8 +561,8 @@ class Eag:
             C_out = M / self.water.storage.loc[t, "storage"]
 
         end = timer()
-        self.logger.info("Simulation water quality succesfully completed in {0:.1f}s.".format(
-            end-start))
+        self.logger.info("Simulation water quality succesfully "
+                         "completed in {0:.1f}s.".format(end - start))
         return mass_in, mass_out, mass_tot
 
     def aggregate_fluxes(self):
@@ -637,7 +658,7 @@ class Eag:
             return fluxes
         fluxes.rename(columns={"berekende uitlaat": "sluitfout"}, inplace=True)
         # Add pumping station timeseries to fluxes
-        fluxes["maalstaat"] = -1*self.series.loc[:, gemaal_cols].sum(axis=1)
+        fluxes["maalstaat"] = -1 * self.series.loc[:, gemaal_cols].sum(axis=1)
         # Calculate difference between calculated and measured pumped volume
         fluxes["sluitfout"] = fluxes["sluitfout"].subtract(fluxes["maalstaat"])
         # Correct inlet volume with difference between calculated and measured
@@ -724,7 +745,7 @@ class Eag:
         fractions.loc[fluxes.index[0] -
                       pd.Timedelta(days=1), fraction_columns] = 0.0
         # add starting day
-        fractions.loc[fluxes.index[0]-pd.Timedelta(days=1), "initial"] = 1.0
+        fractions.loc[fluxes.index[0] - pd.Timedelta(days=1), "initial"] = 1.0
         fractions.sort_index(inplace=True)
 
         for t in fluxes.index:
@@ -737,7 +758,7 @@ class Eag:
                                           self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
                                           fluxes.loc[t, icol] -
                                           fractions.loc[t - pd.Timedelta(days=1), icol] *
-                                          -1*outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+                                          -1 * outflux.loc[t]) / self.water.storage.loc[t, "storage"]
 
         return fractions
 
@@ -769,7 +790,7 @@ class Eag:
         fluxes = self.aggregate_fluxes()
 
         diff = self.series.loc[:, gemaal_cols].sum(
-            axis=1) - -1*fluxes["berekende uitlaat"]
+            axis=1) - -1 * fluxes["berekende uitlaat"]
         diff.loc[diff <= 0.0] = 0.0
 
         inlaat_monthly = diff.resample("M").mean()
