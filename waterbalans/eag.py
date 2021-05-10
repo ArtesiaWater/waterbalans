@@ -480,11 +480,14 @@ class Eag:
 
         # set default concentration to 0.0
         C_series = pd.DataFrame(
-            index=self.water.fluxes.loc[tmin:tmax].index, 
+            index=self.water.fluxes.loc[tmin:tmax].index,
             columns=incols,
             data=0.0)
 
         C_init = 0.0  # if no initial value passed
+
+        if increment:
+            self.logger.info("Adding increment to concentrations!")
 
         for ID, df in wq_params.groupby(["InlaatType", "ReeksType"]):
             inlaat_type, reeks_type = ID
@@ -505,7 +508,6 @@ class Eag:
 
             # If increment is True, add increment to concentration
             if increment:
-                self.logger.info("Adding increment to concentrations!")
                 series += df["StofIncrement"].iloc[0]
 
             # add series to C_series DataFrame
@@ -518,7 +520,7 @@ class Eag:
                 if series.isna().sum() > 0:
                     self.logger.info(f"Filling {series.isna().sum()} NaNs "
                                      f"in {inlaat_type} with 'ffill' "
-                                     " and then 'bfill'.")
+                                     "and then 'bfill'.")
                     series.fillna(method='ffill', inplace=True)
                     series.fillna(method='bfill', inplace=True)
 
