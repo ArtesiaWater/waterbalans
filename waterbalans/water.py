@@ -140,8 +140,12 @@ class Water(WaterBase):
 
         # Pick up hTargetSeries if they exist
         if not self.hTargetSeries.empty and not self.use_waterlevel_series:
+            self.eag.logger.info("Using hTarget-timeseries, not "
+                                 "hTarget-parameters!")
             hTargetMin_1 = self.hTargetSeries["hTargetMin"]
             hTargetMax_1 = self.hTargetSeries["hTargetMax"]
+        elif self.use_waterlevel_series:
+            self.eag.logger.info("Using observed waterlevels in simulation!")
 
         if QInMax_1 == 0.:
             self.eag.logger.warning(
@@ -198,15 +202,23 @@ class Water(WaterBase):
         #     relative to observed level if available
 
         if not self.hTargetSeries.empty and not self.use_waterlevel_series:
+            self.eag.logger.debug("Using hTarget-timeseries.")
             # Convert to volume:
             hTargetMin_1 = (hTargetMin_1 - hBottom_1) * self.area
             hTargetMax_1 = (hTargetMax_1 - hBottom_1) * self.area
+
         else:  # hTargets are floats (positive or negative) relative to Target level
             if hTargetMin_1 <= 0:  # static
+                self.eag.logger.debug(f"hTargetMin={hTargetMin_1} indicates a"
+                                      " static target level relative to "
+                                      f"hTarget=f{hTarget_1}.")
                 hTargetMin_static = (
                     hTarget_1 + hTargetMin_1 - hBottom_1) * self.area  # a volume
                 hTargetMin_1 = pd.Series(index=h.index, data=hTargetMin_static)
             else:  # dynamic
+                self.eag.logger.debug(f"hTargetMin={hTargetMin_1} indicates a"
+                                      " dynamic target level relative to "
+                                      "observed waterlevel.")
                 ht = hTargetMin_1
                 hTargetMin_1 = (self.eag.series.loc[tmin:tmax, "Peil"] -
                                 hTargetMin_1 - hBottom_1) * self.area
@@ -214,10 +226,16 @@ class Water(WaterBase):
                 hTargetMin_1.iloc[0] = (hTarget_1 - ht - hBottom_1) * self.area
 
             if hTargetMax_1 <= 0:  # static
+                self.eag.logger.debug(f"hTargetMax={hTargetMax_1} indicates a"
+                                      " static target level relative to "
+                                      f"hTarget=f{hTarget_1}.")
                 hTargetMax_static = (
                     hTarget_1 - hTargetMax_1 - hBottom_1) * self.area  # a volume
                 hTargetMax_1 = pd.Series(index=h.index, data=hTargetMax_static)
             else:  # dynamic
+                self.eag.logger.debug(f"hTargetMax={hTargetMax_1} indicates a"
+                                      " dynamic target level relative to "
+                                      "observed waterlevel.")
                 ht = hTargetMax_1
                 hTargetMax_1 = (self.eag.series.loc[tmin:tmax, "Peil"] +
                                 hTargetMax_1 - hBottom_1) * self.area
