@@ -160,6 +160,11 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
             elif fname.endswith(".pkl"):
                 logger.debug(f"Reading Local pickle: {fname}")
                 series = read_pickle(fname)
+            else:
+                logger.error(f"Cannot read {fname}. Supported filetypes "
+                             "are CSV ('.csv') and pickle ('.pkl').")
+                # raise ValueError(f"Cannot read {fname}. Supported filetypes "
+                #                  "are CSV ('.csv') and pickle ('.pkl').")
             # select correct column
             col = [icol for icol in series.columns if
                    icol.lower().startswith(name)]
