@@ -763,3 +763,22 @@ def write_excel(eag, excel_file, write_series=False):
         xl_writer.save()
 
     return
+
+
+def check_numba():
+    try:
+        from numba import njit
+        return True
+    except ImportError:
+        print("Numba is not installed. Installing Numba is "
+              "recommended for significant speed-ups.")
+        return False
+    return False
+
+
+def njit(function):
+    try:
+        from numba import njit as jit
+        return jit(function)
+    except ImportError:
+        return function
