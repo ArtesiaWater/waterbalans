@@ -16,7 +16,7 @@ from .timeseries import get_series
 
 
 class Eag_Plots:
-    def __init__(self, eag, dpi=150):
+    def __init__(self, eag, dpi=100):
         self.eag = eag
         self.colordict = OrderedDict(
             {"kwel": "brown",
