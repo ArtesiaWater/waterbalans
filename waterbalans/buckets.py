@@ -5,9 +5,10 @@
 """
 from abc import ABC
 
+import numpy as np
 import pandas as pd
 
-from .utils import calculate_cso
+from .utils import calculate_cso, njit, check_numba
 
 
 class Bucket:
@@ -129,15 +130,7 @@ class Verhard(BucketBase):
             por_2 = self.parameters.loc[:, "Waarde"]
 
         hEq = 0.0
-
         hMax_2 = hMax_2 * por_2
-
-        h_1 = [0]  # Initial storage is zero
-        h_2 = [hInit_2 * por_2]
-        q_no = []
-        q_ui = []
-        q_s = []
-        q_oa = []
 
         series = self.series.loc[self.fluxes.index]
 
@@ -146,31 +139,97 @@ class Verhard(BucketBase):
             msg = "Warning: {} not in series. Assumed equal to 0!"
             self.eag.logger.warning(msg.format(
                 {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+            series = series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
+                                    fill_value=0.0)
 
-        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
-                                     fill_value=0.0).iterrows():
-            p, e, s = pes
+        if self.eag.use_numba:
+            prec = series.loc[:, "Neerslag"].values
+            evap = series.loc[:, "Verdamping"].values
+            seep = series.loc[:, "Qkwel"].values
 
-            # Bereken de waterbalans in laag 1
-            q_no.append(
-                calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
-            h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], 0.0, hMax_1, dt)
+            q_no, q_ui, q_s, q_oa, h_1, h_2 = \
+                self.calc_waterbalance(prec, evap, seep,
+                                       hEq=hEq,
+                                       hMax_1=hMax_1,
+                                       EFacMin_1=EFacMin_1,
+                                       EFacMax_1=EFacMax_1,
+                                       hMax_2=hMax_2,
+                                       hInit_2=hInit_2,
+                                       por_2=por_2,
+                                       RFacIn_2=RFacIn_2,
+                                       RFacOut_2=RFacOut_2,
+                                       dt=dt)
+        else:
+            h_1 = [0]  # Initial storage is zero
+            h_2 = [hInit_2 * por_2]
+            q_no = []
+            q_ui = []
+            q_s = []
+            q_oa = []
 
-            # Interception reservoir storage cannot be negative
-            h_1.append(max(0.0, h))
-            q_oa.append(q)
+            for _, pes in series.loc[:, ["Neerslag",
+                                         "Verdamping",
+                                         "Qkwel"]].iterrows():
+                p, e, s = pes
 
-            # Bereken de waterbalans in laag 2
-            q_s.append(s)
-            q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
-            h, _ = calc_h_q_oa(h_2[-1], s, 0.0, q_ui[-1], hMax_2, dt)
-            h_2.append(h)
+                # Bereken de waterbalans in laag 1
+                q_no.append(
+                    calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
+                h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], 0.0, hMax_1, dt)
 
-        self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s,
-                                         q_oa=q_oa)
+                # Interception reservoir storage cannot be negative
+                h_1.append(max(0.0, h))
+                q_oa.append(q)
+
+                # Bereken de waterbalans in laag 2
+                q_s.append(s)
+                q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
+                h, _ = calc_h_q_oa(h_2[-1], s, 0.0, q_ui[-1], hMax_2, dt)
+                h_2.append(h)
+
+        self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui,
+                                         q_s=q_s, q_oa=q_oa)
 
         self.storage = self.storage.assign(Upper_Storage=h_1[1:],
                                            Lower_Storage=h_2[1:])
+
+    @staticmethod
+    @njit
+    def calc_waterbalance(prec, evap, seep,
+                          hEq=0.0, hMax_1=0.002, EFacMin_1=1.0, EFacMax_1=1.0,
+                          hMax_2=1.0, hInit_2=0.5, por_2=0.3,
+                          RFacIn_2=0.1, RFacOut_2=0.1, dt=1.0):
+
+        q_no = np.zeros((prec.size,), dtype=np.float64)
+        q_ui = np.zeros((prec.size,), dtype=np.float64)
+        q_s = np.zeros((prec.size,), dtype=np.float64)
+        q_oa = np.zeros((prec.size,), dtype=np.float64)
+        h_1 = np.zeros((prec.size + 1,), dtype=np.float64)
+        h_2 = np.zeros((prec.size + 1,), dtype=np.float64)
+        h_1[0] = 0.0
+        h_2[0] = hInit_2 * por_2
+
+        for i in range(prec.size):
+
+            # Bereken de waterbalans in laag 1
+            q_no[i] = calc_q_no(prec[i], evap[i], h_1[i],
+                                hEq, EFacMin_1, EFacMax_1, dt=dt)
+            h, q = calc_h_q_oa(h_1[i], 0.0, q_no[i], 0.0, hMax_1, dt=dt)
+
+            # Interception reservoir storage cannot be negative
+            if h < 0.0:
+                h_1[i + 1] = 0.0
+            else:
+                h_1[i + 1] = h
+            q_oa[i] = q
+
+            # Bereken de waterbalans in laag 2
+            q_s[i] = seep[i]
+            q_ui[i] = calc_q_ui(h_2[i], RFacIn_2, RFacOut_2, hEq, dt=dt)
+            h, _ = calc_h_q_oa(h_2[i], q_s[i], 0.0, q_ui[i], hMax_2, dt=dt)
+            h_2[i + 1] = h
+
+        return q_no, q_ui, q_s, q_oa, h_1, h_2
 
 
 class Onverhard(BucketBase):
@@ -209,14 +268,7 @@ class Onverhard(BucketBase):
             self.parameters.loc[:, "Waarde"]
 
         hMax_1 = hMax_1 * por_1
-
         hEq = 0.0
-
-        h_1 = [hInit_1 * por_1]
-        q_no = []
-        q_ui = []
-        q_s = []
-        q_oa = []
 
         series = self.series.loc[self.fluxes.index]
 
@@ -224,21 +276,74 @@ class Onverhard(BucketBase):
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
             self.eag.logger.warning("Warning: {} not in series. Assumed equal to 0!".format(
                 {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
-        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
-                                     fill_value=0.0).iterrows():
-            p, e, s = pes
-            q_no.append(
-                calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
-            qui = calc_q_ui(h_1[-1], RFacIn_1, RFacOut_1, hEq, dt)
-            q_ui.append(qui)
-            q_s.append(s)
-            h, q = calc_h_q_oa(h_1[-1], s, q_no[-1], q_ui[-1], hMax_1, dt)
-            h_1.append(h)
-            q_oa.append(q)
+            series = series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
+                                    fill_value=0.0)
 
-        self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s,
-                                         q_oa=q_oa)
+        if self.eag.use_numba:
+            prec = series.loc[:, "Neerslag"].values
+            evap = series.loc[:, "Verdamping"].values
+            seep = series.loc[:, "Qkwel"].values
+
+            q_no, q_ui, q_s, q_oa, h_1 = \
+                self.calc_waterbalance(prec, evap, seep,
+                                       hEq=hEq,
+                                       hMax_1=hMax_1,
+                                       hInit_1=hInit_1,
+                                       por_1=por_1,
+                                       EFacMin_1=EFacMin_1,
+                                       EFacMax_1=EFacMax_1,
+                                       RFacIn_1=RFacIn_1,
+                                       RFacOut_1=RFacOut_1,
+                                       dt=dt)
+
+        else:
+
+            h_1 = [hInit_1 * por_1]
+            q_no = []
+            q_ui = []
+            q_s = []
+            q_oa = []
+
+            for _, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
+                p, e, s = pes
+                q_no.append(
+                    calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
+                qui = calc_q_ui(h_1[-1], RFacIn_1, RFacOut_1, hEq, dt)
+                q_ui.append(qui)
+                q_s.append(s)
+                h, q = calc_h_q_oa(h_1[-1], s, q_no[-1], q_ui[-1], hMax_1, dt)
+                h_1.append(h)
+                q_oa.append(q)
+
+        self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui,
+                                         q_s=q_s, q_oa=q_oa)
         self.storage = self.storage.assign(Storage=h_1[1:])
+
+    @staticmethod
+    @njit
+    def calc_waterbalance(prec, evap, seep,
+                          hEq=0.0, hMax_1=0.5, hInit_1=0.5, por_1=0.1,
+                          EFacMin_1=0.75, EFacMax_1=1.0,
+                          RFacIn_1=0.01, RFacOut_1=0.02, dt=1.0):
+
+        q_no = np.zeros((prec.size,), dtype=np.float64)
+        q_ui = np.zeros((prec.size,), dtype=np.float64)
+        q_s = np.zeros((prec.size,), dtype=np.float64)
+        q_oa = np.zeros((prec.size,), dtype=np.float64)
+        h_1 = np.zeros((prec.size + 1,), dtype=np.float64)
+        h_1[0] = hInit_1 * por_1
+
+        for i in range(prec.size):
+
+            q_no[i] = calc_q_no(prec[i], evap[i], h_1[i],
+                                hEq, EFacMin_1, EFacMax_1, dt)
+            q_ui[i] = calc_q_ui(h_1[i], RFacIn_1, RFacOut_1, hEq, dt)
+            q_s[i] = seep[i]
+            h, q = calc_h_q_oa(h_1[i], q_s[i], q_no[i], q_ui[i], hMax_1, dt)
+            h_1[i + 1] = h
+            q_oa[i] = q
+
+        return q_no, q_ui, q_s, q_oa, h_1
 
 
 class Drain(BucketBase):
@@ -281,17 +386,8 @@ class Drain(BucketBase):
             RFacOut_1, RFacOut_2, por_1, por_2 = self.parameters.loc[:, "Waarde"]
 
         hEq = 0.0
-
         hMax_1 = hMax_1 * por_1
         hMax_2 = hMax_2 * por_2
-
-        h_1 = [hInit_1 * por_1]
-        h_2 = [hInit_2 * por_2]
-        q_no = []
-        q_ui = []
-        q_s = []
-        q_oa = []
-        q_dr = []
 
         series = self.series.loc[self.fluxes.index]
 
@@ -301,27 +397,97 @@ class Drain(BucketBase):
             self.eag.logger.warning(msg.format(
                 self.name, self.idn,
                 {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)))
+            series = series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
+                                    fill_value=0.0)
 
-        for _, pes in series.reindex(columns=["Neerslag", "Verdamping", "Qkwel"],
-                                     fill_value=0.0).iterrows():
-            p, e, s = pes
-            no = calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt)
-            q_no.append(no)
-            q_boven = calc_q_ui(h_1[-1], RFacIn_1, RFacOut_1, hEq, dt)
-            q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
-            q_s.append(s)
-            h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], q_boven, hMax_1, dt)
-            h_1.append(h)
-            q_oa.append(q)
-            h, q = calc_h_q_oa(h_2[-1], s, -q_boven, q_ui[-1], hMax_2, dt)
-            h_2.append(h)
-            q_dr.append(q)
+        if self.eag.use_numba:
+            prec = series.loc[:, "Neerslag"].values
+            evap = series.loc[:, "Verdamping"].values
+            seep = series.loc[:, "Qkwel"].values
+
+            q_no, q_ui, q_s, q_oa, q_dr, h_1, h_2 = \
+                self.calc_waterbalance(prec, evap, seep,
+                                       hEq=hEq,
+                                       hMax_1=hMax_1,
+                                       hInit_1=hInit_1,
+                                       por_1=por_1,
+                                       EFacMin_1=EFacMin_1,
+                                       EFacMax_1=EFacMax_1,
+                                       RFacIn_1=RFacIn_1,
+                                       RFacOut_1=RFacOut_1,
+                                       hMax_2=hMax_2,
+                                       hInit_2=hInit_2,
+                                       por_2=por_2,
+                                       RFacIn_2=RFacIn_2,
+                                       RFacOut_2=RFacOut_2,
+                                       dt=dt)
+        else:
+            h_1 = [hInit_1 * por_1]
+            h_2 = [hInit_2 * por_2]
+            q_no = []
+            q_ui = []
+            q_s = []
+            q_oa = []
+            q_dr = []
+
+            for _, pes in series.loc[:, ["Neerslag",
+                                         "Verdamping",
+                                         "Qkwel"]].iterrows():
+                p, e, s = pes
+                no = calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt)
+                q_no.append(no)
+                q_boven = calc_q_ui(h_1[-1], RFacIn_1, RFacOut_1, hEq, dt)
+                q_ui.append(calc_q_ui(h_2[-1], RFacIn_2, RFacOut_2, hEq, dt))
+                q_s.append(s)
+                h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], q_boven, hMax_1, dt)
+                h_1.append(h)
+                q_oa.append(q)
+                h, q = calc_h_q_oa(h_2[-1], s, -q_boven, q_ui[-1], hMax_2, dt)
+                h_2.append(h)
+                q_dr.append(q)
 
         self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s,
                                          q_oa=q_oa, q_dr=q_dr)
 
         self.storage = self.storage.assign(Upper_Storage=h_1[1:],
                                            Lower_Storage=h_2[1:])
+
+    @staticmethod
+    @njit
+    def calc_waterbalance(prec, evap, seep,
+                          hEq=0.0, hMax_1=0.7, hInit_1=0.35, por_1=0.3,
+                          EFacMin_1=0.75, EFacMax_1=1.0,
+                          RFacIn_1=0.5, RFacOut_1=0.001,
+                          hMax_2=0.3, hInit_2=0.3, por_2=0.3,
+                          RFacIn_2=0.0, RFacOut_2=0.001, dt=1.0):
+
+        q_no = np.zeros((prec.size,), dtype=np.float64)
+        q_ui = np.zeros((prec.size,), dtype=np.float64)
+        q_s = np.zeros((prec.size,), dtype=np.float64)
+        q_oa = np.zeros((prec.size,), dtype=np.float64)
+        q_dr = np.zeros((prec.size,), dtype=np.float64)
+        h_1 = np.zeros((prec.size + 1,), dtype=np.float64)
+        h_2 = np.zeros((prec.size + 1,), dtype=np.float64)
+        h_1[0] = hInit_1 * por_1
+        h_2[0] = hInit_2 * por_2
+
+        for i in range(prec.size):
+
+            q_no[i] = calc_q_no(prec[i], evap[i], h_1[i],
+                                hEq, EFacMin_1, EFacMax_1, dt)
+            q_boven = calc_q_ui(h_1[i], RFacIn_1, RFacOut_1, hEq, dt)
+            q_ui[i] = calc_q_ui(h_2[i], RFacIn_2, RFacOut_2, hEq, dt)
+            q_s[i] = seep[i]
+
+            h, q = calc_h_q_oa(h_1[i], 0.0, q_no[i], q_boven, hMax_1, dt)
+            h_1[i + 1] = h
+            q_oa[i] = q
+
+            h, q = calc_h_q_oa(h_2[i], q_s[i], -q_boven, q_ui[i], hMax_2, dt)
+            h_2[i + 1] = h
+            q_dr[i] = q
+
+        return q_no, q_ui, q_s, q_oa, q_dr, h_1, h_2
 
 
 class MengRiool(BucketBase):
@@ -396,13 +562,14 @@ class MengRiool(BucketBase):
             self.eag.logger.info("CSO series calculated.")
 
         series = pd.Series(index=ts_cso.index,
-                           data=-1.*ts_cso.values.squeeze())
+                           data=-1. * ts_cso.values.squeeze())
         series.name = "q_cso"
 
         self.fluxes = self.fluxes.assign(q_cso=series)
         self.storage = self.storage.assign(Storage=0.)
 
 
+@njit
 def calc_q_no(p, e, h, hEq, EFacMin, EFacMax, dt=1.0):
     """Method to calculate the Precipitation excess.
 
@@ -436,6 +603,7 @@ def calc_q_no(p, e, h, hEq, EFacMin, EFacMax, dt=1.0):
     return q
 
 
+@njit
 def calc_q_ui(h, RFacIn, RFacOut, hEq, dt=1.0):
     """Method to calculate the lateral in- and outflow of the bucket.
 
@@ -472,6 +640,7 @@ def calc_q_ui(h, RFacIn, RFacOut, hEq, dt=1.0):
     return q_ui
 
 
+@njit
 def calc_h_q_oa(h, q_s, q_no, q_ui, hMax, dt=1.0):
     """Method to calculate the storage h and the flux q_oa.
 
