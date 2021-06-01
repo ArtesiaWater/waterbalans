@@ -11,7 +11,7 @@ import dateparser
 import numpy as np
 from hkvfewspy import Pi
 from pandas import (DataFrame, Series, Timedelta, Timestamp, concat,
-                    date_range, read_csv)
+                    date_range, read_csv, read_pickle)
 
 from .wsdl_settings import _wsdl
 
@@ -151,14 +151,18 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         # if kind is Local, read Series from CSV
         # only supports datetime and value column
         if not data['WaardeAlfa'].isna().iloc[0]:
-            logger.debug(f"Reading Local CSV: {data['WaardeAlfa'].iloc[0]}")
-            series = read_csv(data["WaardeAlfa"].iloc[0], index_col=[0],
-                              delimiter=";", parse_dates=True,
-                              date_parser=dateparser.parse)
-
+            fname = data["WaardeAlfa"].iloc[0]
+            if fname.endswith(".csv"):
+                logger.debug(f"Reading Local CSV: {fname}")
+                series = read_csv(fname, index_col=[0],
+                                  delimiter=";", parse_dates=True,
+                                  date_parser=dateparser.parse)
+            elif fname.endswith(".pkl"):
+                logger.debug(f"Reading Local pickle: {fname}")
+                series = read_pickle(fname)
             # select correct column
             col = [icol for icol in series.columns if
-                icol.lower().startswith(name)]
+                   icol.lower().startswith(name)]
             if len(col) == 0:
                 msg = f"Local timeseries CSV does not contain data for {name}!"
                 logger.error(msg)
