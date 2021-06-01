@@ -17,6 +17,7 @@ from pandas.tseries.offsets import MonthOffset
 from .plots import Eag_Plots
 from .timeseries import get_series, update_series
 from .wsdl_settings import _wsdl
+from .utils import check_numba, njit
 
 
 class Eag:
@@ -67,6 +68,9 @@ class Eag:
 
         # FEWS WSDL:
         self.wsdl = _wsdl
+
+        # numba
+        self.use_numba = check_numba()
 
     def __repr__(self):
         return "<EAG object: {0}>".format(self.name)
@@ -402,6 +406,9 @@ class Eag:
         """
         start = timer()
         self.logger.info("Simulating: {}...".format(self.name))
+        if self.use_numba:
+            self.logger.debug("Using numba methods for simulation.")
+
         self.parameters = params
         self.parameters.set_index(self.parameters.loc[:, "ParamCode"] + "_" +
                                   self.parameters.loc[:, "Laagvolgorde"].astype(
@@ -543,29 +550,70 @@ class Eag:
         outcols = ["intrek", "berekende uitlaat", "wegzijging"]
         outcols += [jcol.lower()
                     for jcol in self.water.fluxes if jcol.startswith("Uitlaat")]
-        V_out = fluxes.loc[:, outcols]
+        flux_out = fluxes.loc[:, outcols]
 
-        mass_tot = pd.Series(index=fluxes.index,
-                             name="mass_tot", dtype=np.float)
-        mass_out = pd.DataFrame(
-            index=fluxes.index, columns=outcols, dtype=np.float)
+        # mass coming in
         mass_in = fluxes.loc[:, incols].multiply(C_series)
 
-        for t in fluxes.index:
-            M_in = mass_in.loc[t].sum()
+        if self.use_numba:
+            self.logger.debug("Using numba method for WQ simulation.")
+            flux_out_arr = flux_out.fillna(0.0).values
+            mass_in_arr = mass_in.fillna(0.0).values
+            storage = self.water.storage.values.squeeze()
+            mass_tot, mass_out = self.calc_massbalance(
+                flux_out_arr, mass_in_arr, storage, C_init, V_init)
 
-            M_out = V_out.loc[t] * C_out
-            mass_out.loc[t] = M_out
+            mass_tot = pd.Series(index=fluxes.index, data=mass_tot[1:],
+                                 fastpath=True)
+            mass_out = pd.DataFrame(index=fluxes.index, columns=outcols,
+                                    data=mass_out)
 
-            M = M + M_in + M_out.sum()
+        else:
+            mass_tot = pd.Series(index=fluxes.index,
+                                 name="mass_tot", dtype=np.float)
+            mass_out = pd.DataFrame(
+                index=fluxes.index, columns=outcols, dtype=np.float)
 
-            mass_tot.loc[t] = M
-            C_out = M / self.water.storage.loc[t, "storage"]
+            for t in fluxes.index:
+                M_in = mass_in.loc[t].sum()
+
+                M_out = flux_out.loc[t] * C_out
+                mass_out.loc[t] = M_out
+
+                M = M + M_in + M_out.sum()
+
+                mass_tot.loc[t] = M
+                C_out = M / self.water.storage.loc[t, "storage"]
 
         end = timer()
         self.logger.info("Simulation water quality succesfully "
                          "completed in {0:.1f}s.".format(end - start))
         return mass_in, mass_out, mass_tot
+
+    @staticmethod
+    @njit
+    def calc_massbalance(flux_out, mass_in, storage, C_init, V_init):
+        # initialize arrays
+        mass_tot = np.zeros(flux_out.shape[0] + 1, dtype=np.float64)
+        mass_out = np.zeros(flux_out.shape, dtype=np.float64)
+        C_out = np.zeros(flux_out.shape[0], dtype=np.float64)
+
+        # starting mass and concentration
+        C_out[0] = C_init
+        mass_tot[0] = C_init * V_init
+
+        for i in range(len(flux_out)):
+            # calculate mass out
+            mass_out[i] = flux_out[i] * C_out[i]
+
+            # calculate total mass
+            mass_tot[i + 1] = mass_tot[i] + \
+                mass_in[i].sum() + mass_out[i].sum()
+
+            # recalculate outgoing concentration
+            C_out[i + 1] = mass_tot[i + 1] / storage[i]
+
+        return mass_tot, mass_out
 
     def aggregate_fluxes(self):
         """Method to aggregate fluxes to those used for visualisation in the
