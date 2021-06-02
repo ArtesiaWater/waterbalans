@@ -68,6 +68,8 @@ class BucketBase(ABC):
         self.fluxes = pd.DataFrame(index=index, dtype=float)
         self.storage = pd.DataFrame(index=index, dtype=float)
 
+        return tmin, tmax
+
     def load_series_from_eag(self):
         """Method to automatically load Precipitation and Evaporation from
         for the eag if available.
@@ -116,7 +118,7 @@ class Verhard(BucketBase):
             columns=["Waarde"])
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
-        self.initialize(tmin=tmin, tmax=tmax)
+        tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
         msg = "{0} {1}: using default parameter value {2} for '{3}'"
@@ -255,7 +257,7 @@ class Onverhard(BucketBase):
         -------
 
         """
-        self.initialize(tmin=tmin, tmax=tmax)
+        tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
         msg = "{0} {1}: using default parameter value {2} for '{3}'"
@@ -372,7 +374,7 @@ class Drain(BucketBase):
         -------
 
         """
-        self.initialize(tmin=tmin, tmax=tmax)
+        tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
         non_defined_params = set(self.parameters.index) - set(params.index)
@@ -503,7 +505,7 @@ class MengRiool(BucketBase):
         self.path_to_cso_series = path_to_cso_series
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
-        self.initialize(tmin=tmin, tmax=tmax)
+        tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
         msg = "{0} {1}: using default parameter value {2} for '{3}'"

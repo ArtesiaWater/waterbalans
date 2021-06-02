@@ -52,6 +52,8 @@ class WaterBase(ABC):
         self.storage = pd.DataFrame(index=index_w_day_before, dtype=float)
         self.level = pd.DataFrame(index=index_w_day_before, dtype=float)
 
+        return tmin, tmax
+
     def load_series_from_eag(self):
         if self.eag is None:
             return
@@ -124,9 +126,8 @@ class Water(WaterBase):
         return "<{0}: {1} bucket with area {2:.1f}>".format(self.idn, "Water", self.area)
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
-        # tmin = pd.Timestamp(tmin)
-        # tmax = pd.Timestamp(tmax)
-        self.initialize(tmin=tmin, tmax=tmax)
+
+        tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
         msg = "{0} {1}: using default parameter value {2} for '{3}'"
