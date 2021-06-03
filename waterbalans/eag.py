@@ -564,7 +564,7 @@ class Eag:
                 flux_out_arr, mass_in_arr, storage, C_init, V_init)
 
             mass_tot = pd.Series(index=fluxes.index, data=mass_tot[1:],
-                                 fastpath=True)
+                                 name="mass_tot", fastpath=True)
             mass_out = pd.DataFrame(index=fluxes.index, columns=outcols,
                                     data=mass_out)
 
