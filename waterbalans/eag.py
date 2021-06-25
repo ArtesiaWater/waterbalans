@@ -552,22 +552,32 @@ class Eag:
                     for jcol in self.water.fluxes if jcol.startswith("Uitlaat")]
         flux_out = fluxes.loc[:, outcols]
 
-        # mass coming in
-        mass_in = fluxes.loc[:, incols].multiply(C_series)
+        # flux + mass coming in
+        flux_in = fluxes.loc[:, incols]
+        mass_in = flux_in.multiply(C_series)
+
+        if self.water.storage.sum().iloc[0] == 0:
+            self.logger.error("Storage is 0.0, cannot simulate WQ!")
+            raise Exception("Storage is 0.0, cannot simulate WQ!")
 
         if self.use_numba:
             self.logger.debug("Using numba method for WQ simulation.")
+            flux_in_arr = flux_in.fillna(0.0).values
             flux_out_arr = flux_out.fillna(0.0).values
             mass_in_arr = mass_in.fillna(0.0).values
             storage = self.water.storage.values.squeeze()
             mass_tot, mass_out = self.calc_massbalance(
-                flux_out_arr, mass_in_arr, storage, C_init, V_init)
+                flux_out_arr, flux_in_arr, mass_in_arr, storage,
+                C_init, V_init)
 
             mass_tot = pd.Series(index=fluxes.index, data=mass_tot[1:],
                                  name="mass_tot", fastpath=True)
             mass_out = pd.DataFrame(index=fluxes.index, columns=outcols,
                                     data=mass_out)
-
+            if (mass_tot < 0.).any():
+                raise RuntimeError("Calculated mass is below 0, something has "
+                                   "gone wrong in the waterquality simulation."
+                                   )
         else:
             mass_tot = pd.Series(index=fluxes.index,
                                  name="mass_tot", dtype=np.float)
@@ -592,26 +602,33 @@ class Eag:
 
     @staticmethod
     @njit
-    def calc_massbalance(flux_out, mass_in, storage, C_init, V_init):
+    def calc_massbalance(flux_out, flux_in, mass_in, storage, C_init, V_init):
         # initialize arrays
         mass_tot = np.zeros(flux_out.shape[0] + 1, dtype=np.float64)
         mass_out = np.zeros(flux_out.shape, dtype=np.float64)
         C_out = np.zeros(flux_out.shape[0], dtype=np.float64)
 
         # starting mass and concentration
-        C_out[0] = C_init
         mass_tot[0] = C_init * V_init
 
         for i in range(len(flux_out)):
-            # calculate mass out
+
+            # recalculate concentration after inflow w update storage
+            C_out[i] = ((mass_tot[i] + np.nansum(mass_in[i])) /
+                        (storage[i] + np.nansum(flux_in[i])))
+
+            # calculate mass out with new concentration
             mass_out[i] = flux_out[i] * C_out[i]
 
-            # calculate total mass
-            mass_tot[i + 1] = mass_tot[i] + \
-                mass_in[i].sum() + mass_out[i].sum()
+            # update total mass after outflow
+            mass_tot[i + 1] = (mass_tot[i + 1] +
+                               np.nansum(mass_in[i]) +
+                               np.nansum(mass_out[i]))
 
-            # recalculate outgoing concentration
-            C_out[i + 1] = mass_tot[i + 1] / storage[i]
+            # # concentration should remain same
+            # if C_out[i], mass_tot[i + 1] / storage[i + 1]):
+            #     # C_out[i] = mass_tot[i + 1] / storage[i + 1]
+            #     raise Exception
 
         return mass_tot, mass_out
 
@@ -866,8 +883,8 @@ class Eag:
             icol for icol in self.series.columns if icol.lower().startswith("gemaal")]
         if len(gemaal_cols) > 0:
             eagseries_names = ["Gemaal"]
-            output_dict["{}_fluxes_w_ps.csv".format(self.name)] = \
-                self.aggregate_fluxes_w_pumpstation()
+            output_dict["{}_fluxes_w_ps.csv".format(
+                self.name)] = self.aggregate_fluxes_w_pumpstation()
 
         cumsum = self.calculate_cumsum(eagseries_names=eagseries_names)
         if len(cumsum) == 2:
