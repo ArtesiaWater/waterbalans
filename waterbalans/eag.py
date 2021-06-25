@@ -544,7 +544,6 @@ class Eag:
 
         V_init = (hTarget - hBottom) * self.water.area
         M = C_init * V_init
-        C_out = C_init
 
         # Sum of outgoing fluxes from water bucket
         outcols = ["intrek", "berekende uitlaat", "wegzijging"]
@@ -585,15 +584,23 @@ class Eag:
                 index=fluxes.index, columns=outcols, dtype=np.float)
 
             for t in fluxes.index:
+
+                # mass in
                 M_in = mass_in.loc[t].sum()
 
-                M_out = flux_out.loc[t] * C_out
-                mass_out.loc[t] = M_out
-
-                M = M + M_in + M_out.sum()
+                # recalculate concentration after inflow w update storage
+                C_out = ((M + M_in) / (
+                    self.water.storage.loc[t - pd.Timedelta(days=1),
+                                           "storage"] +
+                    flux_in.loc[t].sum()))
+                
+                # mass out based on new concentration
+                mass_out.loc[t] = flux_out.loc[t] * C_out
+                M_out = mass_out.loc[t].sum()
+                
+                M = M + M_in + M_out
 
                 mass_tot.loc[t] = M
-                C_out = M / self.water.storage.loc[t, "storage"]
 
         end = timer()
         self.logger.info("Simulation water quality succesfully "
@@ -621,7 +628,7 @@ class Eag:
             mass_out[i] = flux_out[i] * C_out[i]
 
             # update total mass after outflow
-            mass_tot[i + 1] = (mass_tot[i + 1] +
+            mass_tot[i + 1] = (mass_tot[i] +
                                np.nansum(mass_in[i]) +
                                np.nansum(mass_out[i]))
 
