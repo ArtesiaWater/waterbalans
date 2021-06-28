@@ -863,6 +863,8 @@ class Eag:
         # add extra column for 'initial' fraction
         fractions = np.zeros((influxes.shape[0] + 1,
                               influxes.shape[1] + 1), dtype=np.float64)
+        # set initial to 1.0
+        fractions[0, 0] = 1.0
 
         # loop over timesteps
         for i in range(1, outflux_sum.shape[0] + 1):
@@ -873,6 +875,7 @@ class Eag:
             # if entire water volume is replaced in one timestep
             if fractions[i, 0] < 0:
                 fractions[i, 0] = 0.0
+
             # loop over influxes
             for j in range(1, fractions.shape[1]):
                 fractions[i, j] = (fractions[i - 1, j] * storage[i - 1] +
