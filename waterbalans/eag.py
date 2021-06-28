@@ -593,11 +593,11 @@ class Eag:
                     self.water.storage.loc[t - pd.Timedelta(days=1),
                                            "storage"] +
                     flux_in.loc[t].sum()))
-                
+
                 # mass out based on new concentration
                 mass_out.loc[t] = flux_out.loc[t] * C_out
                 M_out = mass_out.loc[t].sum()
-                
+
                 M = M + M_in + M_out
 
                 mass_tot.loc[t] = M
@@ -805,7 +805,8 @@ class Eag:
         # TODO: Figure out how to include series with non-default names?
         fluxes = self.aggregate_fluxes()
 
-        # TODO: check robustness of this solution, hard-coded was: ("verdamping", "wegzijging", "intrek", "berekende uitlaat")
+        # TODO: check robustness of this solution, hard-coded was:
+        # ("verdamping", "wegzijging", "intrek", "berekende uitlaat")
         out_columns = fluxes.loc[:, fluxes.mean() < 0].columns
         outflux = fluxes.loc[:, out_columns].sum(axis=1)
 
@@ -814,25 +815,70 @@ class Eag:
         #                     "drain", "uitspoeling", "afstroming", "berekende inlaat"]
         fraction_columns = fluxes.loc[:, fluxes.mean() > 0].columns
 
-        fractions = pd.DataFrame(index=fluxes.index, columns=fraction_columns)
-        # add starting day
-        fractions.loc[fluxes.index[0] -
-                      pd.Timedelta(days=1), fraction_columns] = 0.0
-        # add starting day
-        fractions.loc[fluxes.index[0] - pd.Timedelta(days=1), "initial"] = 1.0
-        fractions.sort_index(inplace=True)
+        if self.use_numba:
+            storage_arr = self.water.storage.values.squeeze()
+            influxes_arr = fluxes.loc[:, fraction_columns].values
+            outflux_arr = outflux.values.squeeze()
 
-        for t in fluxes.index:
-            fractions.loc[t, "initial"] = (fractions.loc[t - pd.Timedelta(days=1), "initial"] *
-                                           self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
-                                           fractions.loc[t - pd.Timedelta(days=1), "initial"] *
-                                           outflux.loc[t]) / self.water.storage.loc[t, "storage"]
-            for icol in fraction_columns:
-                fractions.loc[t, icol] = (fractions.loc[t - pd.Timedelta(days=1), icol] *
-                                          self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
-                                          fluxes.loc[t, icol] -
-                                          fractions.loc[t - pd.Timedelta(days=1), icol] *
-                                          -1 * outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+            fractions = self._calculate_fractions_numba(storage_arr,
+                                                        influxes_arr,
+                                                        outflux_arr)
+            fractions = pd.DataFrame(index=self.water.storage.index,
+                                     columns=["initial"] +
+                                     fraction_columns.tolist(),
+                                     data=fractions)
+        else:
+            fractions = pd.DataFrame(
+                index=fluxes.index, columns=fraction_columns)
+            # add starting day
+            fractions.loc[fluxes.index[0] -
+                          pd.Timedelta(days=1), fraction_columns] = 0.0
+            # add starting day
+            fractions.loc[fluxes.index[0] -
+                          pd.Timedelta(days=1), "initial"] = 1.0
+            fractions.sort_index(inplace=True)
+
+            for t in fluxes.index:
+                fractions.loc[t, "initial"] = (fractions.loc[t - pd.Timedelta(days=1), "initial"] *
+                                               self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
+                                               fractions.loc[t - pd.Timedelta(days=1), "initial"] *
+                                               outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+                if fractions.loc[t, "initial"] < 0.0:
+                    fractions.loc[t, "initial"] = 0.0
+
+                for icol in fraction_columns:
+                    fractions.loc[t, icol] = (fractions.loc[t - pd.Timedelta(days=1), icol] *
+                                              self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
+                                              fluxes.loc[t, icol] -
+                                              fractions.loc[t - pd.Timedelta(days=1), icol] *
+                                              -1 * outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+
+        return fractions
+
+    @staticmethod
+    @njit
+    def _calculate_fractions_numba(storage, influxes, outflux_sum):
+
+        # add day before for initial fractions,
+        # add extra column for 'initial' fraction
+        fractions = np.zeros((influxes.shape[0] + 1,
+                              influxes.shape[1] + 1), dtype=np.float64)
+
+        # loop over timesteps
+        for i in range(1, outflux_sum.shape[0] + 1):
+            fractions[i, 0] = (fractions[i - 1, 0] * storage[i - 1] +
+                               fractions[i - 1, 0] * outflux_sum[i]) \
+                / storage[i]
+
+            # if entire water volume is replaced in one timestep
+            if fractions[i, 0] < 0:
+                fractions[i, 0] = 0.0
+            # loop over influxes
+            for j in range(1, fractions.shape[1]):
+                fractions[i, j] = (fractions[i - 1, j] * storage[i - 1] +
+                                   influxes[i, j - 1] +
+                                   fractions[i - 1, j] * outflux_sum[i]) \
+                    / storage[i]
 
         return fractions
 
