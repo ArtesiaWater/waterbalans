@@ -2,6 +2,8 @@
      :target: https://github.com/ArtesiaWater/waterbalans/actions/workflows/ci.yml
 .. image:: https://app.codacy.com/project/badge/Grade/1fe9a28fcdd04d6cad0abb19214701a5    
      :target: https://www.codacy.com/gh/ArtesiaWater/waterbalans/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ArtesiaWater/waterbalans&amp;utm_campaign=Badge_Grade
+.. image:: https://app.codacy.com/project/badge/Coverage/1fe9a28fcdd04d6cad0abb19214701a5    
+     :target: https://www.codacy.com/gh/ArtesiaWater/waterbalans/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ArtesiaWater/waterbalans&amp;utm_campaign=Badge_Coverage
 .. image:: https://readthedocs.org/projects/waterbalans/badge/?version=latest
     :target: https://waterbalans.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
