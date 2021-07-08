@@ -839,19 +839,24 @@ class Eag:
             fractions.sort_index(inplace=True)
 
             for t in fluxes.index:
-                fractions.loc[t, "initial"] = (fractions.loc[t - pd.Timedelta(days=1), "initial"] *
-                                               self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
-                                               fractions.loc[t - pd.Timedelta(days=1), "initial"] *
-                                               outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+                fractions.loc[t, "initial"] = (
+                    fractions.loc[t - pd.Timedelta(days=1), "initial"] *
+                    self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
+                    fractions.loc[t - pd.Timedelta(days=1), "initial"] *
+                    outflux.loc[t]
+                ) / self.water.storage.loc[t, "storage"]
+
                 if fractions.loc[t, "initial"] < 0.0:
                     fractions.loc[t, "initial"] = 0.0
 
                 for icol in fraction_columns:
-                    fractions.loc[t, icol] = (fractions.loc[t - pd.Timedelta(days=1), icol] *
-                                              self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
-                                              fluxes.loc[t, icol] -
-                                              fractions.loc[t - pd.Timedelta(days=1), icol] *
-                                              -1 * outflux.loc[t]) / self.water.storage.loc[t, "storage"]
+                    fractions.loc[t, icol] = (
+                        fractions.loc[t - pd.Timedelta(days=1), icol] *
+                        self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
+                        fluxes.loc[t, icol] -
+                        fractions.loc[t - pd.Timedelta(days=1), icol] *
+                        -1 * outflux.loc[t]
+                    ) / self.water.storage.loc[t, "storage"]
 
         return fractions
 
@@ -868,9 +873,10 @@ class Eag:
 
         # loop over timesteps
         for i in range(1, outflux_sum.shape[0] + 1):
-            fractions[i, 0] = (fractions[i - 1, 0] * storage[i - 1] +
-                               fractions[i - 1, 0] * outflux_sum[i]) \
-                / storage[i]
+            fractions[i, 0] = (
+                fractions[i - 1, 0] * storage[i - 1] +
+                fractions[i - 1, 0] * outflux_sum[i - 1]
+            ) / storage[i]
 
             # if entire water volume is replaced in one timestep
             if fractions[i, 0] < 0:
@@ -878,10 +884,12 @@ class Eag:
 
             # loop over influxes
             for j in range(1, fractions.shape[1]):
-                fractions[i, j] = (fractions[i - 1, j] * storage[i - 1] +
-                                   influxes[i, j - 1] +
-                                   fractions[i - 1, j] * outflux_sum[i]) \
-                    / storage[i]
+                fractions[i, j] = (
+                    fractions[i - 1, j] * storage[i - 1] +
+                    # -1 bc influx has no initial column, and is 1 shorter
+                    influxes[i - 1, j - 1] +
+                    fractions[i - 1, j] * outflux_sum[i - 1]
+                ) / storage[i]
 
         return fractions
 

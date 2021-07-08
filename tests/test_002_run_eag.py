@@ -257,3 +257,25 @@ def test_compare_numba_simulate_wq():
     assert np.allclose(m1[-1], m2[-1])
 
     return
+
+
+def test_compare_numba_fractions():
+    e1 = test_eag_run()
+    f1 = e1.calculate_fractions()
+
+    e2 = test_eag_run()
+    e2.use_numba = False
+    f2 = e2.calculate_fractions().loc[:, f1.columns].astype(float)
+
+    assert np.allclose(f1, f2)
+    return
+
+if __name__ == "__main__":
+    e1 = test_eag_run()
+    f1 = e1.calculate_fractions()
+
+    e2 = test_eag_run()
+    e2.use_numba = False
+    f2 = e2.calculate_fractions().loc[:, f1.columns].astype(float)
+
+    assert np.allclose(f1, f2)
