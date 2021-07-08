@@ -11,8 +11,6 @@ import numpy as np
 from matplotlib import colors
 from pandas import Series
 
-from .timeseries import get_series
-
 
 class Eag_Plots:
     def __init__(self, eag, dpi=100):

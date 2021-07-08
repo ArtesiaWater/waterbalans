@@ -51,7 +51,8 @@ class Gaf:
     def __repr__(self):
         return "<GAF object: {0} containing {1} EAGs>".format(self.name, len(self.eags))
 
-    def get_logger(self, log_level=logging.INFO, filename=None):
+    @staticmethod
+    def get_logger(log_level=logging.INFO, filename=None):
 
         logging.basicConfig(format='%(asctime)s | %(funcName)s - %(levelname)s : %(message)s',
                             level=logging.INFO)

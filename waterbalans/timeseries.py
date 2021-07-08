@@ -9,7 +9,7 @@ import logging
 import dateparser
 import numpy as np
 from hkvfewspy import Pi
-from pandas import (DataFrame, Series, Timedelta, Timestamp, concat,
+from pandas import (Series, Timedelta, Timestamp, concat,
                     date_range, read_csv, read_pickle)
 
 from .wsdl_settings import _wsdl
@@ -63,7 +63,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         logger = logging.getLogger(loggername)
 
     # get pi-webservice
-    if kind == "FEWS":
+    if kind == "FEWS":  # pragma: no cover
         try:
             pi = initialize_fews_pi(wsdl=wsdl)
         except Exception:
@@ -267,7 +267,7 @@ def update_series(series_orig, series_new, method="append"):
 
 def _get_fews_series(filterId=None, moduleInstanceId=None,
                      locationId=None, parameterId=None, tmin=None,
-                     tmax=None, pi=None):
+                     tmax=None, pi=None):  # pragma: no cover
 
     if pi is None:
         pi = initialize_fews_pi()
@@ -286,7 +286,7 @@ def _get_fews_series(filterId=None, moduleInstanceId=None,
     return df
 
 
-def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):
+def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):  # pragma: no cover
     pi = initialize_fews_pi()
     filterId, moduleInstanceId, locationId, parameterId = fewsid_string.split(
         "|")
@@ -297,14 +297,14 @@ def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):
     return df
 
 
-def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):
+def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):  # pragma: no cover
     fews_series = []
     for fewsid in fewsid_list:
         # parse fewsid
         try:
             filterId, moduleInstanceId, locationId, parameterId = fewsid.split(
                 "|")
-        except ValueError as e:
+        except ValueError:
             logger.error(
                 "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(name,
                                                                                fewsid))
@@ -360,7 +360,7 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):
     return fews_series
 
 
-def _combine_fews_series(fews_series, name, logger):
+def _combine_fews_series(fews_series, name, logger):  # pragma: no cover
     # Logic to combine multiple FEWS series
     if len(fews_series) > 1:
         params = [i["parameterId"].iloc[0] for i in fews_series]
@@ -397,7 +397,7 @@ def _combine_fews_series(fews_series, name, logger):
     return series
 
 
-def _get_knmi_series(name, stn, tmin, tmax, logger):
+def _get_knmi_series(name, stn, tmin, tmax, logger):  # pragma: no cover
     try:
         from pastas.read import KnmiStation
     except ModuleNotFoundError as e:

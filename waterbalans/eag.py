@@ -76,7 +76,8 @@ class Eag:
     def set_wsdl(self, wsdl):
         self.wsdl = wsdl
 
-    def get_logger(self, loggername, log_level=logging.INFO, filename=None):
+    @staticmethod
+    def get_logger(loggername, log_level=logging.INFO, filename=None):
 
         # Create a custom logger
         logger = logging.getLogger(loggername)
@@ -607,7 +608,7 @@ class Eag:
         # starting mass and concentration
         mass_tot[0] = C_init * V_init
 
-        for i in range(len(flux_out)):
+        for i in range(flux_out.shape[0]):
 
             # recalculate concentration after inflow w update storage
             C_out[i] = ((mass_tot[i] + np.nansum(mass_in[i])) /

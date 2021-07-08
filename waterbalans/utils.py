@@ -757,7 +757,7 @@ def write_excel(eag, excel_file, write_series=False):
 
 def check_numba():
     try:
-        from numba import njit
+        from numba import njit as _
         return True
     except ImportError:
         print("Numba is not installed. Installing Numba is "

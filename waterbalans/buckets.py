@@ -4,7 +4,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 
-from .utils import calculate_cso, check_numba, njit
+from .utils import calculate_cso, njit
 
 
 class Bucket:
@@ -534,7 +534,7 @@ class MengRiool(BucketBase):
                 ts_cso = ts_cso.loc[pd.to_datetime(tmin):pd.to_datetime(tmax)]
                 self.eag.logger.info(
                     "Picked up CSO timeseries from external file.")
-        except (FileNotFoundError, KeyError) as e:
+        except (FileNotFoundError, KeyError):
             try:
                 from pastas.read import KnmiStation
             except ModuleNotFoundError as e:
