@@ -1,7 +1,5 @@
-"""This file contains practical classes and methods for use throughout
-the "Waterbalans" model.
-
-"""
+"""This file contains practical classes and methods for use throughout the
+"Waterbalans" model."""
 import os
 
 import numpy as np
@@ -21,7 +19,6 @@ def excel2datetime(excel_datenum, freq="D", start_date="1899-12-30"):
     Returns
     -------
     datetimes: pandas.datetimeindex
-
     """
     datetimes = to_datetime(start_date) + to_timedelta(excel_datenum, freq)
     return datetimes
@@ -48,7 +45,6 @@ def makkink_to_penman(e, use_excel_factors=False):
     -----
     Van Penman naar Makkink, een nieuwe berekeningswijze voor de
     klimatologische verdampingsgetallen, KNMI/CHO, rapporten en nota's, no.19
-
     """
     if use_excel_factors:
         # penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
@@ -69,8 +65,8 @@ def makkink_to_penman(e, use_excel_factors=False):
 
 
 def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
-    """Calculate Combined Sewer Overflow timeseries based
-    on hourly precipitation series.
+    """Calculate Combined Sewer Overflow timeseries based on hourly
+    precipitation series.
 
     Parameters
     ----------
@@ -87,7 +83,6 @@ def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
     -------
     pd.Series
         timeseries of combined sewer overflows (cso)
-
     """
 
     p_smooth = prec.ewm(alpha=alphasmooth, adjust=False).mean()
@@ -108,9 +103,9 @@ def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
 
 
 def get_model_input_from_excel(excelfile):
-    """get modelstructure, timeseries, and parameters from an excel file.
-    The structure of the excelfile is defined. See example file at
-    https://github.com/ArtesiaWater/waterbalans/tree/master/voorbeelden/data
+    """get modelstructure, timeseries, and parameters from an excel file. The
+    structure of the excelfile is defined. See example file at
+    https://github.com/ArtesiaWater/waterbalans/tree/master/voorbeelden/data.
 
     Parameters
     ----------
@@ -122,7 +117,6 @@ def get_model_input_from_excel(excelfile):
     df_ms, df_ts, df_params: pandas.DataFrames
         DataFrames containing info about modelstructure,
         timeseries and parameters.
-
     """
     xls = pd.ExcelFile(excelfile, engine='openpyxl')
 
@@ -137,9 +131,9 @@ def get_model_input_from_excel(excelfile):
 
 
 def get_extra_series_from_excel(excelfile, sheet_name="extra_reeksen"):
-    """Load extra timeseries from excelfile containing all info
-    for an EAG. The structure of the excelfile is defined. See example file at
-    https://github.com/ArtesiaWater/waterbalans/tree/master/voorbeelden/data
+    """Load extra timeseries from excelfile containing all info for an EAG. The
+    structure of the excelfile is defined. See example file at
+    https://github.com/ArtesiaWater/waterbalans/tree/master/voorbeelden/data.
 
     Parameters
     ----------
@@ -150,7 +144,6 @@ def get_extra_series_from_excel(excelfile, sheet_name="extra_reeksen"):
     -------
     df_series: pandas.DataFrame
         DataFrame containing series to be added to waterbalance
-
     """
 
     xls = pd.ExcelFile(excelfile, engine="openpyxl")
@@ -161,9 +154,9 @@ def get_extra_series_from_excel(excelfile, sheet_name="extra_reeksen"):
 
 
 def get_wqparams_from_excel(excelfile, sheet_name="stoffen"):
-    """Load water quality parameters from excelfile containing all info
-    for an EAG. The structure of the excelfile is defined. See example file at
-    https://github.com/ArtesiaWater/waterbalans/tree/master/voorbeelden/data
+    """Load water quality parameters from excelfile containing all info for an
+    EAG. The structure of the excelfile is defined. See example file at
+    https://github.com/ArtesiaWater/waterbalans/tree/master/voorbeelden/data.
 
     Parameters
     ----------
@@ -174,7 +167,6 @@ def get_wqparams_from_excel(excelfile, sheet_name="stoffen"):
     -------
     df_series: pandas.DataFrame
         DataFrame containing water quality parameters
-
     """
 
     xls = pd.ExcelFile(excelfile, engine="openpyxl")
@@ -196,7 +188,6 @@ def get_extra_series_from_pickle(picklefile, compression="zip"):
     -------
     df_series: pandas.DataFrame
         DataFrame containing series
-
     """
 
     df_series = pd.read_pickle(picklefile, compression=compression)
@@ -227,7 +218,6 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
         Function will make an assumption about the column names and order and
         disregards column names of the passed DataFrame. If False uses DataFrame
         column names (default).
-
     """
     o = eag_or_gaf
     # if not isinstance(o, Eag) or not isinstance(o, Gaf):
@@ -337,8 +327,8 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
 
 
 def create_csvfile_table(csvdir):
-    """Creates a DataFrame containing all csv file
-    names for EAGs or GAFS in that folder.
+    """Creates a DataFrame containing all csv file names for EAGs or GAFS in
+    that folder.
 
     Parameters
     ----------

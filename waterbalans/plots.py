@@ -2,7 +2,6 @@
 
 Author: R.A. Collenteur, Artesia Water, 2017-11-20
         D.A. Brakenhoff, Artesia Water, 2018-09-01
-
 """
 from collections import OrderedDict
 
@@ -433,8 +432,8 @@ class Eag_Plots:
         return ax
 
     def compare_fluxes_to_excel_balance(self, exceldf, showdiff=True):  # pragma: no cover
-        """Convenience method to compare original Excel waterbalance
-        to the one calculated with Python.
+        """Convenience method to compare original Excel waterbalance to the one
+        calculated with Python.
 
         Parameters
         ----------
@@ -449,7 +448,6 @@ class Eag_Plots:
         fig: matplotlib figure handle
             handle to figure containing N subplots comparing series from
             Python waterbalance to the Excel waterbalance.
-
         """
         column_names = {'peil': 0,
                         'neerslag': 1,
@@ -562,8 +560,8 @@ class Eag_Plots:
         return fig
 
     def compare_waterlevel_to_excel(self, exceldf):  # pragma: no cover
-        """Convenience method to compare calculated water level in Excel waterbalance
-        to the one calculated with Python.
+        """Convenience method to compare calculated water level in Excel
+        waterbalance to the one calculated with Python.
 
         Parameters
         ----------
@@ -576,7 +574,6 @@ class Eag_Plots:
         ax:
             handle to axes containing N subplots comparing series from
             Python waterbalance to the Excel waterbalance.
-
         """
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=125)
 

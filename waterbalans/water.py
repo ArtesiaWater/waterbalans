@@ -25,10 +25,10 @@ class WaterBase(ABC):
         self.chloride = pd.DataFrame()
 
     def initialize(self, tmin=None, tmax=None):
-        """Method to initialize a Bucket with a clean DataFrame for the
-        fluxes and storage time series. This method is called by the init
-        and simulate methods.
+        """Method to initialize a Bucket with a clean DataFrame for the fluxes
+        and storage time series.
 
+        This method is called by the init and simulate methods.
         """
         self.load_series_from_eag()
 
@@ -103,7 +103,6 @@ class Water(WaterBase):
         The eag the water bucket belongs to.
     series: list of pandas.Series or pandas.DataFrame
         ??? Not yet sure how this is gonna work.
-
     """
 
     def __init__(self, idn, eag, series, area=0.0, use_waterlevel_series=False):
@@ -345,7 +344,6 @@ class Water(WaterBase):
 
         Returns
         -------
-
         """
         if not hasattr(self, "fluxes"):
             raise AttributeError("No attribute 'fluxes'. Run simulate first")

@@ -1,14 +1,10 @@
-"""This file contains the different classes for the buckets.
-
-
-
-"""
+"""This file contains the different classes for the buckets."""
 from abc import ABC
 
 import numpy as np
 import pandas as pd
 
-from .utils import calculate_cso, njit, check_numba
+from .utils import calculate_cso, check_numba, njit
 
 
 class Bucket:
@@ -46,10 +42,10 @@ class BucketBase(ABC):
         self.area = area  # area in square meters
 
     def initialize(self, tmin=None, tmax=None):
-        """Method to initialize a Bucket with a clean DataFrame for the
-        fluxes and storage time series. This method is called by the init
-        and simulate methods.
+        """Method to initialize a Bucket with a clean DataFrame for the fluxes
+        and storage time series.
 
+        This method is called by the init and simulate methods.
         """
         self.load_series_from_eag()
 
@@ -71,10 +67,8 @@ class BucketBase(ABC):
         return tmin, tmax
 
     def load_series_from_eag(self):
-        """Method to automatically load Precipitation and Evaporation from
-        for the eag if available.
-
-        """
+        """Method to automatically load Precipitation and Evaporation from for
+        the eag if available."""
         if self.eag is None:
             return
 
@@ -96,7 +90,6 @@ class BucketBase(ABC):
         dt: float, optional
             float value with the time step used for simulation. Not used
             right now.
-
         """
         pass
 
@@ -255,7 +248,6 @@ class Onverhard(BucketBase):
 
         Returns
         -------
-
         """
         tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
@@ -372,7 +364,6 @@ class Drain(BucketBase):
 
         Returns
         -------
-
         """
         tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
@@ -596,7 +587,6 @@ def calc_q_no(p, e, h, hEq, EFacMin, EFacMax, dt=1.0):
     -------
     q: float
         Precipitation excess.
-
     """
     if h < hEq:
         q = (p - e * EFacMin) / dt
@@ -632,7 +622,6 @@ def calc_q_ui(h, RFacIn, RFacOut, hEq, dt=1.0):
     When the waterlevel is above the equilibrium level, the returned flux is
     the waterlevel times a factor for outgoing fluxes, otherwise the
     waterlevel (h) times the factor for the ingoing fluxea.
-
     """
     # TODO minus sign could/should be in parameter
     if h < hEq:
@@ -667,7 +656,6 @@ def calc_h_q_oa(h, q_s, q_no, q_ui, hMax, dt=1.0):
         storage at current time step.
     q_oa: float
         outgoing flux
-
     """
     h_p = h + (q_s + q_ui + q_no) / dt  # h_potential
     if h_p > hMax:

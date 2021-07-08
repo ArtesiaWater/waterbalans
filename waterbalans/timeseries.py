@@ -3,7 +3,6 @@ waterbalance.
 
 Auteur: R.A. Collenteur, Artesia Water
         D.A. Brakenhoff, Artesia Water
-
 """
 import logging
 
@@ -17,10 +16,9 @@ from .wsdl_settings import _wsdl
 
 
 def initialize_fews_pi(wsdl=_wsdl):
-    """
-    FEWS Webservice 2017.01: http://localhost:8081/FewsPiService/fewspiservice?wsdl
-    FEWS Webservice 2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl
-    """
+    """FEWS Webservice 2017.01:
+    http://localhost:8081/FewsPiService/fewspiservice?wsdl FEWS Webservice
+    2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl."""
     pi = Pi()
     pi.setClient(wsdl=wsdl)
     return pi
@@ -57,7 +55,6 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
     Notes
     -----
-
     """
     # get logger
     if loggername is None:
@@ -212,7 +209,6 @@ def create_block_series(data, tindex):
     -------
     series: pandas.Series
         The constructed block series
-
     """
     # start value series 1 year before given index to ensure first period is also filled correctly.
     series = Series(index=date_range(
@@ -246,7 +242,6 @@ def update_series(series_orig, series_new, method="append"):
     -------
     pandas.Series
         updated series
-
     """
     series_new = series_new.dropna()
     series_orig = series_orig.dropna()

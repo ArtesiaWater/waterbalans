@@ -1,8 +1,7 @@
 """Dit bestand bevat de EAG model klasse.
 
-Raoul Collenteur, Artesia Water, September 2018
-David Brakenhoff, Artesia Water, September 2018
-
+Raoul Collenteur, Artesia Water, September 2018 David Brakenhoff,
+Artesia Water, September 2018
 """
 
 import logging
@@ -16,8 +15,8 @@ from pandas.tseries.offsets import MonthOffset
 
 from .plots import Eag_Plots
 from .timeseries import get_series, update_series
-from .wsdl_settings import _wsdl
 from .utils import check_numba, njit
+from .wsdl_settings import _wsdl
 
 
 class Eag:
@@ -36,7 +35,6 @@ class Eag:
     -----
     The Eag class can be used on its own, without the use of a Gaf instance.
     As such, the waterbalance for an Eag can be calculated stand alone.
-
     """
 
     def __init__(self, idn=None, name=None, gaf=None, series=None, logfile=None,
@@ -120,7 +118,6 @@ class Eag:
             Bucket instance added to the model
         replace: bool
             Replace a bucket if a bucket with this name already exists
-
         """
         if bucket.idn in self.buckets.keys() and replace is False:
             raise KeyError("bucket with ID %s is already in buckets dict."
@@ -138,7 +135,6 @@ class Eag:
             Instance of the WaterBase class.
         replace: bool
             force replace of the water object.
-
         """
         if self.water is not None and replace is False:
             raise KeyError("There is already a water bucket present in the "
@@ -148,9 +144,9 @@ class Eag:
 
     def add_series_from_database(self, series, tmin, tmax,
                                  freq="D", fillna=False, method="append"):
-        """Method to add timeseries based on a DataFrame containing
-        information about the series. Series are described by one or more
-        rows in the DataFrame with at least the following columns:
+        """Method to add timeseries based on a DataFrame containing information
+        about the series. Series are described by one or more rows in the
+        DataFrame with at least the following columns:
 
          - Bucket ID: ID of the bucket the series should be added to
          - SeriesType (unfortunately called ParamType at the moment): Origin or Type
@@ -172,7 +168,6 @@ class Eag:
         series = pd.read_csv("data\\reeks_16088_2501-EAG-1.csv", delimiter=";",
                       decimal=",")
         eag.add_series_from_database(series)
-
         """
         # Sort series to parse in order: Valueseries -> Local -> FEWS -> Constant
         series = series.sort_values(by="ParamType", ascending=False)
@@ -254,9 +249,9 @@ class Eag:
 
     def add_timeseries(self, series, name=None, tmin=None, tmax=None, freq="D",
                        fillna=False, method=None):
-        """Method to add series directly to EAG. Series must contain volumes (so
-        not divided by area). Series must be negative for water taken out of the
-        EAG and positive for water coming into the EAG.
+        """Method to add series directly to EAG. Series must contain volumes
+        (so not divided by area). Series must be negative for water taken out
+        of the EAG and positive for water coming into the EAG.
 
         Parameters
         ----------
@@ -275,7 +270,6 @@ class Eag:
         method: str or float
             if str (i.e. 'ffill') use this method to fill Nans, if float, use
             this value to fill in the NaNs (i.e. 0.0)
-
         """
         # get start and end date
         if tmin is None:
@@ -327,9 +321,7 @@ class Eag:
 
     def get_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
-        provided.
-
-        """
+        provided."""
         # create index if empty
         if self.series.index.shape[0] == 0:
             tmin = self.gaf.series.index[0]
@@ -367,14 +359,12 @@ class Eag:
             return bucketlist
 
     def get_parameter_df(self):
-        """get parameter dataframe containing parameter values for
-        each bucket.
+        """get parameter dataframe containing parameter values for each bucket.
 
         Returns
         -------
         df : pandas.DataFrame
             DataFrame containing all parameters in the model
-
         """
         df = pd.DataFrame(columns=["Bakje", "BakjeID", "ParamCode",
                                    "Laagvolgorde", "Waarde"])
@@ -402,7 +392,6 @@ class Eag:
             Pandas DataFrame with the parameters.
         tmin: str or pandas.Timestamp
         tmax: str or pandas.Timestamp
-
         """
         start = timer()
         self.logger.info("Simulating: {}...".format(self.name))
@@ -648,7 +637,6 @@ class Eag:
         fluxes: pandas.DataFrame
             Pandas DataFrame with the fluxes. The column names denote the
             fluxes.
-
         """
         d = {
             "Neerslag": "neerslag",
@@ -799,7 +787,6 @@ class Eag:
         -------
         frac: pandas.DataFrame
             pandas DataFrame with the fractions.
-
         """
 
         # TODO: Figure out how to include series with non-default names?
@@ -894,10 +881,10 @@ class Eag:
         return fractions
 
     def calculate_missing_influx(self):
-        """Calculate missing influx to the system by averaging the
-        difference between the calculated outflux versus the measured
-        outflux at the pumping station. The missing influx is equal to
-        the average difference per month.
+        """Calculate missing influx to the system by averaging the difference
+        between the calculated outflux versus the measured outflux at the
+        pumping station. The missing influx is equal to the average difference
+        per month.
 
         Raises
         ------
