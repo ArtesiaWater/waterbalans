@@ -259,13 +259,13 @@ class Eag_Plots:
 
         colordict = OrderedDict(
             {"kwel": "brown",
-                     "neerslag": "blue",
-                     "uitspoeling": "lime",
-                     "afstroming": "darkgreen",
-                     "drain": "orange",
-                     "berekende inlaat": "red",
-                     "q_cso": "black",
-                     "verhard": "gray"})
+             "neerslag": "blue",
+             "uitspoeling": "lime",
+             "afstroming": "darkgreen",
+             "drain": "orange",
+             "berekende inlaat": "red",
+             "q_cso": "black",
+             "verhard": "gray"})
 
         fr = self.eag.calculate_fractions().loc[tmin:tmax]
         fr.dropna(how="all", axis=1, inplace=True)
@@ -282,13 +282,15 @@ class Eag_Plots:
                     colors.append(c)
                     labels.append(icol)
 
+        m = 0
         for icol in fr.columns.difference(colordict.keys()):
             if icol not in ["verdamping", "wegzijging", "berekende uitlaat",
                             "initial", "intrek"]:
                 if fr[icol].astype(np.float).sum() != 0.0:
                     fr_list.append(fr[icol].astype(np.float).values)
-                    colors.append("salmon")
+                    colors.append(f"C{m}")
                     labels.append(icol)
+                    m += 1
 
         # Plot
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
