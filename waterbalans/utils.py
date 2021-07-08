@@ -124,7 +124,7 @@ def get_model_input_from_excel(excelfile):
         timeseries and parameters.
 
     """
-    xls = pd.ExcelFile(excelfile)
+    xls = pd.ExcelFile(excelfile, engine='openpyxl')
 
     df_ms = pd.read_excel(xls, sheet_name="modelstructure", skiprows=[1],
                           header=[0], index_col=None)
@@ -153,7 +153,7 @@ def get_extra_series_from_excel(excelfile, sheet_name="extra_reeksen"):
 
     """
 
-    xls = pd.ExcelFile(excelfile)
+    xls = pd.ExcelFile(excelfile, engine="openpyxl")
     df_series = pd.read_excel(xls, sheet_name=sheet_name, skiprows=[1],
                               header=[0], index_col=[0], parse_dates=True)
 
@@ -177,7 +177,7 @@ def get_wqparams_from_excel(excelfile, sheet_name="stoffen"):
 
     """
 
-    xls = pd.ExcelFile(excelfile)
+    xls = pd.ExcelFile(excelfile, engine="openpyxl")
     df_series = pd.read_excel(xls, sheet_name=sheet_name, skiprows=[1],
                               header=[0], index_col=None, usecols="A:I")
 
