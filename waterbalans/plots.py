@@ -22,15 +22,15 @@ class Eag_Plots:
              "drain": "orange",
              "verhard": "darkgray",
              "afstroming": "darkgreen",
-                           "q_cso": "olive",
-                           "wegzijging": "brown",
-                           "verdamping": "b",
-                           "intrek": "lime",
-                           "uitlaat": "salmon",
-                           "berekende inlaat": "r",
-                           "berekende uitlaat": "k",
-                           "maalstaat": "yellow",
-                           "sluitfout": "black"})
+             "q_cso": "olive",
+             "wegzijging": "brown",
+             "verdamping": "b",
+             "intrek": "lime",
+             "uitlaat": "salmon",
+             "berekende inlaat": "r",
+             "berekende uitlaat": "k",
+             "maalstaat": "yellow",
+             "sluitfout": "black"})
         self.figsize = (18, 6)
         self.dpi = dpi
 
