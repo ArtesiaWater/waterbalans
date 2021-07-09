@@ -270,12 +270,33 @@ def test_compare_numba_fractions():
     assert np.allclose(f1, f2)
     return
 
-if __name__ == "__main__":
+
+def test_compare_numba_fractions_large_inflow():
     e1 = test_eag_run()
+    # add large inflow
+    inlaat = pd.Series(index=e1.series.index, data=1e6)
+    e1.add_timeseries(inlaat, "Inlaat1")
+
+    # load parameters
+    params = pd.read_csv(os.path.join(test_data, "param_1396_3360-EAG-1.csv"),
+                         delimiter=";", decimal=".")
+    # params.rename(columns={"ParamCode": "Code"}, inplace=True)
+    params["Waarde"] = pd.to_numeric(params.Waarde)
+    # set storage limits
+    params.loc[19, "Waarde"] = -0.05
+    params.loc[20, "Waarde"] = -0.05
+
+    # simulate
+    e1.simulate(params=params, tmin="2000", tmax="2000-01-10")
     f1 = e1.calculate_fractions()
 
     e2 = test_eag_run()
+    # add large inflow
+    inlaat = pd.Series(index=e2.series.index, data=1e6)
+    e2.add_timeseries(inlaat, "Inlaat1")
     e2.use_numba = False
+    e2.simulate(params=params, tmin="2000", tmax="2000-01-10")
     f2 = e2.calculate_fractions().loc[:, f1.columns].astype(float)
 
     assert np.allclose(f1, f2)
+    return

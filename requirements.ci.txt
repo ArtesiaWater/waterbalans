@@ -1,6 +1,6 @@
-pandas==0.24
-numpy==1.19.2
-matplotlib==3.4.1
+pandas>=0.24
+numpy>=1.19.2
+matplotlib>=3.4.1
 hkvfewspy==0.6.2
 dateparser
 numba

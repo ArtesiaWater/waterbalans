@@ -11,7 +11,7 @@ from timeit import default_timer as timer
 import numpy as np
 import pandas as pd
 from pandas import Timestamp, date_range
-from pandas.tseries.offsets import MonthOffset
+from pandas.tseries.offsets import DateOffset
 
 from .plots import Eag_Plots
 from .timeseries import get_series, update_series
@@ -743,7 +743,7 @@ class Eag:
         # Helper function to get grouper
         def get_grouper(s, cumsum_period="year", month_offset=9):
             if cumsum_period == "year":
-                grouper = [(s.index - MonthOffset(n=month_offset)).year]
+                grouper = [(s.index - DateOffset(months=month_offset)).year]
             elif cumsum_period == "month":
                 grouper = [s.index.year, s.index.month]
             else:
@@ -827,25 +827,30 @@ class Eag:
             fractions.sort_index(inplace=True)
 
             for t in fluxes.index:
-                fractions.loc[t, "initial"] = (
-                    fractions.loc[t - pd.Timedelta(days=1), "initial"] *
-                    self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
-                    fractions.loc[t - pd.Timedelta(days=1), "initial"] *
-                    outflux.loc[t]
-                ) / self.water.storage.loc[t, "storage"]
-
-                if fractions.loc[t, "initial"] < 0.0:
-                    fractions.loc[t, "initial"] = 0.0
-
-                for icol in fraction_columns:
-                    fractions.loc[t, icol] = (
-                        fractions.loc[t - pd.Timedelta(days=1), icol] *
-                        self.water.storage.loc[t - pd.Timedelta(days=1), "storage"] +
-                        fluxes.loc[t, icol] -
-                        fractions.loc[t - pd.Timedelta(days=1), icol] *
-                        -1 * outflux.loc[t]
+                tminus1 = t - pd.Timedelta(days=1)
+                # influx is smaller than storage
+                if (fluxes.loc[t, fraction_columns].sum() <=
+                        self.water.storage.loc[t, "storage"]):
+                    fractions.loc[t, "initial"] = (
+                        fractions.loc[tminus1, "initial"] *
+                        (self.water.storage.loc[tminus1, "storage"] +
+                         outflux.loc[t])
                     ) / self.water.storage.loc[t, "storage"]
 
+                    for icol in fraction_columns:
+                        fractions.loc[t, icol] = (
+                            fractions.loc[tminus1, icol] *
+                            (self.water.storage.loc[tminus1, "storage"] +
+                             outflux.loc[t]) +
+                            fluxes.loc[t, icol]
+                        ) / self.water.storage.loc[t, "storage"]
+                # influx is larger than storage
+                else:
+                    fractions.loc[t, "initial"] = 0.0
+                    fractions.loc[t, fraction_columns] = (
+                        fluxes.loc[t, fraction_columns] /
+                        fluxes.loc[t, fraction_columns].sum()
+                    )
         return fractions
 
     @staticmethod
@@ -860,24 +865,28 @@ class Eag:
         fractions[0, 0] = 1.0
 
         # loop over timesteps
+        # note storage and fractions arrays are 1 larger than fluxes
         for i in range(1, outflux_sum.shape[0] + 1):
-            fractions[i, 0] = (
-                fractions[i - 1, 0] * storage[i - 1] +
-                fractions[i - 1, 0] * outflux_sum[i - 1]
-            ) / storage[i]
-
-            # if entire water volume is replaced in one timestep
-            if fractions[i, 0] < 0:
-                fractions[i, 0] = 0.0
-
-            # loop over influxes
-            for j in range(1, fractions.shape[1]):
-                fractions[i, j] = (
-                    fractions[i - 1, j] * storage[i - 1] +
-                    # -1 bc influx has no initial column, and is 1 shorter
-                    influxes[i - 1, j - 1] +
-                    fractions[i - 1, j] * outflux_sum[i - 1]
+            # influx is smaller than storage
+            if influxes[i - 1].sum() <= storage[i]:
+                fractions[i, 0] = (
+                    fractions[i - 1, 0] * (storage[i - 1] + outflux_sum[i - 1])
                 ) / storage[i]
+
+                # loop over influxes
+                for j in range(1, fractions.shape[1]):
+                    fractions[i, j] = (
+                        fractions[i - 1, j] * (storage[i - 1] +
+                                               outflux_sum[i - 1]
+                                               ) +
+                        # -1 bc influx has no initial column, and is 1 shorter
+                        influxes[i - 1, j - 1]
+                    ) / storage[i]
+            # influx is larger than storage
+            else:
+                # set initial to 0 as all fractions are determined by influx
+                fractions[i, 0] = 0.0
+                fractions[i, 1:] = influxes[i - 1, :] / np.sum(influxes[i - 1])
 
         return fractions
 
