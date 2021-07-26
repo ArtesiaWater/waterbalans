@@ -510,9 +510,9 @@ class Eag:
             # add series to C_series DataFrame
             if reeks_type == "Constant":
                 C_series.loc[:, inlaat_type] = series
-            else:
+            elif reeks_type == "Local":
                 series = series.reindex(C_series.index)
-                # Series is often not measured on each day ->
+                # Local series is often not measured on each day ->
                 # ffill to fill gaps
                 if series.isna().sum() > 0:
                     self.logger.info(f"Filling {series.isna().sum()} NaNs "
@@ -520,7 +520,8 @@ class Eag:
                                      "and then 'bfill'.")
                     series.fillna(method='ffill', inplace=True)
                     series.fillna(method='bfill', inplace=True)
-
+                C_series.loc[:, inlaat_type] = series
+            else:
                 C_series.loc[:, inlaat_type] = series
 
         if return_series:
