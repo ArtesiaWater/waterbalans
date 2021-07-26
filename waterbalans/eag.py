@@ -460,7 +460,7 @@ class Eag:
         # Parse wq_params table
         # Should result in C_series -> per flux a series in one DataFrame,
         # if FEWS or local data is used, data is ffilled
-        pcols = [icol.lower() for icol in wq_params["InlaatType"]
+        pcols = [icol.lower() for icol in wq_params["InlaatType"].unique()
                  if icol.lower() != "initieel"]
         incols = fluxes.columns.intersection(pcols)
 
