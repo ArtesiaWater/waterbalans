@@ -29,9 +29,6 @@ def create_eag(idn, name, buckets, gaf=None, series=None,
 
     Notes
     -----
-
-
-
     """
     eag = Eag(idn=idn, name=name, gaf=gaf, series=series, logfile=logfile,
               log_level=log_level)
@@ -81,7 +78,6 @@ def create_gaf(idn, name, gafbuckets=None, eags=None, series=None,
     -------
     gaf: waterbalance.Gaf
         instance of Gaf object
-
     """
     gaf = Gaf(idn=idn, name=name, series=series)
     gaf.logger.info("Creating GAF object for '{}':".format(name))

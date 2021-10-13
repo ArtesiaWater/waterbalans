@@ -1,9 +1,10 @@
-import os
 import logging
+import os
+
 import pandas as pd
 
 from .create import create_eag
-from .utils import create_csvfile_table, add_timeseries_to_obj
+from .utils import add_timeseries_to_obj, create_csvfile_table
 
 
 def run_eag_by_name(name, csvdir, extra_iter=0, tmin="1996", tmax="2019",

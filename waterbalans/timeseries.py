@@ -3,20 +3,22 @@ waterbalance.
 
 Auteur: R.A. Collenteur, Artesia Water
         D.A. Brakenhoff, Artesia Water
-
 """
 import logging
+
+import dateparser
 import numpy as np
 from hkvfewspy import Pi
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, concat
+from pandas import (Series, Timedelta, Timestamp, concat,
+                    date_range, read_csv, read_pickle)
+
 from .wsdl_settings import _wsdl
 
 
 def initialize_fews_pi(wsdl=_wsdl):
-    """
-    FEWS Webservice 2017.01: http://localhost:8081/FewsPiService/fewspiservice?wsdl
-    FEWS Webservice 2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl
-    """
+    """FEWS Webservice 2017.01:
+    http://localhost:8081/FewsPiService/fewspiservice?wsdl FEWS Webservice
+    2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl."""
     pi = Pi()
     pi.setClient(wsdl=wsdl)
     return pi
@@ -53,7 +55,6 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
     Notes
     -----
-
     """
     # get logger
     if loggername is None:
@@ -62,12 +63,12 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         logger = logging.getLogger(loggername)
 
     # get pi-webservice
-    if kind == "FEWS":
+    if kind == "FEWS":  # pragma: no cover
         try:
             pi = initialize_fews_pi(wsdl=wsdl)
         except Exception:
-            logger.warning(
-                "Pi service cannot be started. Module will not import series from FEWS!")
+            logger.warning("Pi service cannot be started. "
+                           "Module will not import series from FEWS!")
             pi = None
 
     # get tmin, tmax
@@ -122,8 +123,12 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
     # If a alternating time series is required (e.g. summer/winter level)
     elif kind == "ValueSeries":
-        logger.info("Adding ValueSeries timeseries '{}' for Bucket '{}'.".format(
-            name, data["BakjeID"].iloc[0]))
+        if 'BakjeID' in data.columns:
+            logger.info("Adding ValueSeries timeseries '{}' "
+                        "for Bucket '{}'.".format(
+                            name, data["BakjeID"].iloc[0]))
+        else:
+            logger.info("Adding ValueSeries timeseries '{}'.".format(name))
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
         tindex = date_range(tmin, tmax, freq=freq)
         series = create_block_series(df, tindex)
@@ -133,17 +138,51 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
                 name, 1e-3))
             series = series * 1e-3
 
-    # elif kind == "Local":
-        # if kind is Local, read Series from CSV provided by dbase!
-        # TODO: intuitive method to read CSV/Series from Database
-        # series = pd.read_csv(data.loc[])
-        # series = series[name]
-        # pass
+    # if timeseries must be read from local file
+    elif kind == "Local":
+        if 'BakjeID' in data.columns:
+            logger.info("Adding Local timeseries '{}' for Bucket '{}'.".format(
+                name, data["BakjeID"].iloc[0]))
+        else:
+            logger.info("Get Local timeseries '{}'.".format(name))
+        # if kind is Local, read Series from CSV
+        # only supports datetime and value column
+        if not data['WaardeAlfa'].isna().iloc[0]:
+            fname = data["WaardeAlfa"].iloc[0]
+            if fname.endswith(".csv"):
+                logger.debug(f"Reading Local CSV: {fname}")
+                series = read_csv(fname, index_col=[0],
+                                  delimiter=";", parse_dates=True,
+                                  date_parser=dateparser.parse)
+            elif fname.endswith(".pkl"):
+                logger.debug(f"Reading Local pickle: {fname}")
+                series = read_pickle(fname)
+            else:
+                logger.error(f"Cannot read {fname}. Supported filetypes "
+                             "are CSV ('.csv') and pickle ('.pkl').")
+                # raise ValueError(f"Cannot read {fname}. Supported filetypes "
+                #                  "are CSV ('.csv') and pickle ('.pkl').")
+            # select correct column
+            col = [icol for icol in series.columns if
+                   icol.lower().startswith(name)]
+            if len(col) == 0:
+                msg = f"Local timeseries CSV does not contain data for {name}!"
+                logger.error(msg)
+                raise ValueError(msg)
+                # return
+            elif len(col) > 1:
+                msg = f"Local timeseries CSV contains multiple columns for {name}!"
+                logger.error(msg)
+                raise ValueError(msg)
+            elif len(col) == 1:
+                series = series.loc[:, col].squeeze()
+        else:
+            logger.debug("Local series not read, 'WaardeAlfa' is NaN!")
+            series = None
 
     else:
-        # TODO: fix logging, commented out now, because too much noise.
-        # logger.warning(
-        #     "Adding series '{0}' of kind '{1}' not supported.".format(name, kind))
+        logger.warning("Adding series '{0}' of "
+                       "kind '{1}' not supported.".format(name, kind))
         return
 
     if series is None:
@@ -170,7 +209,6 @@ def create_block_series(data, tindex):
     -------
     series: pandas.Series
         The constructed block series
-
     """
     # start value series 1 year before given index to ensure first period is also filled correctly.
     series = Series(index=date_range(
@@ -204,7 +242,6 @@ def update_series(series_orig, series_new, method="append"):
     -------
     pandas.Series
         updated series
-
     """
     series_new = series_new.dropna()
     series_orig = series_orig.dropna()
@@ -230,7 +267,7 @@ def update_series(series_orig, series_new, method="append"):
 
 def _get_fews_series(filterId=None, moduleInstanceId=None,
                      locationId=None, parameterId=None, tmin=None,
-                     tmax=None, pi=None):
+                     tmax=None, pi=None):  # pragma: no cover
 
     if pi is None:
         pi = initialize_fews_pi()
@@ -249,7 +286,7 @@ def _get_fews_series(filterId=None, moduleInstanceId=None,
     return df
 
 
-def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):
+def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):  # pragma: no cover
     pi = initialize_fews_pi()
     filterId, moduleInstanceId, locationId, parameterId = fewsid_string.split(
         "|")
@@ -260,14 +297,14 @@ def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):
     return df
 
 
-def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):
+def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):  # pragma: no cover
     fews_series = []
     for fewsid in fewsid_list:
         # parse fewsid
         try:
             filterId, moduleInstanceId, locationId, parameterId = fewsid.split(
                 "|")
-        except ValueError as e:
+        except ValueError:
             logger.error(
                 "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(name,
                                                                                fewsid))
@@ -323,7 +360,7 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):
     return fews_series
 
 
-def _combine_fews_series(fews_series, name, logger):
+def _combine_fews_series(fews_series, name, logger):  # pragma: no cover
     # Logic to combine multiple FEWS series
     if len(fews_series) > 1:
         params = [i["parameterId"].iloc[0] for i in fews_series]
@@ -360,7 +397,7 @@ def _combine_fews_series(fews_series, name, logger):
     return series
 
 
-def _get_knmi_series(name, stn, tmin, tmax, logger):
+def _get_knmi_series(name, stn, tmin, tmax, logger):  # pragma: no cover
     try:
         from pastas.read import KnmiStation
     except ModuleNotFoundError as e:

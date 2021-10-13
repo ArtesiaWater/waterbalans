@@ -2,7 +2,6 @@
 
 Author: R.A. Collenteur, Artesia Water, 2017-11-20
         D.A. Brakenhoff, Artesia Water, 2018-09-01
-
 """
 from collections import OrderedDict
 
@@ -12,11 +11,9 @@ import numpy as np
 from matplotlib import colors
 from pandas import Series
 
-from .timeseries import get_series
-
 
 class Eag_Plots:
-    def __init__(self, eag, dpi=150):
+    def __init__(self, eag, dpi=100):
         self.eag = eag
         self.colordict = OrderedDict(
             {"kwel": "brown",
@@ -25,15 +22,15 @@ class Eag_Plots:
              "drain": "orange",
              "verhard": "darkgray",
              "afstroming": "darkgreen",
-                           "q_cso": "olive",
-                           "wegzijging": "brown",
-                           "verdamping": "b",
-                           "intrek": "lime",
-                           "uitlaat": "salmon",
-                           "berekende inlaat": "r",
-                           "berekende uitlaat": "k",
-                           "maalstaat": "yellow",
-                           "sluitfout": "black"})
+             "q_cso": "olive",
+             "wegzijging": "brown",
+             "verdamping": "b",
+             "intrek": "lime",
+             "uitlaat": "salmon",
+             "berekende inlaat": "r",
+             "berekende uitlaat": "k",
+             "maalstaat": "yellow",
+             "sluitfout": "black"})
         self.figsize = (18, 6)
         self.dpi = dpi
 
@@ -259,13 +256,13 @@ class Eag_Plots:
 
         colordict = OrderedDict(
             {"kwel": "brown",
-                     "neerslag": "blue",
-                     "uitspoeling": "lime",
-                     "afstroming": "darkgreen",
-                     "drain": "orange",
-                     "berekende inlaat": "red",
-                     "q_cso": "black",
-                     "verhard": "gray"})
+             "neerslag": "blue",
+             "uitspoeling": "lime",
+             "afstroming": "darkgreen",
+             "drain": "orange",
+             "berekende inlaat": "red",
+             "q_cso": "black",
+             "verhard": "gray"})
 
         fr = self.eag.calculate_fractions().loc[tmin:tmax]
         fr.dropna(how="all", axis=1, inplace=True)
@@ -282,13 +279,15 @@ class Eag_Plots:
                     colors.append(c)
                     labels.append(icol)
 
+        m = 0
         for icol in fr.columns.difference(colordict.keys()):
             if icol not in ["verdamping", "wegzijging", "berekende uitlaat",
                             "initial", "intrek"]:
                 if fr[icol].astype(np.float).sum() != 0.0:
                     fr_list.append(fr[icol].astype(np.float).values)
-                    colors.append("salmon")
+                    colors.append(f"C{m}")
                     labels.append(icol)
+                    m += 1
 
         # Plot
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
@@ -431,8 +430,8 @@ class Eag_Plots:
         return ax
 
     def compare_fluxes_to_excel_balance(self, exceldf, showdiff=True):  # pragma: no cover
-        """Convenience method to compare original Excel waterbalance
-        to the one calculated with Python.
+        """Convenience method to compare original Excel waterbalance to the one
+        calculated with Python.
 
         Parameters
         ----------
@@ -447,7 +446,6 @@ class Eag_Plots:
         fig: matplotlib figure handle
             handle to figure containing N subplots comparing series from
             Python waterbalance to the Excel waterbalance.
-
         """
         column_names = {'peil': 0,
                         'neerslag': 1,
@@ -560,8 +558,8 @@ class Eag_Plots:
         return fig
 
     def compare_waterlevel_to_excel(self, exceldf):  # pragma: no cover
-        """Convenience method to compare calculated water level in Excel waterbalance
-        to the one calculated with Python.
+        """Convenience method to compare calculated water level in Excel
+        waterbalance to the one calculated with Python.
 
         Parameters
         ----------
@@ -574,7 +572,6 @@ class Eag_Plots:
         ax:
             handle to axes containing N subplots comparing series from
             Python waterbalance to the Excel waterbalance.
-
         """
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=125)
 

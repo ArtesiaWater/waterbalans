@@ -1,6 +1,4 @@
-"""This file contains the polder class
-
-"""
+"""This file contains the polder class."""
 import logging
 from collections import OrderedDict
 
@@ -21,7 +19,6 @@ class Gaf:
     Notes
     -----
     Gebieden-AfvoerGebieden
-
     """
 
     def __init__(self, idn=None, name=None, eags=None, series=None):
@@ -54,7 +51,8 @@ class Gaf:
     def __repr__(self):
         return "<GAF object: {0} containing {1} EAGs>".format(self.name, len(self.eags))
 
-    def get_logger(self, log_level=logging.INFO, filename=None):
+    @staticmethod
+    def get_logger(log_level=logging.INFO, filename=None):
 
         logging.basicConfig(format='%(asctime)s | %(funcName)s - %(levelname)s : %(message)s',
                             level=logging.INFO)
@@ -79,9 +77,9 @@ class Gaf:
 
     def add_timeseries(self, series, name=None, tmin="2000", tmax="2015", freq="D",
                        fillna=False, method=None):
-        """Method to add series directly to EAG. Series must contain volumes (so
-        not divided by area). Series must be negative for water taken out of the
-        EAG and positive for water coming into the EAG.
+        """Method to add series directly to EAG. Series must contain volumes
+        (so not divided by area). Series must be negative for water taken out
+        of the EAG and positive for water coming into the EAG.
 
         Parameters
         ----------
@@ -92,7 +90,6 @@ class Gaf:
         tmin: str or pandas.Timestamp, optional
         tmax: str or pandas.Timestamp, optional
         freq: str
-
         """
         if self.series.index.shape[0] == 0:
             self.series = pd.DataFrame(index=pd.date_range(pd.Timestamp(tmin),
@@ -121,9 +118,7 @@ class Gaf:
             self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
 
     def simulate(self, parameters, tmin=None, tmax=None):
-        """Method to calculate the waterbalance for the Gaf.
-
-        """
+        """Method to calculate the waterbalance for the Gaf."""
         for eagname, eag in self.eags.items():
             eag.get_series_from_gaf()
             params = parameters.loc[parameters.EAGCode == eagname, :]

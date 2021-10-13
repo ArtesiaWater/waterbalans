@@ -3,7 +3,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 
-from .utils import makkink_to_penman
+from .utils import makkink_to_penman, njit
 
 
 class WaterBase(ABC):
@@ -25,10 +25,10 @@ class WaterBase(ABC):
         self.chloride = pd.DataFrame()
 
     def initialize(self, tmin=None, tmax=None):
-        """Method to initialize a Bucket with a clean DataFrame for the
-        fluxes and storage time series. This method is called by the init
-        and simulate methods.
+        """Method to initialize a Bucket with a clean DataFrame for the fluxes
+        and storage time series.
 
+        This method is called by the init and simulate methods.
         """
         self.load_series_from_eag()
 
@@ -51,6 +51,8 @@ class WaterBase(ABC):
         self.fluxes = pd.DataFrame(index=index, dtype=float)
         self.storage = pd.DataFrame(index=index_w_day_before, dtype=float)
         self.level = pd.DataFrame(index=index_w_day_before, dtype=float)
+
+        return tmin, tmax
 
     def load_series_from_eag(self):
         if self.eag is None:
@@ -101,7 +103,6 @@ class Water(WaterBase):
         The eag the water bucket belongs to.
     series: list of pandas.Series or pandas.DataFrame
         ??? Not yet sure how this is gonna work.
-
     """
 
     def __init__(self, idn, eag, series, area=0.0, use_waterlevel_series=False):
@@ -124,9 +125,8 @@ class Water(WaterBase):
         return "<{0}: {1} bucket with area {2:.1f}>".format(self.idn, "Water", self.area)
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
-        tmin = pd.Timestamp(tmin)
-        tmax = pd.Timestamp(tmax)
-        self.initialize(tmin=tmin, tmax=tmax)
+
+        tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
         msg = "{0} {1}: using default parameter value {2} for '{3}'"
@@ -140,8 +140,12 @@ class Water(WaterBase):
 
         # Pick up hTargetSeries if they exist
         if not self.hTargetSeries.empty and not self.use_waterlevel_series:
+            self.eag.logger.info("Using hTarget-timeseries, not "
+                                 "hTarget-parameters!")
             hTargetMin_1 = self.hTargetSeries["hTargetMin"]
             hTargetMax_1 = self.hTargetSeries["hTargetMax"]
+        elif self.use_waterlevel_series:
+            self.eag.logger.info("Using observed waterlevels in simulation!")
 
         if QInMax_1 == 0.:
             self.eag.logger.warning(
@@ -184,10 +188,6 @@ class Water(WaterBase):
             h = pd.Series(index=self.storage.index)
             h.iloc[0] = (hTarget_1 - hBottom_1) * self.area
 
-        # pre-allocate empty series
-        q_in = pd.Series(index=self.storage.index, data=0.0)
-        q_out = pd.Series(index=self.storage.index, data=0.0)
-
         # net flux
         q_totals = self.fluxes.sum(axis=1)
 
@@ -198,15 +198,23 @@ class Water(WaterBase):
         #     relative to observed level if available
 
         if not self.hTargetSeries.empty and not self.use_waterlevel_series:
+            self.eag.logger.debug("Using hTarget-timeseries.")
             # Convert to volume:
             hTargetMin_1 = (hTargetMin_1 - hBottom_1) * self.area
             hTargetMax_1 = (hTargetMax_1 - hBottom_1) * self.area
+
         else:  # hTargets are floats (positive or negative) relative to Target level
             if hTargetMin_1 <= 0:  # static
+                self.eag.logger.debug(f"hTargetMin={hTargetMin_1} indicates a"
+                                      " static target level relative to "
+                                      f"hTarget=f{hTarget_1}.")
                 hTargetMin_static = (
                     hTarget_1 + hTargetMin_1 - hBottom_1) * self.area  # a volume
                 hTargetMin_1 = pd.Series(index=h.index, data=hTargetMin_static)
             else:  # dynamic
+                self.eag.logger.debug(f"hTargetMin={hTargetMin_1} indicates a"
+                                      " dynamic target level relative to "
+                                      "observed waterlevel.")
                 ht = hTargetMin_1
                 hTargetMin_1 = (self.eag.series.loc[tmin:tmax, "Peil"] -
                                 hTargetMin_1 - hBottom_1) * self.area
@@ -214,53 +222,47 @@ class Water(WaterBase):
                 hTargetMin_1.iloc[0] = (hTarget_1 - ht - hBottom_1) * self.area
 
             if hTargetMax_1 <= 0:  # static
+                self.eag.logger.debug(f"hTargetMax={hTargetMax_1} indicates a"
+                                      " static target level relative to "
+                                      f"hTarget=f{hTarget_1}.")
                 hTargetMax_static = (
                     hTarget_1 - hTargetMax_1 - hBottom_1) * self.area  # a volume
                 hTargetMax_1 = pd.Series(index=h.index, data=hTargetMax_static)
             else:  # dynamic
+                self.eag.logger.debug(f"hTargetMax={hTargetMax_1} indicates a"
+                                      " dynamic target level relative to "
+                                      "observed waterlevel.")
                 ht = hTargetMax_1
                 hTargetMax_1 = (self.eag.series.loc[tmin:tmax, "Peil"] +
                                 hTargetMax_1 - hBottom_1) * self.area
                 # This is what Excel does (start with init level instead of first obs Peil)
                 hTargetMax_1.iloc[0] = (hTarget_1 + ht - hBottom_1) * self.area
 
-        for t in h.index[1:]:
-            if np.isnan(hTargetMax_1.loc[t]):
-                hTargetMax_1.loc[t] = hTargetMax_1.loc[t -
-                                                       pd.Timedelta(days=1)]
-            if np.isnan(hTargetMin_1.loc[t]):
-                hTargetMin_1.loc[t] = hTargetMin_1.loc[t -
-                                                       pd.Timedelta(days=1)]
+        if self.eag.use_numba:
+            qtot = q_totals.values
+            htmax_1 = hTargetMax_1.ffill().values
+            htmin_1 = hTargetMin_1.ffill().values
+            h_arr = h.values
 
-            hTargetMax_obs = hTargetMax_1.loc[t]
-            hTargetMin_obs = hTargetMin_1.loc[t]
+            q_in, q_out, h = self.calc_waterbalance(
+                qtot, h_arr, htmax_1, htmin_1)
 
-            if ~np.isnan(h.loc[t]):  # there is a water level measurement
-                # volume[t] = volume[t-1] + q_net[t]
-                h_plus_q = h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t]
+        else:
+            # pre-allocate empty series
+            q_in = pd.Series(index=self.storage.index, data=0.0)
+            q_out = pd.Series(index=self.storage.index, data=0.0)
 
-                # test if new volume exceeds thresholds
-                if h_plus_q > hTargetMax_obs:
-                    if np.isnan(QOutMax_1) or (QOutMax_1 == 0):  # no limit on out flux
-                        q_out.loc[t] = hTargetMax_obs - h_plus_q
-                    else:  # limit on out flux
-                        # No limit on outflux in first timestep in Excel
-                        if t == tmin:
-                            q_out.loc[t] = hTargetMax_obs - h_plus_q
-                        else:
-                            q_out.loc[t] = max(-1 * QOutMax_1,
-                                               hTargetMax_obs - h_plus_q)
-                elif h_plus_q < hTargetMin_obs:
-                    if np.isnan(QInMax_1) or (QInMax_1 == 0):  # no limit on in flux
-                        q_in.loc[t] = hTargetMin_obs - h_plus_q
-                    else:  # limit on in flux
-                        q_in.loc[t] = min(QInMax_1, hTargetMin_obs - h_plus_q)
+            for t in h.index[1:]:
+                if np.isnan(hTargetMax_1.loc[t]):
+                    hTargetMax_1.loc[t] = hTargetMax_1.loc[t -
+                                                           pd.Timedelta(days=1)]
+                if np.isnan(hTargetMin_1.loc[t]):
+                    hTargetMin_1.loc[t] = hTargetMin_1.loc[t -
+                                                           pd.Timedelta(days=1)]
 
-                # update h with new calculated volume
-                h.loc[t] = h.loc[t - pd.Timedelta(days=1)] + \
-                    q_in.loc[t] + q_out.loc[t] + q_totals.loc[t]
+                hTargetMax_obs = hTargetMax_1.loc[t]
+                hTargetMin_obs = hTargetMin_1.loc[t]
 
-            else:  # no water level measurement
                 # volume[t] = volume[t-1] + q_net[t]
                 h_plus_q = h.loc[t - pd.Timedelta(days=1)] + q_totals.loc[t]
 
@@ -287,13 +289,61 @@ class Water(WaterBase):
         self.level = self.level.assign(level=h / self.area + hBottom_1)
         self.fluxes = self.fluxes.assign(q_in=q_in, q_out=q_out)
 
+    @staticmethod
+    @njit
+    def calc_waterbalance(qtot, h, htmax, htmin,
+                          QOutMax_1=np.nan, QInMax_1=np.nan):
+
+        q_in = np.zeros((qtot.size,), dtype=np.float64)
+        q_out = np.zeros((qtot.size,), dtype=np.float64)
+        hnew = np.zeros((h.size,), dtype=np.float64)
+        hnew[0] = h[0]
+
+        for i in range(qtot.size):
+
+            hTargetMax_obs = htmax[i]
+            hTargetMin_obs = htmin[i]
+
+            h_plus_q = hnew[i] + qtot[i]
+
+            if h_plus_q > hTargetMax_obs:
+                if np.isnan(QOutMax_1) or (QOutMax_1 == 0):
+                    q_out[i] = hTargetMax_obs - h_plus_q
+                else:
+                    # No limit on outflux in first timestep in Excel
+                    if i == 0:
+                        q_out[i] = hTargetMax_obs - h_plus_q
+                    else:
+                        qlim = -1.0 * QOutMax_1
+                        qi = hTargetMax_obs - h_plus_q
+                        if qi > qlim:
+                            q_out[i] = qlim
+                        else:
+                            q_out[i] = qi
+                        # q_out[i] = max(-1 * QOutMax_1,
+                        #                hTargetMax_obs - h_plus_q)
+            elif h_plus_q < hTargetMin_obs:
+                if np.isnan(QInMax_1) or (QInMax_1 == 0):
+                    q_in[i] = hTargetMin_obs - h_plus_q
+                else:
+                    qlim = QInMax_1
+                    qi = hTargetMin_obs - h_plus_q
+                    if qi > qlim:
+                        q_in[i] = qlim
+                    else:
+                        q_in[i] = qi
+                    # q_in[i] = min(QInMax_1, hTargetMin_obs - h_plus_q)
+
+            hnew[i + 1] = hnew[i] + q_in[i] + q_out[i] + qtot[i]
+
+        return q_in, q_out, hnew
+
     def validate(self, return_wb_series=False):
         """Method to validate the water balance based on the total input,
         output and the change in storage of the model for each time step.
 
         Returns
         -------
-
         """
         if not hasattr(self, "fluxes"):
             raise AttributeError("No attribute 'fluxes'. Run simulate first")
