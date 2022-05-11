@@ -228,7 +228,7 @@ class Eag:
                             self.water.series[ClusterType] = new_series
                         else:  # add new series
                             self.water.series[ClusterType] = s
-                elif BakjeID == -9999:  # add to EAG, no specific bucket defined
+                elif int(BakjeID) == -9999:  # add to EAG, no specific bucket defined
                     if ClusterType in self.series.columns:  # check if already exists
                         orig_series = self.series[ClusterType]
                         new_series = update_series(

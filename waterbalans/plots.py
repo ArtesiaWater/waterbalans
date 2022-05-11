@@ -8,7 +8,7 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
-from matplotlib import colors
+from matplotlib import colors as mcolors
 from pandas import Series
 
 
@@ -66,10 +66,10 @@ class Eag_Plots:
         i = 0
         for icol in plotdata.columns:
             if icol in self.colordict.keys():
-                rgbcolors.append(colors.to_rgba(self.colordict[icol]))
+                rgbcolors.append(mcolors.to_rgba(self.colordict[icol]))
             else:
                 # if no color defined get one of the default ones
-                rgbcolors.append(colors.to_rgba("C{}".format(i % 10)))
+                rgbcolors.append(mcolors.to_rgba("C{}".format(i % 10)))
                 i += 1
 
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
@@ -92,7 +92,7 @@ class Eag_Plots:
     def aggregated(self, freq="M", tmin=None, tmax=None, add_gemaal=False):
 
         if add_gemaal:
-            fluxes = self.eag.aggregate_with_pumpstation()
+            fluxes = self.eag.aggregate_fluxes_w_pumpstation()
         else:
             fluxes = self.eag.aggregate_fluxes()
 
@@ -115,10 +115,10 @@ class Eag_Plots:
         i = 0
         for icol in plotdata.columns:
             if icol in self.colordict.keys():
-                rgbcolors.append(colors.to_rgba(self.colordict[icol]))
+                rgbcolors.append(mcolors.to_rgba(self.colordict[icol]))
             else:
                 # if no color defined get one of the default ones
-                rgbcolors.append(colors.to_rgba("C{}".format(i % 10)))
+                rgbcolors.append(mcolors.to_rgba("C{}".format(i % 10)))
                 i += 1
 
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
@@ -285,7 +285,7 @@ class Eag_Plots:
                             "initial", "intrek"]:
                 if fr[icol].astype(np.float).sum() != 0.0:
                     fr_list.append(fr[icol].astype(np.float).values)
-                    colors.append(f"C{m}")
+                    colors.append(mcolors.to_rgba(f"C{m}"))
                     labels.append(icol)
                     m += 1
 
@@ -324,20 +324,20 @@ class Eag_Plots:
         i = 0
         for icol in plotdata_in.columns:
             if icol in self.colordict.keys():
-                rgbcolors_in.append(colors.to_rgba(self.colordict[icol]))
+                rgbcolors_in.append(mcolors.to_rgba(self.colordict[icol]))
             else:
                 # if no color defined get one of the default ones
-                rgbcolors_in.append(colors.to_rgba("C{}".format(i % 10)))
+                rgbcolors_in.append(mcolors.to_rgba("C{}".format(i % 10)))
                 i += 1
 
         rgbcolors_out = []
         i = 0
         for icol in plotdata_out.columns:
             if icol in self.colordict.keys():
-                rgbcolors_out.append(colors.to_rgba(self.colordict[icol]))
+                rgbcolors_out.append(mcolors.to_rgba(self.colordict[icol]))
             else:
                 # if no color defined get one of the default ones
-                rgbcolors_out.append(colors.to_rgba("C{}".format(i % 10)))
+                rgbcolors_out.append(mcolors.to_rgba("C{}".format(i % 10)))
                 i += 1
 
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
