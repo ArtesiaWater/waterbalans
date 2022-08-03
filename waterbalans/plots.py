@@ -217,9 +217,19 @@ class Eag_Plots:
                     lw=2, label=flux_nam)
 
         if cumsum_series is not None:
-            for eseries_nam in eagseries_names:
-                ax.fill_between(cumsum_series[eseries_nam].index, 0.0,
-                                -cumsum_series[eseries_nam],
+            for i, eseries_nam in enumerate(eagseries_names):
+                if i == 0:
+                    ylower = 0.0
+                    yupper = -cumsum_series[eseries_nam]
+                else:
+                    ylower = - \
+                        cumsum_series.loc[:, [eagseries_names[j]
+                                              for j in range(i)]].sum(axis=1)
+                    yupper = - \
+                        cumsum_series.loc[:, [eagseries_names[j]
+                                              for j in range(i + 1)]].sum(axis=1)
+                ax.fill_between(cumsum_series[eseries_nam].index,
+                                ylower, yupper,
                                 label=eseries_nam)
 
         ax.set_ylabel("Cumulatieve afvoer (m$^3$)")
