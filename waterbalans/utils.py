@@ -146,7 +146,11 @@ def get_model_input_from_excel(excelfile):
     xls = pd.ExcelFile(excelfile, engine="openpyxl")
 
     df_ms = pd.read_excel(
-        xls, sheet_name="modelstructure", skiprows=[1], header=[0], index_col=None
+        xls,
+        sheet_name="modelstructure",
+        skiprows=[1],
+        header=[0],
+        index_col=None,
     )
     df_ts = pd.read_excel(
         xls,
@@ -312,7 +316,8 @@ def add_timeseries_to_obj(
     factor = 1.0
     for inam in ["Gemaal", "Inlaat", "Uitlaat"]:
         colmask = [
-            True if icol.lower().startswith(inam.lower()) else False for icol in columns
+            True if icol.lower().startswith(inam.lower()) else False
+            for icol in columns
         ]
         series = df.loc[:, colmask]
         # Water bucket converts outgoing fluxes to negative, so outgoing fluxes can be entered positive
@@ -355,50 +360,80 @@ def add_timeseries_to_obj(
                 )
 
     # Peil
-    colmask = [True if icol.lower().startswith("peil") else False for icol in columns]
+    colmask = [
+        True if icol.lower().startswith("peil") else False for icol in columns
+    ]
     if np.sum(colmask) > 0:
         peil = df.loc[:, colmask]
         if "Peil" in eag_series:
             if overwrite:
                 o.add_timeseries(
-                    peil, name="Peil", tmin=tmin, tmax=tmax, fillna=True, method="ffill"
+                    peil,
+                    name="Peil",
+                    tmin=tmin,
+                    tmax=tmax,
+                    fillna=True,
+                    method="ffill",
                 )
             else:
                 o.logger.warning("'Peil' already in EAG. No action taken.")
         else:
             # o.logger.info("Adding 'Peil' series to EAG.")
             o.add_timeseries(
-                peil, name="Peil", tmin=tmin, tmax=tmax, fillna=True, method="ffill"
+                peil,
+                name="Peil",
+                tmin=tmin,
+                tmax=tmax,
+                fillna=True,
+                method="ffill",
             )
 
     # q_cso MengRiool overstortreeks
-    colmask = [True if icol.lower().startswith("q_cso") else False for icol in columns]
+    colmask = [
+        True if icol.lower().startswith("q_cso") else False for icol in columns
+    ]
     if np.sum(colmask) > 0:
         q_cso = df.loc[:, colmask] / 100**2
         if "q_cso" in eag_series:
             if overwrite:
                 o.add_timeseries(
-                    q_cso, name="q_cso", tmin=tmin, tmax=tmax, fillna=True, method=0.0
+                    q_cso,
+                    name="q_cso",
+                    tmin=tmin,
+                    tmax=tmax,
+                    fillna=True,
+                    method=0.0,
                 )
             else:
                 o.logger.warning("'q_cso' already in EAG. No action taken.")
         else:
             # o.logger.info("Adding 'q_cso' series to EAG.")
             o.add_timeseries(
-                q_cso, name="q_cso", tmin=tmin, tmax=tmax, fillna=True, method=0.0
+                q_cso,
+                name="q_cso",
+                tmin=tmin,
+                tmax=tmax,
+                fillna=True,
+                method=0.0,
             )
 
     # Neerslag/Verdamping
     for inam in ["Neerslag", "Verdamping"]:
         colmask = [
-            True if icol.lower().startswith(inam.lower()) else False for icol in columns
+            True if icol.lower().startswith(inam.lower()) else False
+            for icol in columns
         ]
         if np.sum(colmask) > 0:
             pe = df.loc[:, colmask] * 1e-3
             if inam in eag_series:
                 if overwrite:
                     o.add_timeseries(
-                        pe, name=inam, tmin=tmin, tmax=tmax, fillna=True, method=0.0
+                        pe,
+                        name=inam,
+                        tmin=tmin,
+                        tmax=tmax,
+                        fillna=True,
+                        method=0.0,
                     )
                 else:
                     o.logger.warning(
@@ -440,17 +475,22 @@ def create_csvfile_table(csvdir):
     )
     eag_df.drop_duplicates(subset=["ID", "type"], keep="last", inplace=True)
     file_df = eag_df.pivot(index="ID", columns="type", values="filenames")
-    file_df.dropna(how="any", subset=["opp", "param", "reeks"], axis=0, inplace=True)
+    file_df.dropna(
+        how="any", subset=["opp", "param", "reeks"], axis=0, inplace=True
+    )
     return file_df
 
 
 def compare_to_excel_balance(e, pickle_dir, **kwargs):
     # Read Excel Balance Data (see scrape_excelbalansen.py for details)
     excelbalance = pd.read_pickle(
-        os.path.join(pickle_dir, "{}_wbalance.pklz".format(e.name)), compression="zip"
+        os.path.join(pickle_dir, "{}_wbalance.pklz".format(e.name)),
+        compression="zip",
     )
     for icol in excelbalance.columns:
-        excelbalance.loc[:, icol] = pd.to_numeric(excelbalance[icol], errors="coerce")
+        excelbalance.loc[:, icol] = pd.to_numeric(
+            excelbalance[icol], errors="coerce"
+        )
 
     # Waterbalance comparison
     fig = e.plot.compare_fluxes_to_excel_balance(excelbalance, **kwargs)
@@ -620,7 +660,9 @@ def eag_params_to_excel_dict(eag):
                 }
                 return_dicts.append(onverhard4)
             else:
-                print("Warning: only 4 Onverhard buckets can be written to Excel!")
+                print(
+                    "Warning: only 4 Onverhard buckets can be written to Excel!"
+                )
             n_onverhard += 1
 
     # water bakje
@@ -759,7 +801,10 @@ def eag_params_to_excel_dict(eag):
 def write_excel(eag, excel_file, write_series=False):
 
     import openpyxl
-    from openpyxl.utils.cell import column_index_from_string, coordinate_from_string
+    from openpyxl.utils.cell import (
+        column_index_from_string,
+        coordinate_from_string,
+    )
 
     newfile = excel_file.split(".")[0] + "_wbpython.xlsx"
 

@@ -38,7 +38,12 @@ def create_eag(
     -----
     """
     eag = Eag(
-        idn=idn, name=name, gaf=gaf, series=series, logfile=logfile, log_level=log_level
+        idn=idn,
+        name=name,
+        gaf=gaf,
+        series=series,
+        logfile=logfile,
+        log_level=log_level,
     )
     eag.logger.info("Creating EAG object for '{}'".format(name))
 
@@ -62,7 +67,12 @@ def create_eag(
 
 
 def create_gaf(
-    idn, name, gafbuckets=None, eags=None, series=None, use_waterlevel_series=False
+    idn,
+    name,
+    gafbuckets=None,
+    eags=None,
+    series=None,
+    use_waterlevel_series=False,
 ):
     """Create instance of a GAF.
 

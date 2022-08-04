@@ -34,7 +34,14 @@ def initialize_fews_pi(wsdl=_wsdl):
 
 
 def get_series(
-    name, kind, data, tmin=None, tmax=None, freq="D", loggername=None, wsdl=_wsdl
+    name,
+    kind,
+    data,
+    tmin=None,
+    tmax=None,
+    freq="D",
+    loggername=None,
+    wsdl=_wsdl,
 ):
     """Method that return a time series downloaded from fews or constructed
     from its parameters.
@@ -103,13 +110,17 @@ def get_series(
 
         # split if multiple fews ids provided in one string:
         fewsid_list = fews_waarde_alfa.split("||")
-        fews_series = _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi)
+        fews_series = _collect_fews_series(
+            fewsid_list, name, tmin, tmax, logger, pi
+        )
         series = _combine_fews_series(fews_series, name, logger)
 
     # if KNMI data is required:
     elif kind == "KNMI":
         stn = int(data.loc[:, "Waarde"].iloc[0])
-        logger.info("Downloading {0} from KNMI for station {1}.".format(name, stn))
+        logger.info(
+            "Downloading {0} from KNMI for station {1}.".format(name, stn)
+        )
         series = _get_knmi_series(name, stn, tmin, tmax, logger)
 
     #  If a constant timeseries is required
@@ -124,7 +135,9 @@ def get_series(
 
         if name in ["Qkwel", "Qwegz"]:
             logger.debug(
-                "Convert units '{0}' to m by multiplying by {1:.0e}".format(name, 1e-3)
+                "Convert units '{0}' to m by multiplying by {1:.0e}".format(
+                    name, 1e-3
+                )
             )
             value = float(data.loc[:, "Waarde"].values[0]) * 1e-3
         else:
@@ -148,7 +161,9 @@ def get_series(
 
         if name in ["Qkwel", "Qwegz"]:
             logger.debug(
-                "Convert units '{0}' to m by multiplying by {1:.0e}".format(name, 1e-3)
+                "Convert units '{0}' to m by multiplying by {1:.0e}".format(
+                    name, 1e-3
+                )
             )
             series = series * 1e-3
 
@@ -186,7 +201,9 @@ def get_series(
                 # raise ValueError(f"Cannot read {fname}. Supported filetypes "
                 #                  "are CSV ('.csv') and pickle ('.pkl').")
             # select correct column
-            col = [icol for icol in series.columns if icol.lower().startswith(name)]
+            col = [
+                icol for icol in series.columns if icol.lower().startswith(name)
+            ]
             if len(col) == 0:
                 msg = f"Local timeseries CSV does not contain data for {name}!"
                 logger.error(msg)
@@ -204,7 +221,8 @@ def get_series(
 
     else:
         logger.warning(
-            "Adding series '{0}' of " "kind '{1}' not supported.".format(name, kind)
+            "Adding series '{0}' of "
+            "kind '{1}' not supported.".format(name, kind)
         )
         return
 
@@ -233,8 +251,12 @@ def create_block_series(data, tindex):
     series: pandas.Series
         The constructed block series
     """
-    # start value series 1 year before given index to ensure first period is also filled correctly.
-    series = Series(index=date_range(tindex[0] - Timedelta(days=365), tindex[-1]))
+    # start value series 1 year before given index to ensure first period
+    # is also filled correctly.
+    series = Series(
+        index=date_range(tindex[0] - Timedelta(days=365), tindex[-1]),
+        dtype=float,
+    )
     for t, val in data.iterrows():
         day, month = [int(x) for x in t.split("-")]
         mask = (series.index.month == month) & (series.index.day == day)
@@ -314,9 +336,13 @@ def _get_fews_series(
     return df
 
 
-def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):  # pragma: no cover
+def get_fews_series(
+    fewsid_string, tmin="1996", tmax="2019"
+):  # pragma: no cover
     pi = initialize_fews_pi()
-    filterId, moduleInstanceId, locationId, parameterId = fewsid_string.split("|")
+    filterId, moduleInstanceId, locationId, parameterId = fewsid_string.split(
+        "|"
+    )
     df = _get_fews_series(
         filterId=filterId,
         moduleInstanceId=moduleInstanceId,
@@ -330,12 +356,16 @@ def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):  # pragma: no cove
     return df
 
 
-def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):  # pragma: no cover
+def _collect_fews_series(
+    fewsid_list, name, tmin, tmax, logger, pi
+):  # pragma: no cover
     fews_series = []
     for fewsid in fewsid_list:
         # parse fewsid
         try:
-            filterId, moduleInstanceId, locationId, parameterId = fewsid.split("|")
+            filterId, moduleInstanceId, locationId, parameterId = fewsid.split(
+                "|"
+            )
         except ValueError:
             logger.error(
                 "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(
@@ -361,12 +391,16 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):  # pragma: 
 
         # if only Nan data is returned (check if index is only NaN)
         if df.index.dropna().size == 0:
-            logger.error("FEWS Timeseries '{}' contains no valid data!".format(name))
+            logger.error(
+                "FEWS Timeseries '{}' contains no valid data!".format(name)
+            )
             continue
 
         index_name = df.index.name
         df.reset_index(inplace=True)
-        series = df.loc[:, [index_name, "value", "parameterId"]].set_index(index_name)
+        series = df.loc[:, [index_name, "value", "parameterId"]].set_index(
+            index_name
+        )
         # Remove timezone from FEWS series
         series = series.tz_localize(None)
         series["value"] = series["value"].astype(float)
@@ -374,7 +408,9 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):  # pragma: 
         # check units
         if name in ["Verdamping", "Neerslag"]:
             logger.debug(
-                "Convert units '{0}' to m by multiplying by {1:.0e}".format(name, 1e-3)
+                "Convert units '{0}' to m by multiplying by {1:.0e}".format(
+                    name, 1e-3
+                )
             )
             series["value"] = series["value"].divide(1e3)
 
@@ -403,7 +439,9 @@ def _combine_fews_series(fews_series, name, logger):  # pragma: no cover
         params = [i["parameterId"].iloc[0] for i in fews_series]
         # check if all params are equal
         if not np.all([ip == params[0] for ip in params]):
-            logger.error("Not all FEWSIDs have the same parameter! {}".format(params))
+            logger.error(
+                "Not all FEWSIDs have the same parameter! {}".format(params)
+            )
             return
         # water levels: mean
         elif params[0] == "H.meting.gem":

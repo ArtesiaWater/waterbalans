@@ -83,7 +83,9 @@ def run_eag_by_name(
     if extra_iter == 0:
         e.simulate(parameters, tmin=tmin, tmax=tmax)
     elif extra_iter > 0:
-        e.simulate_iterative(parameters, extra_iters=extra_iter, tmin=tmin, tmax=tmax)
+        e.simulate_iterative(
+            parameters, extra_iters=extra_iter, tmin=tmin, tmax=tmax
+        )
 
     return e
 
@@ -94,7 +96,9 @@ def get_dataframes_from_files(
     dflist = {}
     if fbuckets is not None:
         # bestand met deelgebieden en oppervlaktes:
-        deelgebieden = pd.read_csv(os.path.join(csvdir, fbuckets), delimiter=";")
+        deelgebieden = pd.read_csv(
+            os.path.join(csvdir, fbuckets), delimiter=";"
+        )
         dflist["deelgebieden"] = deelgebieden
     if freeks is not None:
         # bestand met tijdreeksen, b.v. neerslag/verdamping:
