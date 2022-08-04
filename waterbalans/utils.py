@@ -49,18 +49,43 @@ def makkink_to_penman(e, use_excel_factors=False):
     if use_excel_factors:
         # penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
         #           1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
-        penman = 1.0 / np.array([0.4, 0.933333333, 1.266666667,
-                                 1.3, 1.3, 1.310000000,
-                                 1.266666667, 1.193333333, 1.170000000,
-                                 0.9, 0.7, 0.0])
+        penman = 1.0 / np.array(
+            [
+                0.4,
+                0.933333333,
+                1.266666667,
+                1.3,
+                1.3,
+                1.310000000,
+                1.266666667,
+                1.193333333,
+                1.170000000,
+                0.9,
+                0.7,
+                0.0,
+            ]
+        )
     else:
-        penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
-                  1.111, 1.429, 1.000]  # col E47:E59 in Excel e_r / e_o
+        penman = [
+            2.500,
+            1.071,
+            0.789,
+            0.769,
+            0.769,
+            0.763,
+            0.789,
+            0.838,
+            0.855,
+            1.111,
+            1.429,
+            1.000,
+        ]  # col E47:E59 in Excel e_r / e_o
     e = e.copy()
     for i in range(1, 13):
         with np.errstate(divide="ignore"):
-            e.loc[e.index.month == i] = e.loc[e.index.month == i] / \
-                penman[i - 1]  # for first list
+            e.loc[e.index.month == i] = (
+                e.loc[e.index.month == i] / penman[i - 1]
+            )  # for first list
     return e
 
 
@@ -118,14 +143,27 @@ def get_model_input_from_excel(excelfile):
         DataFrames containing info about modelstructure,
         timeseries and parameters.
     """
-    xls = pd.ExcelFile(excelfile, engine='openpyxl')
+    xls = pd.ExcelFile(excelfile, engine="openpyxl")
 
-    df_ms = pd.read_excel(xls, sheet_name="modelstructure", skiprows=[1],
-                          header=[0], index_col=None)
-    df_ts = pd.read_excel(xls, sheet_name="reeksen", skiprows=[1],
-                          header=[0], index_col=None, usecols="A:J")
-    df_params = pd.read_excel(xls, sheet_name="parameters", skiprows=[1],
-                              header=[0], index_col=None, usecols="A:G")
+    df_ms = pd.read_excel(
+        xls, sheet_name="modelstructure", skiprows=[1], header=[0], index_col=None
+    )
+    df_ts = pd.read_excel(
+        xls,
+        sheet_name="reeksen",
+        skiprows=[1],
+        header=[0],
+        index_col=None,
+        usecols="A:J",
+    )
+    df_params = pd.read_excel(
+        xls,
+        sheet_name="parameters",
+        skiprows=[1],
+        header=[0],
+        index_col=None,
+        usecols="A:G",
+    )
 
     return df_ms, df_ts, df_params
 
@@ -147,8 +185,14 @@ def get_extra_series_from_excel(excelfile, sheet_name="extra_reeksen"):
     """
 
     xls = pd.ExcelFile(excelfile, engine="openpyxl")
-    df_series = pd.read_excel(xls, sheet_name=sheet_name, skiprows=[1],
-                              header=[0], index_col=[0], parse_dates=True)
+    df_series = pd.read_excel(
+        xls,
+        sheet_name=sheet_name,
+        skiprows=[1],
+        header=[0],
+        index_col=[0],
+        parse_dates=True,
+    )
 
     return df_series
 
@@ -170,8 +214,14 @@ def get_wqparams_from_excel(excelfile, sheet_name="stoffen"):
     """
 
     xls = pd.ExcelFile(excelfile, engine="openpyxl")
-    df_series = pd.read_excel(xls, sheet_name=sheet_name, skiprows=[1],
-                              header=[0], index_col=None, usecols="A:I")
+    df_series = pd.read_excel(
+        xls,
+        sheet_name=sheet_name,
+        skiprows=[1],
+        header=[0],
+        index_col=None,
+        usecols="A:I",
+    )
 
     return df_series
 
@@ -194,8 +244,9 @@ def get_extra_series_from_pickle(picklefile, compression="zip"):
     return df_series
 
 
-def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
-                          data_from_excel=False):
+def add_timeseries_to_obj(
+    eag_or_gaf, df, tmin=None, tmax=None, overwrite=False, data_from_excel=False
+):
     """Add timeseries to EAG or GAF. Only parses column names starting with
     'Neerslag', 'Verdamping', 'Inlaat', 'Uitlaat', 'Peil', or 'Gemaal'.
 
@@ -230,15 +281,28 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
         if tmax is None:
             tmax = o.series.index[-1]
     except IndexError:
-        raise ValueError(
-            "tmin/tmax cannot be inferred from EAG/GAF object.")
+        raise ValueError("tmin/tmax cannot be inferred from EAG/GAF object.")
 
     if data_from_excel:
-        columns = ["neerslag", "verdamping", "peil",
-                   "Gemaal1", "Gemaal2", "Gemaal3", "Gemaal4",
-                   "Inlaat voor calibratie", "gemengd gerioleerd stelsel",
-                   "Inlaat1", "Inlaat2", "Inlaat3", "Inlaat4",
-                   "Uitlaat1", "Uitlaat2", "Uitlaat3", "Uitlaat4"]
+        columns = [
+            "neerslag",
+            "verdamping",
+            "peil",
+            "Gemaal1",
+            "Gemaal2",
+            "Gemaal3",
+            "Gemaal4",
+            "Inlaat voor calibratie",
+            "gemengd gerioleerd stelsel",
+            "Inlaat1",
+            "Inlaat2",
+            "Inlaat3",
+            "Inlaat4",
+            "Uitlaat1",
+            "Uitlaat2",
+            "Uitlaat3",
+            "Uitlaat4",
+        ]
     else:
         columns = df.columns
 
@@ -247,15 +311,17 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
     # Inlaat/Uitlaat
     factor = 1.0
     for inam in ["Gemaal", "Inlaat", "Uitlaat"]:
-        colmask = [True if icol.lower().startswith(inam.lower())
-                   else False for icol in columns]
+        colmask = [
+            True if icol.lower().startswith(inam.lower()) else False for icol in columns
+        ]
         series = df.loc[:, colmask]
         # Water bucket converts outgoing fluxes to negative, so outgoing fluxes can be entered positive
         for jcol in range(series.shape[1]):
             # Check if empty
             if series.iloc[:, jcol].dropna().empty:
-                o.logger.warning("'{}' is empty. Continuing...".format(
-                    series.columns[jcol]))
+                o.logger.warning(
+                    "'{}' is empty. Continuing...".format(series.columns[jcol])
+                )
                 continue
             # Check if series is already in EAG
             if data_from_excel:
@@ -264,66 +330,85 @@ def add_timeseries_to_obj(eag_or_gaf, df, tmin=None, tmax=None, overwrite=False,
                 colnam = series.columns[jcol].split("|")[0]
             if colnam in eag_series:
                 if overwrite:
-                    o.add_timeseries(factor * series.iloc[:, jcol], name="{}".format(colnam),
-                                     tmin=tmin, tmax=tmax, fillna=True, method=0.0)
+                    o.add_timeseries(
+                        factor * series.iloc[:, jcol],
+                        name="{}".format(colnam),
+                        tmin=tmin,
+                        tmax=tmax,
+                        fillna=True,
+                        method=0.0,
+                    )
                 else:
-                    o.logger.warning("'{}' already in EAG. No action taken.".format(
-                        colnam))
+                    o.logger.warning(
+                        "'{}' already in EAG. No action taken.".format(colnam)
+                    )
             else:
                 # o.logger.info("Adding '{}' series to EAG.".format(
                 #     colnam))
-                o.add_timeseries(factor * series.iloc[:, jcol], name="{}".format(colnam),
-                                 tmin=tmin, tmax=tmax, fillna=True, method=0.0)
+                o.add_timeseries(
+                    factor * series.iloc[:, jcol],
+                    name="{}".format(colnam),
+                    tmin=tmin,
+                    tmax=tmax,
+                    fillna=True,
+                    method=0.0,
+                )
 
     # Peil
-    colmask = [True if icol.lower().startswith("peil")
-               else False for icol in columns]
+    colmask = [True if icol.lower().startswith("peil") else False for icol in columns]
     if np.sum(colmask) > 0:
         peil = df.loc[:, colmask]
         if "Peil" in eag_series:
             if overwrite:
-                o.add_timeseries(peil, name="Peil", tmin=tmin, tmax=tmax,
-                                 fillna=True, method="ffill")
+                o.add_timeseries(
+                    peil, name="Peil", tmin=tmin, tmax=tmax, fillna=True, method="ffill"
+                )
             else:
                 o.logger.warning("'Peil' already in EAG. No action taken.")
         else:
             # o.logger.info("Adding 'Peil' series to EAG.")
-            o.add_timeseries(peil, name="Peil", tmin=tmin, tmax=tmax,
-                             fillna=True, method="ffill")
+            o.add_timeseries(
+                peil, name="Peil", tmin=tmin, tmax=tmax, fillna=True, method="ffill"
+            )
 
     # q_cso MengRiool overstortreeks
-    colmask = [True if icol.lower().startswith("q_cso")
-               else False for icol in columns]
+    colmask = [True if icol.lower().startswith("q_cso") else False for icol in columns]
     if np.sum(colmask) > 0:
         q_cso = df.loc[:, colmask] / 100**2
         if "q_cso" in eag_series:
             if overwrite:
-                o.add_timeseries(q_cso, name="q_cso", tmin=tmin, tmax=tmax,
-                                 fillna=True, method=0.0)
+                o.add_timeseries(
+                    q_cso, name="q_cso", tmin=tmin, tmax=tmax, fillna=True, method=0.0
+                )
             else:
                 o.logger.warning("'q_cso' already in EAG. No action taken.")
         else:
             # o.logger.info("Adding 'q_cso' series to EAG.")
-            o.add_timeseries(q_cso, name="q_cso", tmin=tmin, tmax=tmax,
-                             fillna=True, method=0.0)
+            o.add_timeseries(
+                q_cso, name="q_cso", tmin=tmin, tmax=tmax, fillna=True, method=0.0
+            )
 
     # Neerslag/Verdamping
     for inam in ["Neerslag", "Verdamping"]:
-        colmask = [True if icol.lower().startswith(inam.lower())
-                   else False for icol in columns]
+        colmask = [
+            True if icol.lower().startswith(inam.lower()) else False for icol in columns
+        ]
         if np.sum(colmask) > 0:
             pe = df.loc[:, colmask] * 1e-3
             if inam in eag_series:
                 if overwrite:
-                    o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
-                                     fillna=True, method=0.0)
+                    o.add_timeseries(
+                        pe, name=inam, tmin=tmin, tmax=tmax, fillna=True, method=0.0
+                    )
                 else:
                     o.logger.warning(
-                        "'{}' already in EAG. No action taken.".format(inam))
+                        "'{}' already in EAG. No action taken.".format(inam)
+                    )
             else:
                 # o.logger.info("Adding '{}' series to EAG.".format(inam))
-                o.add_timeseries(pe, name=inam, tmin=tmin, tmax=tmax,
-                                 fillna=True, method=0.0)
+                o.add_timeseries(
+                    pe, name=inam, tmin=tmin, tmax=tmax, fillna=True, method=0.0
+                )
 
 
 def create_csvfile_table(csvdir):
@@ -344,28 +429,31 @@ def create_csvfile_table(csvdir):
     files = [i for i in os.listdir(csvdir) if i.endswith(".csv")]
     eag_df = pd.DataFrame(data=files, columns=["filenames"])
     eag_df["ID"] = eag_df.filenames.apply(
-        lambda s: s.split("_")[2].split(".")[0] if not s.startswith("stoffen") else
-        s.split("_")[3].split(".")[0])
-    eag_df["type"] = eag_df.filenames.apply(lambda s: s.split(
-        "_")[0] if not s.startswith("stoffen") else "_".join(s.split("_")[:2]))
+        lambda s: s.split("_")[2].split(".")[0]
+        if not s.startswith("stoffen")
+        else s.split("_")[3].split(".")[0]
+    )
+    eag_df["type"] = eag_df.filenames.apply(
+        lambda s: s.split("_")[0]
+        if not s.startswith("stoffen")
+        else "_".join(s.split("_")[:2])
+    )
     eag_df.drop_duplicates(subset=["ID", "type"], keep="last", inplace=True)
     file_df = eag_df.pivot(index="ID", columns="type", values="filenames")
-    file_df.dropna(how="any", subset=[
-        "opp", "param", "reeks"], axis=0, inplace=True)
+    file_df.dropna(how="any", subset=["opp", "param", "reeks"], axis=0, inplace=True)
     return file_df
 
 
 def compare_to_excel_balance(e, pickle_dir, **kwargs):
     # Read Excel Balance Data (see scrape_excelbalansen.py for details)
-    excelbalance = pd.read_pickle(os.path.join(pickle_dir, "{}_wbalance.pklz".format(e.name)),
-                                  compression="zip")
+    excelbalance = pd.read_pickle(
+        os.path.join(pickle_dir, "{}_wbalance.pklz".format(e.name)), compression="zip"
+    )
     for icol in excelbalance.columns:
-        excelbalance.loc[:, icol] = pd.to_numeric(
-            excelbalance[icol], errors="coerce")
+        excelbalance.loc[:, icol] = pd.to_numeric(excelbalance[icol], errors="coerce")
 
     # Waterbalance comparison
-    fig = e.plot.compare_fluxes_to_excel_balance(
-        excelbalance, **kwargs)
+    fig = e.plot.compare_fluxes_to_excel_balance(excelbalance, **kwargs)
 
     return fig
 
@@ -392,7 +480,6 @@ def eag_params_to_excel_dict(eag):
         "C66": eag.water.hTargetSeries.loc["30-08-{}".format(y0), "hTargetMin"],
         # min peil 4
         "C67": eag.water.hTargetSeries.loc["15-10-{}".format(y0), "hTargetMin"],
-
         # max peil 1
         "E64": eag.water.hTargetSeries.loc["31-03-{}".format(y0), "hTargetMax"],
         # max peil 2
@@ -401,7 +488,6 @@ def eag_params_to_excel_dict(eag):
         "E66": eag.water.hTargetSeries.loc["30-08-{}".format(y0), "hTargetMax"],
         # max peil 4
         "E67": eag.water.hTargetSeries.loc["15-10-{}".format(y0), "hTargetMax"],
-
         # min peil altijd
         "C68": eag.parameters.at["hTargetMin_1", "Waarde"],
         # polder peil / start peil
@@ -560,8 +646,8 @@ def eag_params_to_excel_dict(eag):
         "D11": eag.water.area,
         "H3": 0.0,  # onverhard 1
         "H4": 0.0,  # onverhard 2
-        "H5": 0.0,   # onverhard 3
-        "H6": 0.0  # onverhard 4
+        "H5": 0.0,  # onverhard 3
+        "H6": 0.0,  # onverhard 4
     }
 
     n_onverhard = 0
@@ -673,8 +759,7 @@ def eag_params_to_excel_dict(eag):
 def write_excel(eag, excel_file, write_series=False):
 
     import openpyxl
-    from openpyxl.utils.cell import (column_index_from_string,
-                                     coordinate_from_string)
+    from openpyxl.utils.cell import column_index_from_string, coordinate_from_string
 
     newfile = excel_file.split(".")[0] + "_wbpython.xlsx"
 
@@ -723,33 +808,58 @@ def write_excel(eag, excel_file, write_series=False):
             "Uitlaat1": "O77",
             "Uitlaat2": "P77",
             "Uitlaat3": "Q77",
-            "Uitlaat4": "R77"
+            "Uitlaat4": "R77",
         }
 
-        order = ['Neerslag', 'Verdamping', 'Peil', 'Gemaal1Pomp1', 'Gemaal1Pomp2',
-                 'Gemaal2Pomp1', 'Gemaal2Pomp2', 'Inlaat voor Calibratie', 'q_cso',
-                 'Inlaat1', 'Inlaat2', 'Inlaat3', 'Inlaat4',
-                 'Uitlaat1', 'Uitlaat2', 'Uitlaat3', 'Uitlaat4']
+        order = [
+            "Neerslag",
+            "Verdamping",
+            "Peil",
+            "Gemaal1Pomp1",
+            "Gemaal1Pomp2",
+            "Gemaal2Pomp1",
+            "Gemaal2Pomp2",
+            "Inlaat voor Calibratie",
+            "q_cso",
+            "Inlaat1",
+            "Inlaat2",
+            "Inlaat3",
+            "Inlaat4",
+            "Uitlaat1",
+            "Uitlaat2",
+            "Uitlaat3",
+            "Uitlaat4",
+        ]
 
         # pick only columns that are in eag (in right order)
         has_cols = [col for col in order if col in series.columns]
 
         # prepare writer for writing series
-        xl_writer = pd.ExcelWriter(newfile, engine='openpyxl')
+        xl_writer = pd.ExcelWriter(newfile, engine="openpyxl")
         xl_writer.book = wb
         xl_writer.sheets = {ws.title: ws for ws in wb.worksheets}
 
         for col in has_cols:
             if col.startswith("Neerslag"):
-                series.loc[:, col].to_excel(xl_writer, "uitgangspunten",
-                                            index=True, header=False,
-                                            startcol=0, startrow=76)
+                series.loc[:, col].to_excel(
+                    xl_writer,
+                    "uitgangspunten",
+                    index=True,
+                    header=False,
+                    startcol=0,
+                    startrow=76,
+                )
             else:
                 col_letter = coordinate_from_string(series_locs[col])[0]
                 startcol = column_index_from_string(col_letter)
-                series.loc[:, col].to_excel(xl_writer, "uitgangspunten",
-                                            index=False, header=False,
-                                            startcol=startcol - 1, startrow=76)
+                series.loc[:, col].to_excel(
+                    xl_writer,
+                    "uitgangspunten",
+                    index=False,
+                    header=False,
+                    startcol=startcol - 1,
+                    startrow=76,
+                )
         xl_writer.save()
 
     return
@@ -758,10 +868,13 @@ def write_excel(eag, excel_file, write_series=False):
 def check_numba():
     try:
         from numba import njit as _
+
         return True
     except ImportError:
-        print("Numba is not installed. Installing Numba is "
-              "recommended for significant speed-ups.")
+        print(
+            "Numba is not installed. Installing Numba is "
+            "recommended for significant speed-ups."
+        )
         return False
     return False
 
@@ -769,6 +882,7 @@ def check_numba():
 def njit(function):
     try:
         from numba import njit as jit
+
         return jit(function)
     except ImportError:
         return function

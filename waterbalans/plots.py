@@ -16,32 +16,39 @@ class Eag_Plots:
     def __init__(self, eag, dpi=100):
         self.eag = eag
         self.colordict = OrderedDict(
-            {"kwel": "brown",
-             "neerslag": "b",
-             "uitspoeling": "lime",
-             "drain": "orange",
-             "verhard": "darkgray",
-             "afstroming": "darkgreen",
-             "q_cso": "olive",
-             "wegzijging": "brown",
-             "verdamping": "b",
-             "intrek": "lime",
-             "uitlaat": "salmon",
-             "berekende inlaat": "r",
-             "berekende uitlaat": "k",
-             "maalstaat": "yellow",
-             "sluitfout": "black"})
+            {
+                "kwel": "brown",
+                "neerslag": "b",
+                "uitspoeling": "lime",
+                "drain": "orange",
+                "verhard": "darkgray",
+                "afstroming": "darkgreen",
+                "q_cso": "olive",
+                "wegzijging": "brown",
+                "verdamping": "b",
+                "intrek": "lime",
+                "uitlaat": "salmon",
+                "berekende inlaat": "r",
+                "berekende uitlaat": "k",
+                "maalstaat": "yellow",
+                "sluitfout": "black",
+            }
+        )
         self.figsize = (18, 6)
         self.dpi = dpi
 
     def series(self):
 
-        fig, axgr = plt.subplots(len(self.eag.series.columns), 1, sharex=True,
-                                 figsize=self.figsize, dpi=self.dpi)
+        fig, axgr = plt.subplots(
+            len(self.eag.series.columns),
+            1,
+            sharex=True,
+            figsize=self.figsize,
+            dpi=self.dpi,
+        )
 
         for icol, iax in zip(self.eag.series.columns, axgr):
-            iax.plot(self.eag.series.index,
-                     self.eag.series.loc[:, icol], label=icol)
+            iax.plot(self.eag.series.index, self.eag.series.loc[:, icol], label=icol)
             iax.grid(b=True)
             iax.legend(loc="best")
 
@@ -58,8 +65,7 @@ class Eag_Plots:
             tmax = bucket.fluxes.index[-1]
 
         # get data
-        plotdata = bucket.fluxes.loc[tmin:tmax].astype(
-            float).resample(freq).mean()
+        plotdata = bucket.fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
 
         # get correct colors per flux
         rgbcolors = []
@@ -83,8 +89,9 @@ class Eag_Plots:
 
         # set ticks (currently only correct for monthly data)
         if freq == "M":
-            ax.set_xticklabels([dt.strftime('%b-%y') for dt in
-                                plotdata.index.to_pydatetime()])
+            ax.set_xticklabels(
+                [dt.strftime("%b-%y") for dt in plotdata.index.to_pydatetime()]
+            )
         fig.tight_layout()
 
         return ax
@@ -104,10 +111,10 @@ class Eag_Plots:
 
         # get data and sort columns
         plotdata = fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
-        missing_cols = fluxes.columns.difference(
-            self.colordict.keys()).tolist()
-        column_order = [k for k in self.colordict.keys(
-        ) if k in fluxes.columns] + missing_cols
+        missing_cols = fluxes.columns.difference(self.colordict.keys()).tolist()
+        column_order = [
+            k for k in self.colordict.keys() if k in fluxes.columns
+        ] + missing_cols
         plotdata = plotdata.loc[:, column_order]
 
         # get correct colors per flux
@@ -130,8 +137,12 @@ class Eag_Plots:
         elif freq == "M":
             fmt = "%Y-%b"
             if plotdata.shape[0] > 24:
-                mask = ((plotdata.index.month == 1) | (plotdata.index.month == 4)
-                        | (plotdata.index.month == 7) | (plotdata.index.month == 10))
+                mask = (
+                    (plotdata.index.month == 1)
+                    | (plotdata.index.month == 4)
+                    | (plotdata.index.month == 7)
+                    | (plotdata.index.month == 10)
+                )
             else:
                 mask = np.ones(len(plotdata.index), dtype="bool")
         elif freq == "D":
@@ -147,6 +158,7 @@ class Eag_Plots:
             i = int(x)
             i = 0 if i < 0 else max_i if i > max_i else i
             return plotdata.index[i].strftime(fmt)
+
         ax.fmt_xdata = formatter
 
         # set legends and labels
@@ -175,14 +187,17 @@ class Eag_Plots:
 
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
-        ax.plot(calculated_out.index, -1 * calculated_out,
-                lw=2, label="berekende uitlaat")
+        ax.plot(
+            calculated_out.index, -1 * calculated_out, lw=2, label="berekende uitlaat"
+        )
 
         gemaal_cols = [
-            icol for icol in self.eag.series.columns if icol.lower().startswith("gemaal")]
+            icol
+            for icol in self.eag.series.columns
+            if icol.lower().startswith("gemaal")
+        ]
         if len(gemaal_cols) > 0:
-            gemaal = self.eag.series.loc[:,
-                                         gemaal_cols].loc[tmin:tmax].sum(axis=1)
+            gemaal = self.eag.series.loc[:, gemaal_cols].loc[tmin:tmax].sum(axis=1)
             ax.plot(gemaal.index, gemaal, lw=2, label="gemeten bij gemaal")
 
         ax.set_ylabel("Afvoer (m$^3$/dag)")
@@ -192,29 +207,45 @@ class Eag_Plots:
 
         return ax
 
-    def cumsum_series(self, fluxes_names=("berekende inlaat", "berekende uitlaat"),
-                      eagseries_names=("Gemaal",), tmin=None, tmax=None,
-                      period="year", month_offset=9):
+    def cumsum_series(
+        self,
+        fluxes_names=("berekende inlaat", "berekende uitlaat"),
+        eagseries_names=("Gemaal",),
+        tmin=None,
+        tmax=None,
+        period="year",
+        month_offset=9,
+    ):
 
         if len(self.eag.series.columns.intersection(set(eagseries_names))) > 0:
-            cumsum_fluxes, cumsum_series = self.eag.calculate_cumsum(fluxes_names=fluxes_names,
-                                                                     eagseries_names=eagseries_names,
-                                                                     cumsum_period=period,
-                                                                     month_offset=month_offset,
-                                                                     tmin=tmin, tmax=tmax)
+            cumsum_fluxes, cumsum_series = self.eag.calculate_cumsum(
+                fluxes_names=fluxes_names,
+                eagseries_names=eagseries_names,
+                cumsum_period=period,
+                month_offset=month_offset,
+                tmin=tmin,
+                tmax=tmax,
+            )
         else:
-            cumsum_fluxes = self.eag.calculate_cumsum(fluxes_names=fluxes_names,
-                                                      eagseries_names=None,
-                                                      cumsum_period=period,
-                                                      month_offset=month_offset,
-                                                      tmin=tmin, tmax=tmax)
+            cumsum_fluxes = self.eag.calculate_cumsum(
+                fluxes_names=fluxes_names,
+                eagseries_names=None,
+                cumsum_period=period,
+                month_offset=month_offset,
+                tmin=tmin,
+                tmax=tmax,
+            )
             cumsum_series = None
 
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         for flux_nam in fluxes_names:
-            ax.plot(cumsum_fluxes[flux_nam].index, cumsum_fluxes[flux_nam],
-                    lw=2, label=flux_nam)
+            ax.plot(
+                cumsum_fluxes[flux_nam].index,
+                cumsum_fluxes[flux_nam],
+                lw=2,
+                label=flux_nam,
+            )
 
         if cumsum_series is not None:
             for i, eseries_nam in enumerate(eagseries_names):
@@ -222,15 +253,15 @@ class Eag_Plots:
                     ylower = 0.0
                     yupper = -cumsum_series[eseries_nam]
                 else:
-                    ylower = - \
-                        cumsum_series.loc[:, [eagseries_names[j]
-                                              for j in range(i)]].sum(axis=1)
-                    yupper = - \
-                        cumsum_series.loc[:, [eagseries_names[j]
-                                              for j in range(i + 1)]].sum(axis=1)
-                ax.fill_between(cumsum_series[eseries_nam].index,
-                                ylower, yupper,
-                                label=eseries_nam)
+                    ylower = -cumsum_series.loc[
+                        :, [eagseries_names[j] for j in range(i)]
+                    ].sum(axis=1)
+                    yupper = -cumsum_series.loc[
+                        :, [eagseries_names[j] for j in range(i + 1)]
+                    ].sum(axis=1)
+                ax.fill_between(
+                    cumsum_series[eseries_nam].index, ylower, yupper, label=eseries_nam
+                )
 
         ax.set_ylabel("Cumulatieve afvoer (m$^3$)")
         ax.legend(loc="best")
@@ -264,20 +295,22 @@ class Eag_Plots:
         if tmax is None:
             tmax = self.eag.series.index[-1]
 
-        colordict = OrderedDict({
-             "kwel": "#e24b00",
-             "neerslag": "#0000ff",
-             "verhard": "#808080",
-             "uitspoeling": "#00ff00",
-             "afstroming": "#008000",
-             "drain": "#ff9900",
-             "inlaat1": "#ff00ff",
-             "inlaat2": "#ff99cc",
-             "inlaat3": "#953735",
-             "inlaat4": "#e24b00",
-             "berekende inlaat": "#ff0000",
-             "q_cso": "#000000",
-             })
+        colordict = OrderedDict(
+            {
+                "kwel": "#e24b00",
+                "neerslag": "#0000ff",
+                "verhard": "#808080",
+                "uitspoeling": "#00ff00",
+                "afstroming": "#008000",
+                "drain": "#ff9900",
+                "inlaat1": "#ff00ff",
+                "inlaat2": "#ff99cc",
+                "inlaat3": "#953735",
+                "inlaat4": "#e24b00",
+                "berekende inlaat": "#ff0000",
+                "q_cso": "#000000",
+            }
+        )
 
         fr = self.eag.calculate_fractions().loc[tmin:tmax]
         fr.dropna(how="all", axis=1, inplace=True)
@@ -298,8 +331,13 @@ class Eag_Plots:
         # add any missing series
         m = 0
         for icol in fr.columns.difference(colordict.keys()):
-            if icol not in ["verdamping", "wegzijging", "berekende uitlaat",
-                            "initial", "intrek"]:
+            if icol not in [
+                "verdamping",
+                "wegzijging",
+                "berekende uitlaat",
+                "initial",
+                "intrek",
+            ]:
                 if fr[icol].astype(np.float).sum() != 0.0:
                     fr_list.append(fr[icol].astype(np.float).values)
                     colors.append(mcolors.to_rgba(f"C{m}"))
@@ -331,10 +369,12 @@ class Eag_Plots:
         if tmax is None:
             tmax = mass_in.index[-1]
 
-        plotdata_in = mass_in.loc[tmin:tmax].resample(
-            freq).mean() / self.eag.water.area * 1e3
-        plotdata_out = mass_out.loc[tmin:tmax].resample(
-            freq).mean() / self.eag.water.area * 1e3
+        plotdata_in = (
+            mass_in.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
+        )
+        plotdata_out = (
+            mass_out.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
+        )
 
         # get correct colors per flux
         rgbcolors_in = []
@@ -358,11 +398,13 @@ class Eag_Plots:
                 i += 1
 
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
-        ax = plotdata_in.plot.bar(stacked=True, width=1, ax=ax, edgecolor="k",
-                                  color=rgbcolors_in)
+        ax = plotdata_in.plot.bar(
+            stacked=True, width=1, ax=ax, edgecolor="k", color=rgbcolors_in
+        )
 
-        ax = plotdata_out.plot.bar(stacked=True, width=1, ax=ax, edgecolor="k",
-                                   color=rgbcolors_out)
+        ax = plotdata_out.plot.bar(
+            stacked=True, width=1, ax=ax, edgecolor="k", color=rgbcolors_out
+        )
         ax.set_title(self.eag.name)
         ax.set_ylabel("belasting (mg/m$^2$/d)")
         ax.grid(axis="y")
@@ -372,13 +414,15 @@ class Eag_Plots:
         # set ticks
         if freq == "M":
             ax.set_xticks(ax.get_xticks()[::2])
-            ax.set_xticklabels([dt.strftime('%b-%y') for dt in
-                                plotdata_in.index.to_pydatetime()[::2]])
+            ax.set_xticklabels(
+                [dt.strftime("%b-%y") for dt in plotdata_in.index.to_pydatetime()[::2]]
+            )
             # ax.xaxis.set_major_locator(mdates.YearLocator())
             # ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
         elif freq == "Y":
-            ax.set_xticklabels([dt.strftime('%Y') for dt in
-                                plotdata_in.index.to_pydatetime()])
+            ax.set_xticklabels(
+                [dt.strftime("%Y") for dt in plotdata_in.index.to_pydatetime()]
+            )
 
         fig.tight_layout()
 
@@ -392,7 +436,7 @@ class Eag_Plots:
         if self.eag.water.hTargetSeries.empty:
             hTargetMax = self.eag.water.parameters.loc["hTargetMax_1", "Waarde"]
             hTargetMin = self.eag.water.parameters.loc["hTargetMin_1", "Waarde"]
-            if hTargetMax == -9999. or hTargetMin == -9999.:
+            if hTargetMax == -9999.0 or hTargetMin == -9999.0:
                 add_target_levels = False
         else:
             hTargetMax = self.eag.water.hTargetSeries.hTargetMax
@@ -402,42 +446,77 @@ class Eag_Plots:
 
         # Plot
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=self.dpi)
-        ax.plot(self.eag.water.level.index,
-                self.eag.water.level, label="berekend peil")
+        ax.plot(self.eag.water.level.index, self.eag.water.level, label="berekend peil")
 
         if plot_obs is None or plot_obs:
             if self.eag.water.use_waterlevel_series:
                 if "Peil" in self.eag.series.columns:
-                    ax.plot(self.eag.series.Peil.index, self.eag.series.Peil, ls="",
-                            marker=".", c="k", label="peil metingen")
+                    ax.plot(
+                        self.eag.series.Peil.index,
+                        self.eag.series.Peil,
+                        ls="",
+                        marker=".",
+                        c="k",
+                        label="peil metingen",
+                    )
         else:
-            ax.axhline(hTarget, linestyle="dashed",
-                       lw=1.5, label="hTarget", color="k")
+            ax.axhline(hTarget, linestyle="dashed", lw=1.5, label="hTarget", color="k")
 
         if add_target_levels:
             if isinstance(hTargetMin, Series):
-                ax.plot(hTargetMin.index, hTargetMin, linestyle="dashed",
-                        lw=1.5, label="hTargetMin", color="r")
-                ax.plot(hTargetMax.index, hTargetMax, linestyle="dashed",
-                        lw=1.5, label="hTargetMax", color="b")
+                ax.plot(
+                    hTargetMin.index,
+                    hTargetMin,
+                    linestyle="dashed",
+                    lw=1.5,
+                    label="hTargetMin",
+                    color="r",
+                )
+                ax.plot(
+                    hTargetMax.index,
+                    hTargetMax,
+                    linestyle="dashed",
+                    lw=1.5,
+                    label="hTargetMax",
+                    color="b",
+                )
             else:
-                if (hTargetMin < 0):
-                    ax.axhline(hTarget - np.abs(hTargetMin), linestyle="dashed", linewidth=1.5,
-                               label="hTargetMin", color="r")
+                if hTargetMin < 0:
+                    ax.axhline(
+                        hTarget - np.abs(hTargetMin),
+                        linestyle="dashed",
+                        linewidth=1.5,
+                        label="hTargetMin",
+                        color="r",
+                    )
                 else:
-                    ax.plot(self.eag.series.Peil.index,
-                            self.eag.series.Peil - np.abs(hTargetMin),
-                            c="r", ls="dashed", lw=1.5, label="hTargetMin")
-                if (hTargetMax < 0):
-                    ax.axhline(hTarget + np.abs(hTargetMax), linestyle="dashed", linewidth=1.5,
-                               label="hTargetMax", color="b")
+                    ax.plot(
+                        self.eag.series.Peil.index,
+                        self.eag.series.Peil - np.abs(hTargetMin),
+                        c="r",
+                        ls="dashed",
+                        lw=1.5,
+                        label="hTargetMin",
+                    )
+                if hTargetMax < 0:
+                    ax.axhline(
+                        hTarget + np.abs(hTargetMax),
+                        linestyle="dashed",
+                        linewidth=1.5,
+                        label="hTargetMax",
+                        color="b",
+                    )
                 else:
-                    ax.plot(self.eag.series.Peil.index,
-                            self.eag.series.Peil + np.abs(hTargetMax),
-                            c="b", ls="dashed", lw=1.5, label="hTargetMax")
+                    ax.plot(
+                        self.eag.series.Peil.index,
+                        self.eag.series.Peil + np.abs(hTargetMax),
+                        c="b",
+                        ls="dashed",
+                        lw=1.5,
+                        label="hTargetMax",
+                    )
 
-        ax.axhline(hBottom, linestyle="dashdot",
-                   lw=1.5, label="hBottom", color="C2")
+        ax.axhline(hBottom, linestyle="dashdot", lw=1.5, label="hBottom", color="C2")
 
         ax.set_ylabel("peil (m NAP)")
         ax.legend(loc="best")
@@ -446,7 +525,9 @@ class Eag_Plots:
 
         return ax
 
-    def compare_fluxes_to_excel_balance(self, exceldf, showdiff=True):  # pragma: no cover
+    def compare_fluxes_to_excel_balance(
+        self, exceldf, showdiff=True
+    ):  # pragma: no cover
         """Convenience method to compare original Excel waterbalance to the one
         calculated with Python.
 
@@ -464,27 +545,29 @@ class Eag_Plots:
             handle to figure containing N subplots comparing series from
             Python waterbalance to the Excel waterbalance.
         """
-        column_names = {'peil': 0,
-                        'neerslag': 1,
-                        'kwel': 2,
-                        'verhard': 3,
-                        'q_cso': 4,
-                        'drain': 5,
-                        'uitspoeling': 6,
-                        'afstroming': 7,
-                        'inlaat1': 8,
-                        'inlaat2': 9,
-                        'inlaat3': 10,
-                        'inlaat4': 11,
-                        'berekende inlaat': 12,
-                        'verdamping': 13,
-                        'wegzijging': 14,
-                        'intrek': 15,
-                        'uitlaat1': 16,
-                        'uitlaat2': 17,
-                        'uitlaat3': 18,
-                        'uitlaat4': 19,
-                        'berekende uitlaat': 20}
+        column_names = {
+            "peil": 0,
+            "neerslag": 1,
+            "kwel": 2,
+            "verhard": 3,
+            "q_cso": 4,
+            "drain": 5,
+            "uitspoeling": 6,
+            "afstroming": 7,
+            "inlaat1": 8,
+            "inlaat2": 9,
+            "inlaat3": 10,
+            "inlaat4": 11,
+            "berekende inlaat": 12,
+            "verdamping": 13,
+            "wegzijging": 14,
+            "intrek": 15,
+            "uitlaat1": 16,
+            "uitlaat2": 17,
+            "uitlaat3": 18,
+            "uitlaat4": 19,
+            "berekende uitlaat": 20,
+        }
 
         fluxes = self.eag.aggregate_fluxes()
         fluxes.dropna(how="all", axis=1, inplace=True)
@@ -492,20 +575,27 @@ class Eag_Plots:
         fluxes = fluxes.iloc[:-1]
 
         # Plot
-        fig, axgr = plt.subplots(int(np.ceil((fluxes.shape[1] + 1) / 3)), 3,
-                                 figsize=(20, 12), dpi=self.dpi, sharex=True)
+        fig, axgr = plt.subplots(
+            int(np.ceil((fluxes.shape[1] + 1) / 3)),
+            3,
+            figsize=(20, 12),
+            dpi=self.dpi,
+            sharex=True,
+        )
 
         for i, pycol in enumerate(fluxes.columns):
             iax = axgr.ravel()[i]
 
-            iax.plot(fluxes.index,
-                     fluxes.loc[:, pycol], label="{} (Python)".format(pycol))
+            iax.plot(
+                fluxes.index, fluxes.loc[:, pycol], label="{} (Python)".format(pycol)
+            )
             # hacky method to subtract excel series from diff
             diff = fluxes.loc[:, pycol].copy()
 
             if pycol not in exceldf.columns and pycol not in column_names.keys():
                 self.eag.logger.warning(
-                    "Column '{}' not found in Excel Balance!".format(pycol))
+                    "Column '{}' not found in Excel Balance!".format(pycol)
+                )
                 iax.legend(loc="best")
                 iax.grid(b=True)
                 continue
@@ -515,8 +605,12 @@ class Eag_Plots:
                 except KeyError:
                     excol = pycol
 
-            iax.plot(exceldf.index, exceldf.iloc[:, excol], label="{0:s} (Excel)".format(exceldf.columns[excol].split(".")[0]),
-                     ls="dashed")
+            iax.plot(
+                exceldf.index,
+                exceldf.iloc[:, excol],
+                label="{0:s} (Excel)".format(exceldf.columns[excol].split(".")[0]),
+                ls="dashed",
+            )
 
             iax.grid(b=True)
             iax.legend(loc="best")
@@ -542,10 +636,17 @@ class Eag_Plots:
                     iax.patch.set_alpha(0.5)
 
         iax = axgr.ravel()[i + 1]
-        iax.plot(self.eag.water.level.iloc[1:].index, self.eag.water.level.iloc[1:],
-                 label="Berekend peil (Python)")
-        iax.plot(exceldf.index, exceldf.loc[:, "peil"],
-                 label="Berekend peil (Excel)", ls="dashed")
+        iax.plot(
+            self.eag.water.level.iloc[1:].index,
+            self.eag.water.level.iloc[1:],
+            label="Berekend peil (Python)",
+        )
+        iax.plot(
+            exceldf.index,
+            exceldf.loc[:, "peil"],
+            label="Berekend peil (Excel)",
+            ls="dashed",
+        )
         iax.grid(b=True)
         iax.legend(loc="best")
 
@@ -560,9 +661,12 @@ class Eag_Plots:
             maxt = np.min([self.eag.water.level.index[-1], exceldf.index[-1]])
 
             # add check if series are similar (1cm absolute + 1% error on top of value in excel)
-            check = np.allclose(self.eag.water.level.loc[mint:maxt, "level"],
-                                exceldf.loc[mint:maxt, "peil"],
-                                atol=0.005, rtol=0.00)
+            check = np.allclose(
+                self.eag.water.level.loc[mint:maxt, "level"],
+                exceldf.loc[mint:maxt, "peil"],
+                atol=0.005,
+                rtol=0.00,
+            )
 
             if check:
                 iax.patch.set_facecolor("lightgreen")
@@ -592,10 +696,17 @@ class Eag_Plots:
         """
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=125)
 
-        ax.plot(self.eag.water.level.index[1:], self.eag.water.level.iloc[1:],
-                label="Berekend peil (Python)")
-        ax.plot(exceldf.index, exceldf.loc[:, "peil"],
-                label="Berekend peil (Excel)", ls="dashed")
+        ax.plot(
+            self.eag.water.level.index[1:],
+            self.eag.water.level.iloc[1:],
+            label="Berekend peil (Python)",
+        )
+        ax.plot(
+            exceldf.index,
+            exceldf.loc[:, "peil"],
+            label="Berekend peil (Excel)",
+            ls="dashed",
+        )
         ax.grid(b=True)
         ax.legend(loc="best")
         fig.tight_layout()

@@ -45,8 +45,9 @@ class WaterBase(ABC):
         self.series = self.series.loc[tmin:tmax]
 
         index = self.series.loc[tmin:tmax].index
-        index_w_day_before = pd.DatetimeIndex(
-            [index[0] - pd.Timedelta(days=1)]).union(index)
+        index_w_day_before = pd.DatetimeIndex([index[0] - pd.Timedelta(days=1)]).union(
+            index
+        )
 
         self.fluxes = pd.DataFrame(index=index, dtype=float)
         self.storage = pd.DataFrame(index=index_w_day_before, dtype=float)
@@ -81,8 +82,10 @@ class WaterBase(ABC):
         otherseries = set(self.eag.series.columns) - set(colset)
 
         for name in otherseries:
-            msg = ("Adding series '{}' to water bucket "
-                   "(series is divided by area to obtain flux).")
+            msg = (
+                "Adding series '{}' to water bucket "
+                "(series is divided by area to obtain flux)."
+            )
             self.eag.logger.info(msg.format(name))
             self.series[name] = self.eag.series[name] / self.area
 
@@ -114,15 +117,24 @@ class Water(WaterBase):
 
         self.parameters = pd.DataFrame(
             data=[0, 0, 0, 0, np.nan, np.nan],
-            index=['hTarget_1', 'hTargetMin_1', 'hTargetMax_1',
-                   'hBottom_1', 'QInMax_1', 'QOutMax_1'],
-            columns=["Waarde"])
+            index=[
+                "hTarget_1",
+                "hTargetMin_1",
+                "hTargetMax_1",
+                "hBottom_1",
+                "QInMax_1",
+                "QOutMax_1",
+            ],
+            columns=["Waarde"],
+        )
 
         self.hTargetSeries = pd.DataFrame()  # for setting waterlevel targets as series
         self.eag.add_water(self)
 
     def __repr__(self):
-        return "<{0}: {1} bucket with area {2:.1f}>".format(self.idn, "Water", self.area)
+        return "<{0}: {1} bucket with area {2:.1f}>".format(
+            self.idn, "Water", self.area
+        )
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
 
@@ -131,28 +143,38 @@ class Water(WaterBase):
         # Get parameters
         msg = "{0} {1}: using default parameter value {2} for '{3}'"
         for ipar in self.parameters.index.difference(params.index):
-            self.eag.logger.debug(msg.format(
-                self.name, self.idn, self.parameters.loc[ipar, "Waarde"], ipar))
+            self.eag.logger.debug(
+                msg.format(
+                    self.name, self.idn, self.parameters.loc[ipar, "Waarde"], ipar
+                )
+            )
 
         self.parameters.update(params)
-        hTarget_1, hTargetMin_1, hTargetMax_1, hBottom_1, QInMax_1, QOutMax_1 = \
-            self.parameters.loc[:, "Waarde"]
+        (
+            hTarget_1,
+            hTargetMin_1,
+            hTargetMax_1,
+            hBottom_1,
+            QInMax_1,
+            QOutMax_1,
+        ) = self.parameters.loc[:, "Waarde"]
 
         # Pick up hTargetSeries if they exist
         if not self.hTargetSeries.empty and not self.use_waterlevel_series:
-            self.eag.logger.info("Using hTarget-timeseries, not "
-                                 "hTarget-parameters!")
+            self.eag.logger.info("Using hTarget-timeseries, not " "hTarget-parameters!")
             hTargetMin_1 = self.hTargetSeries["hTargetMin"]
             hTargetMax_1 = self.hTargetSeries["hTargetMax"]
         elif self.use_waterlevel_series:
             self.eag.logger.info("Using observed waterlevels in simulation!")
 
-        if QInMax_1 == 0.:
+        if QInMax_1 == 0.0:
             self.eag.logger.warning(
-                "'QInMax_1' is equal to 0. Assuming this means there is no limit to inflow.")
-        if QOutMax_1 == 0.:
+                "'QInMax_1' is equal to 0. Assuming this means there is no limit to inflow."
+            )
+        if QOutMax_1 == 0.0:
             self.eag.logger.warning(
-                "'QOutMax_1' is equal to 0. Assuming this means there is no limit to outflow.")
+                "'QOutMax_1' is equal to 0. Assuming this means there is no limit to outflow."
+            )
 
         # 1. Add incoming fluxes from other buckets
         for bucket in self.eag.buckets.values():
@@ -169,19 +191,19 @@ class Water(WaterBase):
         # NOTE: currently defaults to using excel factors for Evap
         # This means evaporation is 0.0 in december. This is wrong, but
         # that's how it's always been done...
-        series.loc[:, "Verdamping"] = - \
-            makkink_to_penman(
-                series.loc[:, "Verdamping"], use_excel_factors=True)
+        series.loc[:, "Verdamping"] = -makkink_to_penman(
+            series.loc[:, "Verdamping"], use_excel_factors=True
+        )
         if "Qwegz" in series.columns:
             series.loc[:, "Qwegz"] = -series.loc[:, "Qwegz"]
         self.fluxes = self.fluxes.join(series, how="outer")
 
         if self.use_waterlevel_series:
-            h = (self.eag.series.loc[tmin:tmax,
-                                     "Peil"] - hBottom_1) * self.area
+            h = (self.eag.series.loc[tmin:tmax, "Peil"] - hBottom_1) * self.area
             # starting level calculated based on hTarget
-            h.loc[h.index[0] - pd.Timedelta(days=1)
-                  ] = (hTarget_1 - hBottom_1) * self.area
+            h.loc[h.index[0] - pd.Timedelta(days=1)] = (
+                hTarget_1 - hBottom_1
+            ) * self.area
             h.sort_index(inplace=True)
         else:
 
@@ -205,36 +227,48 @@ class Water(WaterBase):
 
         else:  # hTargets are floats (positive or negative) relative to Target level
             if hTargetMin_1 <= 0:  # static
-                self.eag.logger.debug(f"hTargetMin={hTargetMin_1} indicates a"
-                                      " static target level relative to "
-                                      f"hTarget=f{hTarget_1}.")
+                self.eag.logger.debug(
+                    f"hTargetMin={hTargetMin_1} indicates a"
+                    " static target level relative to "
+                    f"hTarget=f{hTarget_1}."
+                )
                 hTargetMin_static = (
-                    hTarget_1 + hTargetMin_1 - hBottom_1) * self.area  # a volume
+                    hTarget_1 + hTargetMin_1 - hBottom_1
+                ) * self.area  # a volume
                 hTargetMin_1 = pd.Series(index=h.index, data=hTargetMin_static)
             else:  # dynamic
-                self.eag.logger.debug(f"hTargetMin={hTargetMin_1} indicates a"
-                                      " dynamic target level relative to "
-                                      "observed waterlevel.")
+                self.eag.logger.debug(
+                    f"hTargetMin={hTargetMin_1} indicates a"
+                    " dynamic target level relative to "
+                    "observed waterlevel."
+                )
                 ht = hTargetMin_1
-                hTargetMin_1 = (self.eag.series.loc[tmin:tmax, "Peil"] -
-                                hTargetMin_1 - hBottom_1) * self.area
+                hTargetMin_1 = (
+                    self.eag.series.loc[tmin:tmax, "Peil"] - hTargetMin_1 - hBottom_1
+                ) * self.area
                 # This is what Excel does (start with init level instead of first obs Peil)
                 hTargetMin_1.iloc[0] = (hTarget_1 - ht - hBottom_1) * self.area
 
             if hTargetMax_1 <= 0:  # static
-                self.eag.logger.debug(f"hTargetMax={hTargetMax_1} indicates a"
-                                      " static target level relative to "
-                                      f"hTarget=f{hTarget_1}.")
+                self.eag.logger.debug(
+                    f"hTargetMax={hTargetMax_1} indicates a"
+                    " static target level relative to "
+                    f"hTarget=f{hTarget_1}."
+                )
                 hTargetMax_static = (
-                    hTarget_1 - hTargetMax_1 - hBottom_1) * self.area  # a volume
+                    hTarget_1 - hTargetMax_1 - hBottom_1
+                ) * self.area  # a volume
                 hTargetMax_1 = pd.Series(index=h.index, data=hTargetMax_static)
             else:  # dynamic
-                self.eag.logger.debug(f"hTargetMax={hTargetMax_1} indicates a"
-                                      " dynamic target level relative to "
-                                      "observed waterlevel.")
+                self.eag.logger.debug(
+                    f"hTargetMax={hTargetMax_1} indicates a"
+                    " dynamic target level relative to "
+                    "observed waterlevel."
+                )
                 ht = hTargetMax_1
-                hTargetMax_1 = (self.eag.series.loc[tmin:tmax, "Peil"] +
-                                hTargetMax_1 - hBottom_1) * self.area
+                hTargetMax_1 = (
+                    self.eag.series.loc[tmin:tmax, "Peil"] + hTargetMax_1 - hBottom_1
+                ) * self.area
                 # This is what Excel does (start with init level instead of first obs Peil)
                 hTargetMax_1.iloc[0] = (hTarget_1 + ht - hBottom_1) * self.area
 
@@ -245,8 +279,8 @@ class Water(WaterBase):
             h_arr = h.values
 
             q_in, q_out, h = self.calc_waterbalance(
-                qtot, h_arr, htmax_1, htmin_1, 
-                QOutMax_1=QOutMax_1, QInMax_1=QInMax_1)
+                qtot, h_arr, htmax_1, htmin_1, QOutMax_1=QOutMax_1, QInMax_1=QInMax_1
+            )
 
         else:
             # pre-allocate empty series
@@ -255,11 +289,9 @@ class Water(WaterBase):
 
             for t in h.index[1:]:
                 if np.isnan(hTargetMax_1.loc[t]):
-                    hTargetMax_1.loc[t] = hTargetMax_1.loc[t -
-                                                           pd.Timedelta(days=1)]
+                    hTargetMax_1.loc[t] = hTargetMax_1.loc[t - pd.Timedelta(days=1)]
                 if np.isnan(hTargetMin_1.loc[t]):
-                    hTargetMin_1.loc[t] = hTargetMin_1.loc[t -
-                                                           pd.Timedelta(days=1)]
+                    hTargetMin_1.loc[t] = hTargetMin_1.loc[t - pd.Timedelta(days=1)]
 
                 hTargetMax_obs = hTargetMax_1.loc[t]
                 hTargetMin_obs = hTargetMin_1.loc[t]
@@ -275,16 +307,21 @@ class Water(WaterBase):
                         if t == tmin:
                             q_out.loc[t] = hTargetMax_obs - h_plus_q
                         else:
-                            q_out.loc[t] = max(-1 * QOutMax_1,
-                                               hTargetMax_obs - h_plus_q)
+                            q_out.loc[t] = max(
+                                -1 * QOutMax_1, hTargetMax_obs - h_plus_q
+                            )
                 elif h_plus_q < hTargetMin_obs:
                     if np.isnan(QInMax_1) or (QInMax_1 == 0):
                         q_in.loc[t] = hTargetMin_obs - h_plus_q
                     else:
                         q_in.loc[t] = min(QInMax_1, hTargetMin_obs - h_plus_q)
 
-                h.loc[t] = h.loc[t - pd.Timedelta(days=1)] + \
-                    q_in.loc[t] + q_out.loc[t] + q_totals.loc[t]
+                h.loc[t] = (
+                    h.loc[t - pd.Timedelta(days=1)]
+                    + q_in.loc[t]
+                    + q_out.loc[t]
+                    + q_totals.loc[t]
+                )
 
         self.storage = self.storage.assign(storage=h)
         self.level = self.level.assign(level=h / self.area + hBottom_1)
@@ -292,8 +329,7 @@ class Water(WaterBase):
 
     @staticmethod
     @njit
-    def calc_waterbalance(qtot, h, htmax, htmin,
-                          QOutMax_1=np.nan, QInMax_1=np.nan):
+    def calc_waterbalance(qtot, h, htmax, htmin, QOutMax_1=np.nan, QInMax_1=np.nan):
 
         q_in = np.zeros((qtot.size,), dtype=np.float64)
         q_out = np.zeros((qtot.size,), dtype=np.float64)
@@ -346,8 +382,7 @@ class Water(WaterBase):
         if not hasattr(self, "fluxes"):
             raise AttributeError("No attribute 'fluxes'. Run simulate first")
 
-        wb = pd.DataFrame(index=self.fluxes.index,
-                          columns=["DeltaS", "DeltaQ"])
+        wb = pd.DataFrame(index=self.fluxes.index, columns=["DeltaS", "DeltaQ"])
 
         wb.loc[:, "DeltaS"] = self.storage.diff(periods=1)
         wb.loc[:, "DeltaQ"] = self.fluxes.sum(axis=1)

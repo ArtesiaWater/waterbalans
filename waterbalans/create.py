@@ -4,9 +4,16 @@ from .gaf import Gaf
 from .water import Water
 
 
-def create_eag(idn, name, buckets, gaf=None, series=None,
-               use_waterlevel_series=False, logfile=None,
-               log_level=logging.INFO):
+def create_eag(
+    idn,
+    name,
+    buckets,
+    gaf=None,
+    series=None,
+    use_waterlevel_series=False,
+    logfile=None,
+    log_level=logging.INFO,
+):
     """Method to create an instance of EAG.
 
     Parameters
@@ -30,8 +37,9 @@ def create_eag(idn, name, buckets, gaf=None, series=None,
     Notes
     -----
     """
-    eag = Eag(idn=idn, name=name, gaf=gaf, series=series, logfile=logfile,
-              log_level=log_level)
+    eag = Eag(
+        idn=idn, name=name, gaf=gaf, series=series, logfile=logfile, log_level=log_level
+    )
     eag.logger.info("Creating EAG object for '{}'".format(name))
 
     # Voeg bakjes toe
@@ -40,16 +48,22 @@ def create_eag(idn, name, buckets, gaf=None, series=None,
         idn = bucket.loc["BakjeID"]
         area = bucket.loc["OppWaarde"]
         if kind == "Water":
-            Water(idn=idn, eag=eag, series=series, area=area,
-                  use_waterlevel_series=use_waterlevel_series)
+            Water(
+                idn=idn,
+                eag=eag,
+                series=series,
+                area=area,
+                use_waterlevel_series=use_waterlevel_series,
+            )
         else:
             Bucket(kind=kind, eag=eag, idn=idn, area=area, series=None)
 
     return eag
 
 
-def create_gaf(idn, name, gafbuckets=None, eags=None, series=None,
-               use_waterlevel_series=False):
+def create_gaf(
+    idn, name, gafbuckets=None, eags=None, series=None, use_waterlevel_series=False
+):
     """Create instance of a GAF.
 
     Parameters
@@ -84,9 +98,14 @@ def create_gaf(idn, name, gafbuckets=None, eags=None, series=None,
 
     # if Gaf has not been split into EAGs use gafbucket df as model structure
     if gafbuckets is not None:
-        e = create_eag(gafbuckets.loc[0, "EAGID"], gaf.name,
-                       gafbuckets, gaf=gaf, series=series,
-                       use_waterlevel_series=use_waterlevel_series)
+        e = create_eag(
+            gafbuckets.loc[0, "EAGID"],
+            gaf.name,
+            gafbuckets,
+            gaf=gaf,
+            series=series,
+            use_waterlevel_series=use_waterlevel_series,
+        )
         gaf.add_eag(e)
     elif eags is not None:  # add eags if they are provided
         for e in eags:
