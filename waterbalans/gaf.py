@@ -37,8 +37,7 @@ class Gaf:
                 if isinstance(e, Eag):
                     self.eags[e.name] = e
                 else:
-                    self.logger.warning(
-                        "added Eags must be instance of Eag object.")
+                    self.logger.warning("added Eags must be instance of Eag object.")
 
         self.data = pd.DataFrame()
         self.parameters = pd.DataFrame()
@@ -54,13 +53,15 @@ class Gaf:
     @staticmethod
     def get_logger(log_level=logging.INFO, filename=None):
 
-        logging.basicConfig(format='%(asctime)s | %(funcName)s - %(levelname)s : %(message)s',
-                            level=logging.INFO)
+        logging.basicConfig(
+            format="%(asctime)s | %(funcName)s - %(levelname)s : %(message)s",
+            level=logging.INFO,
+        )
         logger = logging.getLogger()
         logger.setLevel(log_level)
 
         if filename is not None:
-            fhandler = logging.FileHandler(filename=filename, mode='w')
+            fhandler = logging.FileHandler(filename=filename, mode="w")
             logger.addHandler(fhandler)
 
         return logger
@@ -68,15 +69,21 @@ class Gaf:
     def add_eag(self, eag):
         self.eags[eag.name] = eag
 
-    def add_series(self, series, tmin="2000", tmax="2015", freq="D",
-                   fillna=False):
+    def add_series(self, series, tmin="2000", tmax="2015", freq="D", fillna=False):
         for eagname, eag in self.eags.items():
             eagseries = series.loc[series.EAGCode == eagname, :]
-            eag.add_series(eagseries, tmin=tmin, tmax=tmax,
-                           freq=freq, fillna=fillna)
+            eag.add_series(eagseries, tmin=tmin, tmax=tmax, freq=freq, fillna=fillna)
 
-    def add_timeseries(self, series, name=None, tmin="2000", tmax="2015", freq="D",
-                       fillna=False, method=None):
+    def add_timeseries(
+        self,
+        series,
+        name=None,
+        tmin="2000",
+        tmax="2015",
+        freq="D",
+        fillna=False,
+        method=None,
+    ):
         """Method to add series directly to EAG. Series must contain volumes
         (so not divided by area). Series must be negative for water taken out
         of the EAG and positive for water coming into the EAG.
@@ -92,8 +99,9 @@ class Gaf:
         freq: str
         """
         if self.series.index.shape[0] == 0:
-            self.series = pd.DataFrame(index=pd.date_range(pd.Timestamp(tmin),
-                                                           pd.Timestamp(tmax), freq="D"))
+            self.series = pd.DataFrame(
+                index=pd.date_range(pd.Timestamp(tmin), pd.Timestamp(tmax), freq="D")
+            )
 
         if name is None:
             if isinstance(series, pd.DataFrame):
@@ -103,8 +111,11 @@ class Gaf:
 
         if fillna:
             if (series.isna().sum() > 0).all():
-                self.logger.info("Filled {0} NaN-values with '{1}' in series {2}.".format(
-                    np.int(series.isna().sum()), method, name))
+                self.logger.info(
+                    "Filled {0} NaN-values with '{1}' in series {2}.".format(
+                        np.int(series.isna().sum()), method, name
+                    )
+                )
                 if isinstance(method, str):
                     series = series.fillna(method=method)
                 elif isinstance(method, float) or isinstance(method, int):
@@ -112,10 +123,12 @@ class Gaf:
 
         if name in self.series.columns:
             self.logger.warning(
-                "Series {} already present in EAG, overwriting data!".format(name))
+                "Series {} already present in EAG, overwriting data!".format(name)
+            )
 
-        self.series.loc[series.index.intersection(
-            self.series.index), name] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
+        self.series.loc[
+            series.index.intersection(self.series.index), name
+        ] = series.loc[series.index.intersection(self.series.index)].values.squeeze()
 
     def simulate(self, parameters, tmin=None, tmax=None):
         """Method to calculate the waterbalance for the Gaf."""

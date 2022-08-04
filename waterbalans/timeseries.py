@@ -9,23 +9,33 @@ import logging
 import dateparser
 import numpy as np
 from hkvfewspy import Pi
-from pandas import (Series, Timedelta, Timestamp, concat,
-                    date_range, read_csv, read_pickle)
+from pandas import (
+    Series,
+    Timedelta,
+    Timestamp,
+    concat,
+    date_range,
+    read_csv,
+    read_pickle,
+)
 
 from .wsdl_settings import _wsdl
 
 
 def initialize_fews_pi(wsdl=_wsdl):
     """FEWS Webservice 2017.01:
+
     http://localhost:8081/FewsPiService/fewspiservice?wsdl FEWS Webservice
-    2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl."""
+    2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl.
+    """
     pi = Pi()
     pi.setClient(wsdl=wsdl)
     return pi
 
 
-def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None,
-               wsdl=_wsdl):
+def get_series(
+    name, kind, data, tmin=None, tmax=None, freq="D", loggername=None, wsdl=_wsdl
+):
     """Method that return a time series downloaded from fews or constructed
     from its parameters.
 
@@ -58,7 +68,7 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
     """
     # get logger
     if loggername is None:
-        logger = logging.getLogger('waterbalans.eag')
+        logger = logging.getLogger("waterbalans.eag")
     else:
         logger = logging.getLogger(loggername)
 
@@ -67,8 +77,10 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         try:
             pi = initialize_fews_pi(wsdl=wsdl)
         except Exception:
-            logger.warning("Pi service cannot be started. "
-                           "Module will not import series from FEWS!")
+            logger.warning(
+                "Pi service cannot be started. "
+                "Module will not import series from FEWS!"
+            )
             pi = None
 
     # get tmin, tmax
@@ -91,29 +103,29 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
         # split if multiple fews ids provided in one string:
         fewsid_list = fews_waarde_alfa.split("||")
-        fews_series = _collect_fews_series(fewsid_list, name, tmin, tmax,
-                                           logger, pi)
+        fews_series = _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi)
         series = _combine_fews_series(fews_series, name, logger)
 
     # if KNMI data is required:
     elif kind == "KNMI":
         stn = int(data.loc[:, "Waarde"].iloc[0])
-        logger.info("Downloading {0} from KNMI for station {1}.".format(
-            name, stn))
+        logger.info("Downloading {0} from KNMI for station {1}.".format(name, stn))
         series = _get_knmi_series(name, stn, tmin, tmax, logger)
 
     #  If a constant timeseries is required
     elif kind == "Constant":
-        if 'BakjeID' in data.columns:
-            logger.info("Get Constant timeseries"
-                        " '{}' for Bucket '{}'.".format(
-                            name, data["BakjeID"].iloc[0]))
+        if "BakjeID" in data.columns:
+            logger.info(
+                "Get Constant timeseries"
+                " '{}' for Bucket '{}'.".format(name, data["BakjeID"].iloc[0])
+            )
         else:
             logger.info("Get Constant timeseries '{}'.".format(name))
 
         if name in ["Qkwel", "Qwegz"]:
-            logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
-                name, 1e-3))
+            logger.debug(
+                "Convert units '{0}' to m by multiplying by {1:.0e}".format(name, 1e-3)
+            )
             value = float(data.loc[:, "Waarde"].values[0]) * 1e-3
         else:
             value = float(data.loc[:, "Waarde"].values[0])
@@ -123,10 +135,11 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
 
     # If a alternating time series is required (e.g. summer/winter level)
     elif kind == "ValueSeries":
-        if 'BakjeID' in data.columns:
-            logger.info("Adding ValueSeries timeseries '{}' "
-                        "for Bucket '{}'.".format(
-                            name, data["BakjeID"].iloc[0]))
+        if "BakjeID" in data.columns:
+            logger.info(
+                "Adding ValueSeries timeseries '{}' "
+                "for Bucket '{}'.".format(name, data["BakjeID"].iloc[0])
+            )
         else:
             logger.info("Adding ValueSeries timeseries '{}'.".format(name))
         df = data.loc[:, ["StartDag", "Waarde"]].set_index("StartDag")
@@ -134,37 +147,46 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
         series = create_block_series(df, tindex)
 
         if name in ["Qkwel", "Qwegz"]:
-            logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
-                name, 1e-3))
+            logger.debug(
+                "Convert units '{0}' to m by multiplying by {1:.0e}".format(name, 1e-3)
+            )
             series = series * 1e-3
 
     # if timeseries must be read from local file
     elif kind == "Local":
-        if 'BakjeID' in data.columns:
-            logger.info("Adding Local timeseries '{}' for Bucket '{}'.".format(
-                name, data["BakjeID"].iloc[0]))
+        if "BakjeID" in data.columns:
+            logger.info(
+                "Adding Local timeseries '{}' for Bucket '{}'.".format(
+                    name, data["BakjeID"].iloc[0]
+                )
+            )
         else:
             logger.info("Get Local timeseries '{}'.".format(name))
         # if kind is Local, read Series from CSV
         # only supports datetime and value column
-        if not data['WaardeAlfa'].isna().iloc[0]:
+        if not data["WaardeAlfa"].isna().iloc[0]:
             fname = data["WaardeAlfa"].iloc[0]
             if fname.endswith(".csv"):
                 logger.debug(f"Reading Local CSV: {fname}")
-                series = read_csv(fname, index_col=[0],
-                                  delimiter=";", parse_dates=True,
-                                  date_parser=dateparser.parse)
+                series = read_csv(
+                    fname,
+                    index_col=[0],
+                    delimiter=";",
+                    parse_dates=True,
+                    date_parser=dateparser.parse,
+                )
             elif fname.endswith(".pkl"):
                 logger.debug(f"Reading Local pickle: {fname}")
                 series = read_pickle(fname)
             else:
-                logger.error(f"Cannot read {fname}. Supported filetypes "
-                             "are CSV ('.csv') and pickle ('.pkl').")
+                logger.error(
+                    f"Cannot read {fname}. Supported filetypes "
+                    "are CSV ('.csv') and pickle ('.pkl')."
+                )
                 # raise ValueError(f"Cannot read {fname}. Supported filetypes "
                 #                  "are CSV ('.csv') and pickle ('.pkl').")
             # select correct column
-            col = [icol for icol in series.columns if
-                   icol.lower().startswith(name)]
+            col = [icol for icol in series.columns if icol.lower().startswith(name)]
             if len(col) == 0:
                 msg = f"Local timeseries CSV does not contain data for {name}!"
                 logger.error(msg)
@@ -181,8 +203,9 @@ def get_series(name, kind, data, tmin=None, tmax=None, freq="D", loggername=None
             series = None
 
     else:
-        logger.warning("Adding series '{0}' of "
-                       "kind '{1}' not supported.".format(name, kind))
+        logger.warning(
+            "Adding series '{0}' of " "kind '{1}' not supported.".format(name, kind)
+        )
         return
 
     if series is None:
@@ -211,8 +234,7 @@ def create_block_series(data, tindex):
         The constructed block series
     """
     # start value series 1 year before given index to ensure first period is also filled correctly.
-    series = Series(index=date_range(
-        tindex[0] - Timedelta(days=365), tindex[-1]))
+    series = Series(index=date_range(tindex[0] - Timedelta(days=365), tindex[-1]))
     for t, val in data.iterrows():
         day, month = [int(x) for x in t.split("-")]
         mask = (series.index.month == month) & (series.index.day == day)
@@ -253,7 +275,7 @@ def update_series(series_orig, series_new, method="append"):
     updated_series.loc[series_orig.index] = series_orig
 
     if method == "append":
-        append_series = series_new.loc[series_orig.index[0]:tmax]
+        append_series = series_new.loc[series_orig.index[0] : tmax]
         shared_index = updated_series.index.intersection(append_series.index)
         updated_series.loc[shared_index] = append_series
     elif method == "overwrite":
@@ -265,9 +287,15 @@ def update_series(series_orig, series_new, method="append"):
     return updated_series
 
 
-def _get_fews_series(filterId=None, moduleInstanceId=None,
-                     locationId=None, parameterId=None, tmin=None,
-                     tmax=None, pi=None):  # pragma: no cover
+def _get_fews_series(
+    filterId=None,
+    moduleInstanceId=None,
+    locationId=None,
+    parameterId=None,
+    tmin=None,
+    tmax=None,
+    pi=None,
+):  # pragma: no cover
 
     if pi is None:
         pi = initialize_fews_pi()
@@ -281,18 +309,23 @@ def _get_fews_series(filterId=None, moduleInstanceId=None,
     query.endTime(tmax)
     query.version("1.24")
 
-    df = pi.getTimeSeries(query, setFormat='df')
+    df = pi.getTimeSeries(query, setFormat="df")
 
     return df
 
 
 def get_fews_series(fewsid_string, tmin="1996", tmax="2019"):  # pragma: no cover
     pi = initialize_fews_pi()
-    filterId, moduleInstanceId, locationId, parameterId = fewsid_string.split(
-        "|")
-    df = _get_fews_series(filterId=filterId, moduleInstanceId=moduleInstanceId,
-                          locationId=locationId, parameterId=parameterId,
-                          tmin=tmin, tmax=tmax, pi=pi)
+    filterId, moduleInstanceId, locationId, parameterId = fewsid_string.split("|")
+    df = _get_fews_series(
+        filterId=filterId,
+        moduleInstanceId=moduleInstanceId,
+        locationId=locationId,
+        parameterId=parameterId,
+        tmin=tmin,
+        tmax=tmax,
+        pi=pi,
+    )
 
     return df
 
@@ -302,47 +335,52 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):  # pragma: 
     for fewsid in fewsid_list:
         # parse fewsid
         try:
-            filterId, moduleInstanceId, locationId, parameterId = fewsid.split(
-                "|")
+            filterId, moduleInstanceId, locationId, parameterId = fewsid.split("|")
         except ValueError:
             logger.error(
-                "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(name,
-                                                                               fewsid))
+                "Cannot parse FEWS Id for timeseries '{0}'! Id is {1}.".format(
+                    name, fewsid
+                )
+            )
             continue
 
         # get data from FEWS
         try:
-            df = _get_fews_series(filterId=filterId, moduleInstanceId=moduleInstanceId,
-                                  parameterId=parameterId, locationId=locationId,
-                                  tmin=tmin, tmax=tmax + Timedelta(days=1), pi=pi)
+            df = _get_fews_series(
+                filterId=filterId,
+                moduleInstanceId=moduleInstanceId,
+                parameterId=parameterId,
+                locationId=locationId,
+                tmin=tmin,
+                tmax=tmax + Timedelta(days=1),
+                pi=pi,
+            )
         except Exception as e:
             logger.error("FEWS Timeseries '{}': {}".format(name, e))
             continue
 
         # if only Nan data is returned (check if index is only NaN)
         if df.index.dropna().size == 0:
-            logger.error(
-                "FEWS Timeseries '{}' contains no valid data!".format(name))
+            logger.error("FEWS Timeseries '{}' contains no valid data!".format(name))
             continue
 
         index_name = df.index.name
         df.reset_index(inplace=True)
-        series = df.loc[:, [index_name, "value",
-                            "parameterId"]].set_index(index_name)
+        series = df.loc[:, [index_name, "value", "parameterId"]].set_index(index_name)
         # Remove timezone from FEWS series
         series = series.tz_localize(None)
         series["value"] = series["value"].astype(float)
 
         # check units
         if name in ["Verdamping", "Neerslag"]:
-            logger.debug("Convert units '{0}' to m by multiplying by {1:.0e}".format(
-                name, 1e-3))
+            logger.debug(
+                "Convert units '{0}' to m by multiplying by {1:.0e}".format(name, 1e-3)
+            )
             series["value"] = series["value"].divide(1e3)
 
         # omdat neerslag tussen 1jan 9u en 2jan 9u op 1jan gezet moet worden.
         if name == "Neerslag":
-            series.index = series.index.floor(
-                freq="D") - Timedelta(days=1)
+            series.index = series.index.floor(freq="D") - Timedelta(days=1)
         else:
             # remove hours from index
             series.index = series.index.floor(freq="D")
@@ -355,8 +393,7 @@ def _collect_fews_series(fewsid_list, name, tmin, tmax, logger, pi):  # pragma: 
 
         # append series
         fews_series.append(series)
-        logger.info("Adding FEWS timeseries '{}': {}.".format(
-            name, fewsid))
+        logger.info("Adding FEWS timeseries '{}': {}.".format(name, fewsid))
     return fews_series
 
 
@@ -366,15 +403,13 @@ def _combine_fews_series(fews_series, name, logger):  # pragma: no cover
         params = [i["parameterId"].iloc[0] for i in fews_series]
         # check if all params are equal
         if not np.all([ip == params[0] for ip in params]):
-            logger.error(
-                "Not all FEWSIDs have the same parameter! {}".format(params))
+            logger.error("Not all FEWSIDs have the same parameter! {}".format(params))
             return
         # water levels: mean
         elif params[0] == "H.meting.gem":
             series = concat([s.value for s in fews_series], axis=1)
             series = series.mean(axis=1)
-            logger.info(
-                "Combined multiple FEWS Series with method 'mean'.")
+            logger.info("Combined multiple FEWS Series with method 'mean'.")
         # pump volumes: sum
         elif params[0] == "Vol.berekend.dag":
             series = concat([s.value for s in fews_series], axis=1)
@@ -382,7 +417,10 @@ def _combine_fews_series(fews_series, name, logger):  # pragma: no cover
             logger.info("Combined multiple FEWS Series with method 'sum'.")
         else:
             logger.error(
-                "No logic defined for combining FEWS series with parameter '{}'!".format(params[0]))
+                "No logic defined for combining FEWS series with parameter '{}'!".format(
+                    params[0]
+                )
+            )
             raise NotImplementedError()
 
     # only one fews series
@@ -401,20 +439,20 @@ def _get_knmi_series(name, stn, tmin, tmax, logger):  # pragma: no cover
     try:
         from pastas.read import KnmiStation
     except ModuleNotFoundError as e:
-        logger.exception("Module 'pastas' not installed! Please intall using "
-                         "pip to automatically donwload KNMI data!")
+        logger.exception(
+            "Module 'pastas' not installed! Please intall using "
+            "pip to automatically donwload KNMI data!"
+        )
         raise e
     if name == "Neerslag":
-        s = KnmiStation.download(
-            stns=[stn], start=tmin, end=tmax, vars="RD")
+        s = KnmiStation.download(stns=[stn], start=tmin, end=tmax, vars="RD")
         series = s.data.loc[:, "RD"]
         if np.any(series.index.hour == 9):
             series.index = series.index.floor(freq="D") - Timedelta(days=1)
         elif np.any(series.index.hour == 1):
             series.index = series.index.normalize() - Timedelta(days=1)
     elif name == "Verdamping":
-        s = KnmiStation.download(
-            stns=[stn], start=tmin, end=tmax, vars="EV24")
+        s = KnmiStation.download(stns=[stn], start=tmin, end=tmax, vars="EV24")
         series = s.data.loc[:, "EV24"]
         if np.any(series.index.hour == 1):
             series.index = series.index.normalize() - Timedelta(days=1)
