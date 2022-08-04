@@ -11,9 +11,11 @@
     :target: https://waterbalans.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. raw:: html
-
-    <img src="https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png" height="150px" width="150px" align="right">
+.. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png height="150px" width="150px" align="right">
+     :height: 150px
+     :width: 150px
+     :alt: Waterbok
+     :align: right
 
 Waternet Waterbalansen Model in Python
 ======================================
