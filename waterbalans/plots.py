@@ -264,22 +264,28 @@ class Eag_Plots:
         if tmax is None:
             tmax = self.eag.series.index[-1]
 
-        colordict = OrderedDict(
-            {"kwel": "brown",
-             "neerslag": "blue",
-             "uitspoeling": "lime",
-             "afstroming": "darkgreen",
-             "drain": "orange",
-             "berekende inlaat": "red",
-             "q_cso": "black",
-             "verhard": "gray"})
+        colordict = OrderedDict({
+             "kwel": "#e24b00",
+             "neerslag": "#0000ff",
+             "verhard": "#808080",
+             "uitspoeling": "#00ff00",
+             "afstroming": "#008000",
+             "drain": "#ff9900",
+             "inlaat1": "#ff00ff",
+             "inlaat2": "#ff99cc",
+             "inlaat3": "#953735",
+             "inlaat4": "#e24b00",
+             "berekende inlaat": "#ff0000",
+             "q_cso": "#000000",
+             })
 
         fr = self.eag.calculate_fractions().loc[tmin:tmax]
         fr.dropna(how="all", axis=1, inplace=True)
 
+        # add initial
         fr_list = [fr["initial"].astype(np.float).values]
         labels = ["initieel"]
-        colors = ["lightgray"]
+        colors = ["#c0c0c0"]
 
         # loop through colordict to determine order
         for icol, c in colordict.items():
@@ -289,6 +295,7 @@ class Eag_Plots:
                     colors.append(c)
                     labels.append(icol)
 
+        # add any missing series
         m = 0
         for icol in fr.columns.difference(colordict.keys()):
             if icol not in ["verdamping", "wegzijging", "berekende uitlaat",
