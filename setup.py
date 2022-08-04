@@ -14,6 +14,7 @@ setup(
     version=version["__version__"],
     description="Python Package voor het maken van Waternet Waterbalansen",
     long_description=long_description,
+    long_description_content_type="text/x-rst",
     url="https://github.com/ArtesiaWater/waterbalans",
     author="Davíd Brakenhoff",
     author_email="d.brakenhoff@artesia-water.nl",
