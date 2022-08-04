@@ -1,3 +1,6 @@
+.. image:: https://img.shields.io/pypi/v/waterbalans
+     :target: https://img.shields.io/pypi/v/waterbalans
+     :alt: PYPI Version
 .. image:: https://github.com/ArtesiaWater/waterbalans/actions/workflows/ci.yml/badge.svg
      :target: https://github.com/ArtesiaWater/waterbalans/actions/workflows/ci.yml
 .. image:: https://app.codacy.com/project/badge/Grade/1fe9a28fcdd04d6cad0abb19214701a5    
