@@ -11,7 +11,7 @@
     :target: https://waterbalans.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png height="150px" width="150px" align="right">
+.. image:: https://github.com/ArtesiaWater/waterbalans/blob/master/logo.png
      :height: 150px
      :width: 150px
      :alt: Waterbok
