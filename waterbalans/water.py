@@ -245,7 +245,8 @@ class Water(WaterBase):
             h_arr = h.values
 
             q_in, q_out, h = self.calc_waterbalance(
-                qtot, h_arr, htmax_1, htmin_1)
+                qtot, h_arr, htmax_1, htmin_1, 
+                QOutMax_1=QOutMax_1, QInMax_1=QInMax_1)
 
         else:
             # pre-allocate empty series
@@ -316,12 +317,10 @@ class Water(WaterBase):
                     else:
                         qlim = -1.0 * QOutMax_1
                         qi = hTargetMax_obs - h_plus_q
-                        if qi > qlim:
+                        if qi < qlim:
                             q_out[i] = qlim
                         else:
                             q_out[i] = qi
-                        # q_out[i] = max(-1 * QOutMax_1,
-                        #                hTargetMax_obs - h_plus_q)
             elif h_plus_q < hTargetMin_obs:
                 if np.isnan(QInMax_1) or (QInMax_1 == 0):
                     q_in[i] = hTargetMin_obs - h_plus_q
@@ -332,7 +331,6 @@ class Water(WaterBase):
                         q_in[i] = qlim
                     else:
                         q_in[i] = qi
-                    # q_in[i] = min(QInMax_1, hTargetMin_obs - h_plus_q)
 
             hnew[i + 1] = hnew[i] + q_in[i] + q_out[i] + qtot[i]
 
