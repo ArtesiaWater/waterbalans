@@ -48,7 +48,9 @@ class Eag_Plots:
         )
 
         for icol, iax in zip(self.eag.series.columns, axgr):
-            iax.plot(self.eag.series.index, self.eag.series.loc[:, icol], label=icol)
+            iax.plot(
+                self.eag.series.index, self.eag.series.loc[:, icol], label=icol
+            )
             iax.grid(b=True)
             iax.legend(loc="best")
 
@@ -65,7 +67,9 @@ class Eag_Plots:
             tmax = bucket.fluxes.index[-1]
 
         # get data
-        plotdata = bucket.fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
+        plotdata = (
+            bucket.fluxes.loc[tmin:tmax].astype(float).resample(freq).mean()
+        )
 
         # get correct colors per flux
         rgbcolors = []
@@ -188,7 +192,10 @@ class Eag_Plots:
         # plot figure
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=150)
         ax.plot(
-            calculated_out.index, -1 * calculated_out, lw=2, label="berekende uitlaat"
+            calculated_out.index,
+            -1 * calculated_out,
+            lw=2,
+            label="berekende uitlaat",
         )
 
         gemaal_cols = [
@@ -197,7 +204,9 @@ class Eag_Plots:
             if icol.lower().startswith("gemaal")
         ]
         if len(gemaal_cols) > 0:
-            gemaal = self.eag.series.loc[:, gemaal_cols].loc[tmin:tmax].sum(axis=1)
+            gemaal = (
+                self.eag.series.loc[:, gemaal_cols].loc[tmin:tmax].sum(axis=1)
+            )
             ax.plot(gemaal.index, gemaal, lw=2, label="gemeten bij gemaal")
 
         ax.set_ylabel("Afvoer (m$^3$/dag)")
@@ -260,7 +269,10 @@ class Eag_Plots:
                         :, [eagseries_names[j] for j in range(i + 1)]
                     ].sum(axis=1)
                 ax.fill_between(
-                    cumsum_series[eseries_nam].index, ylower, yupper, label=eseries_nam
+                    cumsum_series[eseries_nam].index,
+                    ylower,
+                    yupper,
+                    label=eseries_nam,
                 )
 
         ax.set_ylabel("Cumulatieve afvoer (m$^3$)")
@@ -370,10 +382,14 @@ class Eag_Plots:
             tmax = mass_in.index[-1]
 
         plotdata_in = (
-            mass_in.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
+            mass_in.loc[tmin:tmax].resample(freq).mean()
+            / self.eag.water.area
+            * 1e3
         )
         plotdata_out = (
-            mass_out.loc[tmin:tmax].resample(freq).mean() / self.eag.water.area * 1e3
+            mass_out.loc[tmin:tmax].resample(freq).mean()
+            / self.eag.water.area
+            * 1e3
         )
 
         # get correct colors per flux
@@ -415,7 +431,10 @@ class Eag_Plots:
         if freq == "M":
             ax.set_xticks(ax.get_xticks()[::2])
             ax.set_xticklabels(
-                [dt.strftime("%b-%y") for dt in plotdata_in.index.to_pydatetime()[::2]]
+                [
+                    dt.strftime("%b-%y")
+                    for dt in plotdata_in.index.to_pydatetime()[::2]
+                ]
             )
             # ax.xaxis.set_major_locator(mdates.YearLocator())
             # ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
@@ -446,7 +465,11 @@ class Eag_Plots:
 
         # Plot
         fig, ax = plt.subplots(1, 1, figsize=self.figsize, dpi=self.dpi)
-        ax.plot(self.eag.water.level.index, self.eag.water.level, label="berekend peil")
+        ax.plot(
+            self.eag.water.level.index,
+            self.eag.water.level,
+            label="berekend peil",
+        )
 
         if plot_obs is None or plot_obs:
             if self.eag.water.use_waterlevel_series:
@@ -460,7 +483,9 @@ class Eag_Plots:
                         label="peil metingen",
                     )
         else:
-            ax.axhline(hTarget, linestyle="dashed", lw=1.5, label="hTarget", color="k")
+            ax.axhline(
+                hTarget, linestyle="dashed", lw=1.5, label="hTarget", color="k"
+            )
 
         if add_target_levels:
             if isinstance(hTargetMin, Series):
@@ -516,7 +541,9 @@ class Eag_Plots:
                         label="hTargetMax",
                     )
 
-        ax.axhline(hBottom, linestyle="dashdot", lw=1.5, label="hBottom", color="C2")
+        ax.axhline(
+            hBottom, linestyle="dashdot", lw=1.5, label="hBottom", color="C2"
+        )
 
         ax.set_ylabel("peil (m NAP)")
         ax.legend(loc="best")
@@ -587,12 +614,17 @@ class Eag_Plots:
             iax = axgr.ravel()[i]
 
             iax.plot(
-                fluxes.index, fluxes.loc[:, pycol], label="{} (Python)".format(pycol)
+                fluxes.index,
+                fluxes.loc[:, pycol],
+                label="{} (Python)".format(pycol),
             )
             # hacky method to subtract excel series from diff
             diff = fluxes.loc[:, pycol].copy()
 
-            if pycol not in exceldf.columns and pycol not in column_names.keys():
+            if (
+                pycol not in exceldf.columns
+                and pycol not in column_names.keys()
+            ):
                 self.eag.logger.warning(
                     "Column '{}' not found in Excel Balance!".format(pycol)
                 )
@@ -608,7 +640,9 @@ class Eag_Plots:
             iax.plot(
                 exceldf.index,
                 exceldf.iloc[:, excol],
-                label="{0:s} (Excel)".format(exceldf.columns[excol].split(".")[0]),
+                label="{0:s} (Excel)".format(
+                    exceldf.columns[excol].split(".")[0]
+                ),
                 ls="dashed",
             )
 
