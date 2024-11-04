@@ -15,7 +15,7 @@ class WaterBase(ABC):
         self.eag = eag  # Reference to mother object.
 
         self.series = pd.DataFrame()
-        self.series = self.series.append(series)
+        self.series = pd.concat([self.series, series], axis=0)
         # TODO: needed here? Also called in initialize.
         self.load_series_from_eag()
 
@@ -45,9 +45,9 @@ class WaterBase(ABC):
         self.series = self.series.loc[tmin:tmax]
 
         index = self.series.loc[tmin:tmax].index
-        index_w_day_before = pd.DatetimeIndex(
-            [index[0] - pd.Timedelta(days=1)]
-        ).union(index)
+        index_w_day_before = pd.DatetimeIndex([index[0] - pd.Timedelta(days=1)]).union(
+            index
+        )
 
         self.fluxes = pd.DataFrame(index=index, dtype=float)
         self.storage = pd.DataFrame(index=index_w_day_before, dtype=float)
@@ -128,9 +128,7 @@ class Water(WaterBase):
             columns=["Waarde"],
         )
 
-        self.hTargetSeries = (
-            pd.DataFrame()
-        )  # for setting waterlevel targets as series
+        self.hTargetSeries = pd.DataFrame()  # for setting waterlevel targets as series
         self.eag.add_water(self)
 
     def __repr__(self):
@@ -139,7 +137,6 @@ class Water(WaterBase):
         )
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
-
         tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
         # Get parameters
@@ -166,9 +163,7 @@ class Water(WaterBase):
 
         # Pick up hTargetSeries if they exist
         if not self.hTargetSeries.empty and not self.use_waterlevel_series:
-            self.eag.logger.info(
-                "Using hTarget-timeseries, not " "hTarget-parameters!"
-            )
+            self.eag.logger.info("Using hTarget-timeseries, not " "hTarget-parameters!")
             hTargetMin_1 = self.hTargetSeries["hTargetMin"]
             hTargetMax_1 = self.hTargetSeries["hTargetMax"]
         elif self.use_waterlevel_series:
@@ -213,7 +208,6 @@ class Water(WaterBase):
             ) * self.area
             h.sort_index(inplace=True)
         else:
-
             h = pd.Series(index=self.storage.index, dtype=float)
             h.iloc[0] = (hTarget_1 - hBottom_1) * self.area
 
@@ -251,9 +245,7 @@ class Water(WaterBase):
                 )
                 ht = hTargetMin_1
                 hTargetMin_1 = (
-                    self.eag.series.loc[tmin:tmax, "Peil"]
-                    - hTargetMin_1
-                    - hBottom_1
+                    self.eag.series.loc[tmin:tmax, "Peil"] - hTargetMin_1 - hBottom_1
                 ) * self.area
                 # This is what Excel does (start with init level instead of first obs Peil)
                 hTargetMin_1.iloc[0] = (hTarget_1 - ht - hBottom_1) * self.area
@@ -276,9 +268,7 @@ class Water(WaterBase):
                 )
                 ht = hTargetMax_1
                 hTargetMax_1 = (
-                    self.eag.series.loc[tmin:tmax, "Peil"]
-                    + hTargetMax_1
-                    - hBottom_1
+                    self.eag.series.loc[tmin:tmax, "Peil"] + hTargetMax_1 - hBottom_1
                 ) * self.area
                 # This is what Excel does (start with init level instead of first obs Peil)
                 hTargetMax_1.iloc[0] = (hTarget_1 + ht - hBottom_1) * self.area
@@ -305,13 +295,9 @@ class Water(WaterBase):
 
             for t in h.index[1:]:
                 if np.isnan(hTargetMax_1.loc[t]):
-                    hTargetMax_1.loc[t] = hTargetMax_1.loc[
-                        t - pd.Timedelta(days=1)
-                    ]
+                    hTargetMax_1.loc[t] = hTargetMax_1.loc[t - pd.Timedelta(days=1)]
                 if np.isnan(hTargetMin_1.loc[t]):
-                    hTargetMin_1.loc[t] = hTargetMin_1.loc[
-                        t - pd.Timedelta(days=1)
-                    ]
+                    hTargetMin_1.loc[t] = hTargetMin_1.loc[t - pd.Timedelta(days=1)]
 
                 hTargetMax_obs = hTargetMax_1.loc[t]
                 hTargetMin_obs = hTargetMin_1.loc[t]
@@ -349,17 +335,13 @@ class Water(WaterBase):
 
     @staticmethod
     @njit
-    def calc_waterbalance(
-        qtot, h, htmax, htmin, QOutMax_1=np.nan, QInMax_1=np.nan
-    ):
-
-        q_in = np.zeros((qtot.size,), dtype=np.float64)
-        q_out = np.zeros((qtot.size,), dtype=np.float64)
-        hnew = np.zeros((h.size,), dtype=np.float64)
+    def calc_waterbalance(qtot, h, htmax, htmin, QOutMax_1=np.nan, QInMax_1=np.nan):
+        q_in = np.zeros((qtot.size,), dtype=float)
+        q_out = np.zeros((qtot.size,), dtype=float)
+        hnew = np.zeros((h.size,), dtype=float)
         hnew[0] = h[0]
 
         for i in range(qtot.size):
-
             hTargetMax_obs = htmax[i]
             hTargetMin_obs = htmin[i]
 

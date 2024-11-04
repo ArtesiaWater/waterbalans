@@ -1,5 +1,6 @@
 """This file contains practical classes and methods for use throughout the
 "Waterbalans" model."""
+
 import os
 
 import numpy as np
@@ -316,8 +317,7 @@ def add_timeseries_to_obj(
     factor = 1.0
     for inam in ["Gemaal", "Inlaat", "Uitlaat"]:
         colmask = [
-            True if icol.lower().startswith(inam.lower()) else False
-            for icol in columns
+            True if icol.lower().startswith(inam.lower()) else False for icol in columns
         ]
         series = df.loc[:, colmask]
         # Water bucket converts outgoing fluxes to negative, so outgoing fluxes can be entered positive
@@ -360,9 +360,7 @@ def add_timeseries_to_obj(
                 )
 
     # Peil
-    colmask = [
-        True if icol.lower().startswith("peil") else False for icol in columns
-    ]
+    colmask = [True if icol.lower().startswith("peil") else False for icol in columns]
     if np.sum(colmask) > 0:
         peil = df.loc[:, colmask]
         if "Peil" in eag_series:
@@ -389,9 +387,7 @@ def add_timeseries_to_obj(
             )
 
     # q_cso MengRiool overstortreeks
-    colmask = [
-        True if icol.lower().startswith("q_cso") else False for icol in columns
-    ]
+    colmask = [True if icol.lower().startswith("q_cso") else False for icol in columns]
     if np.sum(colmask) > 0:
         q_cso = df.loc[:, colmask] / 100**2
         if "q_cso" in eag_series:
@@ -420,8 +416,7 @@ def add_timeseries_to_obj(
     # Neerslag/Verdamping
     for inam in ["Neerslag", "Verdamping"]:
         colmask = [
-            True if icol.lower().startswith(inam.lower()) else False
-            for icol in columns
+            True if icol.lower().startswith(inam.lower()) else False for icol in columns
         ]
         if np.sum(colmask) > 0:
             pe = df.loc[:, colmask] * 1e-3
@@ -475,9 +470,7 @@ def create_csvfile_table(csvdir):
     )
     eag_df.drop_duplicates(subset=["ID", "type"], keep="last", inplace=True)
     file_df = eag_df.pivot(index="ID", columns="type", values="filenames")
-    file_df.dropna(
-        how="any", subset=["opp", "param", "reeks"], axis=0, inplace=True
-    )
+    file_df.dropna(how="any", subset=["opp", "param", "reeks"], axis=0, inplace=True)
     return file_df
 
 
@@ -488,9 +481,7 @@ def compare_to_excel_balance(e, pickle_dir, **kwargs):
         compression="zip",
     )
     for icol in excelbalance.columns:
-        excelbalance.loc[:, icol] = pd.to_numeric(
-            excelbalance[icol], errors="coerce"
-        )
+        excelbalance.loc[:, icol] = pd.to_numeric(excelbalance[icol], errors="coerce")
 
     # Waterbalance comparison
     fig = e.plot.compare_fluxes_to_excel_balance(excelbalance, **kwargs)
@@ -499,7 +490,6 @@ def compare_to_excel_balance(e, pickle_dir, **kwargs):
 
 
 def eag_params_to_excel_dict(eag):
-
     return_dicts = []
 
     index = eag.water.hTargetSeries.index
@@ -660,9 +650,7 @@ def eag_params_to_excel_dict(eag):
                 }
                 return_dicts.append(onverhard4)
             else:
-                print(
-                    "Warning: only 4 Onverhard buckets can be written to Excel!"
-                )
+                print("Warning: only 4 Onverhard buckets can be written to Excel!")
             n_onverhard += 1
 
     # water bakje
@@ -799,7 +787,6 @@ def eag_params_to_excel_dict(eag):
 
 
 def write_excel(eag, excel_file, write_series=False):
-
     import openpyxl
     from openpyxl.utils.cell import (
         column_index_from_string,
@@ -912,7 +899,7 @@ def write_excel(eag, excel_file, write_series=False):
 
 def check_numba():
     try:
-        from numba import njit as _
+        from numba import njit as _  # noqa: F401
 
         return True
     except ImportError:

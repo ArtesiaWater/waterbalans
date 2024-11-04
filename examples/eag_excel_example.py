@@ -23,8 +23,7 @@ e.add_series_from_database(df_ts, tmin=tmin, tmax=tmax)
 
 # Add extra series (optional)
 df_series = wb.utils.get_extra_series_from_excel(excelfile)
-wb.utils.add_timeseries_to_obj(e, df_series, tmin=tmin,
-                               tmax=tmax, overwrite=False)
+wb.utils.add_timeseries_to_obj(e, df_series, tmin=tmin, tmax=tmax, overwrite=False)
 
 # Simulate
 e.simulate(df_params, tmin=tmin, tmax=tmax)

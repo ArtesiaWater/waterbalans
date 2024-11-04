@@ -12,17 +12,30 @@ def setup_eag():
 
     # add series
     N = 3650
-    e.add_timeseries(pd.Series(index=pd.date_range("2000", periods=N, freq="D"),
-                               data=1e-3 * np.random.rand(N)),
-                     name="Neerslag", fillna=True, method=0.0)
-    e.add_timeseries(pd.Series(index=pd.date_range("2000", periods=N, freq="D"),
-                               data=0.25e-3 * np.random.rand(N)),
-                     name="Verdamping", fillna=True, method=0.0)
+    e.add_timeseries(
+        pd.Series(
+            index=pd.date_range("2000", periods=N, freq="D"),
+            data=1e-3 * np.random.rand(N),
+        ),
+        name="Neerslag",
+        fillna=True,
+        method=0.0,
+    )
+    e.add_timeseries(
+        pd.Series(
+            index=pd.date_range("2000", periods=N, freq="D"),
+            data=0.25e-3 * np.random.rand(N),
+        ),
+        name="Verdamping",
+        fillna=True,
+        method=0.0,
+    )
 
     # load parameters
     test_data = r"./tests/data"
-    params = pd.read_csv(os.path.join(test_data, "param_1396_3360-EAG-1.csv"),
-                         delimiter=";", decimal=".")
+    params = pd.read_csv(
+        os.path.join(test_data, "param_1396_3360-EAG-1.csv"), delimiter=";", decimal="."
+    )
     params["Waarde"] = pd.to_numeric(params.Waarde)
 
     return e, params
@@ -34,7 +47,9 @@ def setup_eag_wq():
     test_data = r"./tests/data"
     chloride_params = pd.read_csv(
         os.path.join(test_data, "stoffen_chloride_1396_3360-EAG-1.csv"),
-        decimal=".", delimiter=";")
+        decimal=".",
+        delimiter=";",
+    )
     chloride_params.replace("Riolering", "q_cso", inplace=True)
     return e, chloride_params
 
