@@ -33,9 +33,6 @@ def create_eag(
     -------
     eag: waterbalans.Eag instance
         Instance of the Eag class.
-
-    Notes
-    -----
     """
     eag = Eag(
         idn=idn,

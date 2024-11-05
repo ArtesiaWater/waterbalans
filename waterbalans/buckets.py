@@ -1,5 +1,6 @@
 """This file contains the different classes for the buckets."""
-from abc import ABC
+
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -35,8 +36,8 @@ class BucketBase(ABC):
         # Add bucket to the eag
         self.eag.add_bucket(self)
 
-        self.series = pd.DataFrame()
-        self.series = self.series.append(series)
+        self.series = pd.DataFrame(dtype=float)
+        self.series = pd.concat([self.series, series], axis=0)
 
         self.parameters = pd.DataFrame(columns=["Waarde"])
         self.area = area  # area in square meters
@@ -68,7 +69,8 @@ class BucketBase(ABC):
 
     def load_series_from_eag(self):
         """Method to automatically load Precipitation and Evaporation from for
-        the eag if available."""
+        the eag if available.
+        """
         if self.eag is None:
             return
 
@@ -77,6 +79,7 @@ class BucketBase(ABC):
         if "Verdamping" in self.eag.series.columns:
             self.series["Verdamping"] = self.eag.series["Verdamping"]
 
+    @abstractmethod
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
@@ -91,7 +94,6 @@ class BucketBase(ABC):
             float value with the time step used for simulation. Not used
             right now.
         """
-        pass
 
     def __repr__(self):
         return "<{0}: {1} bucket with area {2:.1f}>".format(
@@ -117,6 +119,7 @@ class Verhard(BucketBase):
                 "por_2",
             ],
             columns=["Waarde"],
+            dtype=float,
         )
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
@@ -156,9 +159,7 @@ class Verhard(BucketBase):
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
             msg = "Warning: {} not in series. Assumed equal to 0!"
             self.eag.logger.warning(
-                msg.format(
-                    {"Neerslag", "Verdamping", "Qkwel"} - set(series.columns)
-                )
+                msg.format({"Neerslag", "Verdamping", "Qkwel"} - set(series.columns))
             )
             series = series.reindex(
                 columns=["Neerslag", "Verdamping", "Qkwel"], fill_value=0.0
@@ -192,15 +193,11 @@ class Verhard(BucketBase):
             q_s = []
             q_oa = []
 
-            for _, pes in series.loc[
-                :, ["Neerslag", "Verdamping", "Qkwel"]
-            ].iterrows():
+            for _, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
                 p, e, s = pes
 
                 # Bereken de waterbalans in laag 1
-                q_no.append(
-                    calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt)
-                )
+                q_no.append(calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
                 h, q = calc_h_q_oa(h_1[-1], 0.0, q_no[-1], 0.0, hMax_1, dt)
 
                 # Interception reservoir storage cannot be negative
@@ -213,13 +210,9 @@ class Verhard(BucketBase):
                 h, _ = calc_h_q_oa(h_2[-1], s, 0.0, q_ui[-1], hMax_2, dt)
                 h_2.append(h)
 
-        self.fluxes = self.fluxes.assign(
-            q_no=q_no, q_ui=q_ui, q_s=q_s, q_oa=q_oa
-        )
+        self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s, q_oa=q_oa)
 
-        self.storage = self.storage.assign(
-            Upper_Storage=h_1[1:], Lower_Storage=h_2[1:]
-        )
+        self.storage = self.storage.assign(Upper_Storage=h_1[1:], Lower_Storage=h_2[1:])
 
     @staticmethod
     @njit
@@ -238,18 +231,16 @@ class Verhard(BucketBase):
         RFacOut_2=0.1,
         dt=1.0,
     ):
-
-        q_no = np.zeros((prec.size,), dtype=np.float64)
-        q_ui = np.zeros((prec.size,), dtype=np.float64)
-        q_s = np.zeros((prec.size,), dtype=np.float64)
-        q_oa = np.zeros((prec.size,), dtype=np.float64)
-        h_1 = np.zeros((prec.size + 1,), dtype=np.float64)
-        h_2 = np.zeros((prec.size + 1,), dtype=np.float64)
+        q_no = np.zeros((prec.size,), dtype=float)
+        q_ui = np.zeros((prec.size,), dtype=float)
+        q_s = np.zeros((prec.size,), dtype=float)
+        q_oa = np.zeros((prec.size,), dtype=float)
+        h_1 = np.zeros((prec.size + 1,), dtype=float)
+        h_2 = np.zeros((prec.size + 1,), dtype=float)
         h_1[0] = 0.0
         h_2[0] = hInit_2 * por_2
 
         for i in range(prec.size):
-
             # Bereken de waterbalans in laag 1
             q_no[i] = calc_q_no(
                 prec[i], evap[i], h_1[i], hEq, EFacMin_1, EFacMax_1, dt=dt
@@ -289,6 +280,7 @@ class Onverhard(BucketBase):
                 "por_1",
             ],
             columns=["Waarde"],
+            dtype=float,
         )
 
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
@@ -298,9 +290,6 @@ class Onverhard(BucketBase):
         ----------
         params
         dt
-
-        Returns
-        -------
         """
         tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
@@ -364,20 +353,15 @@ class Onverhard(BucketBase):
             )
 
         else:
-
             h_1 = [hInit_1 * por_1]
             q_no = []
             q_ui = []
             q_s = []
             q_oa = []
 
-            for _, pes in series.loc[
-                :, ["Neerslag", "Verdamping", "Qkwel"]
-            ].iterrows():
+            for _, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
                 p, e, s = pes
-                q_no.append(
-                    calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt)
-                )
+                q_no.append(calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt))
                 qui = calc_q_ui(h_1[-1], RFacIn_1, RFacOut_1, hEq, dt)
                 q_ui.append(qui)
                 q_s.append(s)
@@ -385,9 +369,7 @@ class Onverhard(BucketBase):
                 h_1.append(h)
                 q_oa.append(q)
 
-        self.fluxes = self.fluxes.assign(
-            q_no=q_no, q_ui=q_ui, q_s=q_s, q_oa=q_oa
-        )
+        self.fluxes = self.fluxes.assign(q_no=q_no, q_ui=q_ui, q_s=q_s, q_oa=q_oa)
         self.storage = self.storage.assign(Storage=h_1[1:])
 
     @staticmethod
@@ -406,19 +388,15 @@ class Onverhard(BucketBase):
         RFacOut_1=0.02,
         dt=1.0,
     ):
-
-        q_no = np.zeros((prec.size,), dtype=np.float64)
-        q_ui = np.zeros((prec.size,), dtype=np.float64)
-        q_s = np.zeros((prec.size,), dtype=np.float64)
-        q_oa = np.zeros((prec.size,), dtype=np.float64)
-        h_1 = np.zeros((prec.size + 1,), dtype=np.float64)
+        q_no = np.zeros((prec.size,), dtype=float)
+        q_ui = np.zeros((prec.size,), dtype=float)
+        q_s = np.zeros((prec.size,), dtype=float)
+        q_oa = np.zeros((prec.size,), dtype=float)
+        h_1 = np.zeros((prec.size + 1,), dtype=float)
         h_1[0] = hInit_1 * por_1
 
         for i in range(prec.size):
-
-            q_no[i] = calc_q_no(
-                prec[i], evap[i], h_1[i], hEq, EFacMin_1, EFacMax_1, dt
-            )
+            q_no[i] = calc_q_no(prec[i], evap[i], h_1[i], hEq, EFacMin_1, EFacMax_1, dt)
             q_ui[i] = calc_q_ui(h_1[i], RFacIn_1, RFacOut_1, hEq, dt)
             q_s[i] = seep[i]
             h, q = calc_h_q_oa(h_1[i], q_s[i], q_no[i], q_ui[i], hMax_1, dt)
@@ -463,6 +441,7 @@ class Drain(BucketBase):
                 "por_2",
             ],
             columns=["Waarde"],
+            dtype=float,
         )
         # self.parameters.loc[:, "pname"] = self.parameters.index
 
@@ -473,9 +452,6 @@ class Drain(BucketBase):
         ----------
         params
         dt
-
-        Returns
-        -------
         """
         tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
@@ -510,9 +486,7 @@ class Drain(BucketBase):
 
         # test if columns are present!
         if not {"Neerslag", "Verdamping", "Qkwel"}.issubset(series.columns):
-            msg = (
-                "Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!"
-            )
+            msg = "Warning Bucket {0}-{1}: {2} not in series. Assumed equal to 0!"
             self.eag.logger.warning(
                 msg.format(
                     self.name,
@@ -557,9 +531,7 @@ class Drain(BucketBase):
             q_oa = []
             q_dr = []
 
-            for _, pes in series.loc[
-                :, ["Neerslag", "Verdamping", "Qkwel"]
-            ].iterrows():
+            for _, pes in series.loc[:, ["Neerslag", "Verdamping", "Qkwel"]].iterrows():
                 p, e, s = pes
                 no = calc_q_no(p, e, h_1[-1], hEq, EFacMin_1, EFacMax_1, dt)
                 q_no.append(no)
@@ -577,9 +549,7 @@ class Drain(BucketBase):
             q_no=q_no, q_ui=q_ui, q_s=q_s, q_oa=q_oa, q_dr=q_dr
         )
 
-        self.storage = self.storage.assign(
-            Upper_Storage=h_1[1:], Lower_Storage=h_2[1:]
-        )
+        self.storage = self.storage.assign(Upper_Storage=h_1[1:], Lower_Storage=h_2[1:])
 
     @staticmethod
     @njit
@@ -602,22 +572,18 @@ class Drain(BucketBase):
         RFacOut_2=0.001,
         dt=1.0,
     ):
-
-        q_no = np.zeros((prec.size,), dtype=np.float64)
-        q_ui = np.zeros((prec.size,), dtype=np.float64)
-        q_s = np.zeros((prec.size,), dtype=np.float64)
-        q_oa = np.zeros((prec.size,), dtype=np.float64)
-        q_dr = np.zeros((prec.size,), dtype=np.float64)
-        h_1 = np.zeros((prec.size + 1,), dtype=np.float64)
-        h_2 = np.zeros((prec.size + 1,), dtype=np.float64)
+        q_no = np.zeros((prec.size,), dtype=float)
+        q_ui = np.zeros((prec.size,), dtype=float)
+        q_s = np.zeros((prec.size,), dtype=float)
+        q_oa = np.zeros((prec.size,), dtype=float)
+        q_dr = np.zeros((prec.size,), dtype=float)
+        h_1 = np.zeros((prec.size + 1,), dtype=float)
+        h_2 = np.zeros((prec.size + 1,), dtype=float)
         h_1[0] = hInit_1 * por_1
         h_2[0] = hInit_2 * por_2
 
         for i in range(prec.size):
-
-            q_no[i] = calc_q_no(
-                prec[i], evap[i], h_1[i], hEq, EFacMin_1, EFacMax_1, dt
-            )
+            q_no[i] = calc_q_no(prec[i], evap[i], h_1[i], hEq, EFacMin_1, EFacMax_1, dt)
             q_boven = calc_q_ui(h_1[i], RFacIn_1, RFacOut_1, hEq, dt)
             q_ui[i] = calc_q_ui(h_2[i], RFacIn_2, RFacOut_2, hEq, dt)
             q_s[i] = seep[i]
@@ -681,9 +647,7 @@ class MengRiool(BucketBase):
                 ts_cso = self.eag.series.loc[
                     pd.to_datetime(tmin) : pd.to_datetime(tmax), "q_cso"
                 ]
-                self.eag.logger.info(
-                    "Picked up CSO timeseries from EAG object."
-                )
+                self.eag.logger.info("Picked up CSO timeseries from EAG object.")
             else:
                 fcso = self.path_to_cso_series
                 if fcso is None:
@@ -696,12 +660,11 @@ class MengRiool(BucketBase):
                     )
                 else:
                     raise NotImplementedError(
-                        "External CSO timeseries file must have extension .pklz or .csv!"
+                        "External CSO timeseries file must have extension "
+                        ".pklz or .csv!"
                     )
                 ts_cso = ts_cso.loc[pd.to_datetime(tmin) : pd.to_datetime(tmax)]
-                self.eag.logger.info(
-                    "Picked up CSO timeseries from external file."
-                )
+                self.eag.logger.info("Picked up CSO timeseries from external file.")
         except (FileNotFoundError, KeyError):
             try:
                 from pastas.read import KnmiStation
@@ -723,15 +686,11 @@ class MengRiool(BucketBase):
             prec = KnmiStation.download(
                 stns=[knmistn], interval="hour", start=tmin, end=tmax, vars="RH"
             )
-            self.eag.logger.info(
-                "KNMI Download succeeded, calculating series..."
-            )
+            self.eag.logger.info("KNMI Download succeeded, calculating series...")
             ts_cso = calculate_cso(prec.data.RH, Bmax, POCmax, alphasmooth=0.1)
             self.eag.logger.info("CSO series calculated.")
 
-        series = pd.Series(
-            index=ts_cso.index, data=-1.0 * ts_cso.values.squeeze()
-        )
+        series = pd.Series(index=ts_cso.index, data=-1.0 * ts_cso.values.squeeze())
         series.name = "q_cso"
 
         self.fluxes = self.fluxes.assign(q_cso=series)

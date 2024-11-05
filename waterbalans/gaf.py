@@ -1,8 +1,8 @@
 """This file contains the polder class."""
+
 import logging
 from collections import OrderedDict
 
-import numpy as np
 import pandas as pd
 
 from .eag import Eag
@@ -22,7 +22,6 @@ class Gaf:
     """
 
     def __init__(self, idn=None, name=None, eags=None, series=None):
-
         self.logger = self.get_logger()
 
         # Basic information
@@ -37,9 +36,7 @@ class Gaf:
                 if isinstance(e, Eag):
                     self.eags[e.name] = e
                 else:
-                    self.logger.warning(
-                        "added Eags must be instance of Eag object."
-                    )
+                    self.logger.warning("added Eags must be instance of Eag object.")
 
         self.data = pd.DataFrame()
         self.parameters = pd.DataFrame()
@@ -50,13 +47,10 @@ class Gaf:
             self.series = series
 
     def __repr__(self):
-        return "<GAF object: {0} containing {1} EAGs>".format(
-            self.name, len(self.eags)
-        )
+        return "<GAF object: {0} containing {1} EAGs>".format(self.name, len(self.eags))
 
     @staticmethod
     def get_logger(log_level=logging.INFO, filename=None):
-
         logging.basicConfig(
             format="%(asctime)s | %(funcName)s - %(levelname)s : %(message)s",
             level=logging.INFO,
@@ -73,14 +67,10 @@ class Gaf:
     def add_eag(self, eag):
         self.eags[eag.name] = eag
 
-    def add_series(
-        self, series, tmin="2000", tmax="2015", freq="D", fillna=False
-    ):
+    def add_series(self, series, tmin="2000", tmax="2015", freq="D", fillna=False):
         for eagname, eag in self.eags.items():
             eagseries = series.loc[series.EAGCode == eagname, :]
-            eag.add_series(
-                eagseries, tmin=tmin, tmax=tmax, freq=freq, fillna=fillna
-            )
+            eag.add_series(eagseries, tmin=tmin, tmax=tmax, freq=freq, fillna=fillna)
 
     def add_timeseries(
         self,
@@ -108,9 +98,7 @@ class Gaf:
         """
         if self.series.index.shape[0] == 0:
             self.series = pd.DataFrame(
-                index=pd.date_range(
-                    pd.Timestamp(tmin), pd.Timestamp(tmax), freq="D"
-                )
+                index=pd.date_range(pd.Timestamp(tmin), pd.Timestamp(tmax), freq="D")
             )
 
         if name is None:
@@ -123,7 +111,7 @@ class Gaf:
             if (series.isna().sum() > 0).all():
                 self.logger.info(
                     "Filled {0} NaN-values with '{1}' in series {2}.".format(
-                        np.int(series.isna().sum()), method, name
+                        int(series.isna().sum()), method, name
                     )
                 )
                 if isinstance(method, str):
@@ -133,16 +121,12 @@ class Gaf:
 
         if name in self.series.columns:
             self.logger.warning(
-                "Series {} already present in EAG, overwriting data!".format(
-                    name
-                )
+                "Series {} already present in EAG, overwriting data!".format(name)
             )
 
-        self.series.loc[
-            series.index.intersection(self.series.index), name
-        ] = series.loc[
-            series.index.intersection(self.series.index)
-        ].values.squeeze()
+        self.series.loc[series.index.intersection(self.series.index), name] = (
+            series.loc[series.index.intersection(self.series.index)].values.squeeze()
+        )
 
     def simulate(self, parameters, tmin=None, tmax=None):
         """Method to calculate the waterbalance for the Gaf."""
@@ -152,4 +136,4 @@ class Gaf:
             eag.simulate(params, tmin=tmin, tmax=tmax)
 
     def get_eags(self):
-        return [e for e in self.eags.values()]
+        return list(self.eags.values())
