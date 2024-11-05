@@ -73,8 +73,18 @@ select = [
     "B",   # flake8-bugbear
     "NPY", # numpy
 ]
+ignore = [
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D205", # Blank line required between summary line and description
+    "D401", # First line should be in imperative mood
+    "D404", # First word should not be This
+]
 
-[tool.ruff.format]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
