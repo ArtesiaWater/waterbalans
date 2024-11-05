@@ -35,7 +35,6 @@ def test_simulate_bucket_verhard():
     # check
     assert np.allclose(f1, f2)
     assert np.allclose(s1, s2)
-    return
 
 
 def test_simulate_bucket_onverhard():
@@ -54,7 +53,6 @@ def test_simulate_bucket_onverhard():
     # check
     assert np.allclose(f1, f2)
     assert np.allclose(s1, s2)
-    return
 
 
 def test_simulate_bucket_drain():
@@ -73,7 +71,6 @@ def test_simulate_bucket_drain():
     # check
     assert np.allclose(f1, f2)
     assert np.allclose(s1, s2)
-    return
 
 
 # def test_bucket_mengriool():
@@ -98,7 +95,6 @@ def test_simulate_bucket_water():
     # check
     assert np.allclose(f1, f2)
     assert np.allclose(s1, s2)
-    return
 
 
 def test_make_eag():
@@ -150,20 +146,18 @@ def test_eag_run():
     params["Waarde"] = pd.to_numeric(params.Waarde)
     # simulate
     e.simulate(params=params, tmin="2000", tmax="2000-01-10")
-    e.water.validate()
+    assert e.water.validate()
     return e
 
 
 def test_calculate_fluxes():
     e = test_eag_run()
     _ = e.aggregate_fluxes()
-    return
 
 
 def test_calculate_fractions():
     e = test_eag_run()
     _ = e.calculate_fractions()
-    return
 
 
 def test_calculate_chloride():
@@ -178,7 +172,6 @@ def test_calculate_chloride():
     chloride_params.replace("Riolering", "q_cso", inplace=True)
     m = e.simulate_wq(chloride_params)
     return e, m
-
 
 def test_add_real_series_and_simulate():
     tmin = "2000"
@@ -268,8 +261,6 @@ def test_add_real_series_and_simulate():
     # simulate
     e.simulate(params=params, tmin="2000", tmax="2005")
 
-    return e
-
 
 def test_compare_numba_simulate():
     # load parameters
@@ -291,8 +282,6 @@ def test_compare_numba_simulate():
         e1.aggregate_fluxes().dropna(how="any"), e2.aggregate_fluxes().dropna(how="any")
     )
 
-    return
-
 
 def test_compare_numba_simulate_wq():
     chloride_params = pd.read_csv(
@@ -311,8 +300,6 @@ def test_compare_numba_simulate_wq():
 
     assert np.allclose(m1[-1], m2[-1])
 
-    return
-
 
 def test_compare_numba_fractions():
     e1 = test_eag_run()
@@ -323,7 +310,6 @@ def test_compare_numba_fractions():
     f2 = e2.calculate_fractions().loc[:, f1.columns].astype(float)
 
     assert np.allclose(f1, f2)
-    return
 
 
 def test_compare_numba_fractions_large_inflow():
@@ -355,4 +341,3 @@ def test_compare_numba_fractions_large_inflow():
     f2 = e2.calculate_fractions().loc[:, f1.columns].astype(float)
 
     assert np.allclose(f1, f2)
-    return

@@ -16,7 +16,7 @@ def setup_eag():
     e.add_timeseries(
         pd.Series(
             index=pd.date_range("2000", periods=N, freq="D"),
-            data=1e-3 * rng.uniform(N),
+            data=1e-3 * rng.uniform(size=N),
         ),
         name="Neerslag",
         fillna=True,
@@ -25,7 +25,7 @@ def setup_eag():
     e.add_timeseries(
         pd.Series(
             index=pd.date_range("2000", periods=N, freq="D"),
-            data=0.25e-3 * rng.uniform(N),
+            data=0.25e-3 * rng.uniform(size=N),
         ),
         name="Verdamping",
         fillna=True,
@@ -59,7 +59,6 @@ def setup_eag_wq():
 def test_benchmark_simulate_numba(benchmark):
     e, params = setup_eag()
     _ = benchmark(e.simulate, params=params)
-    return
 
 
 @pytest.mark.benchmark(group="simulate_eag")
@@ -67,14 +66,12 @@ def test_benchmark_simulate_loop(benchmark):
     e, params = setup_eag()
     e.use_numba = False
     _ = benchmark(e.simulate, params=params)
-    return
 
 
 @pytest.mark.benchmark(group="simulate_eag_wq")
 def test_benchmark_simulate_wq_numba(benchmark):
     e, wq_params = setup_eag_wq()
     _ = benchmark(e.simulate_wq, wq_params=wq_params)
-    return
 
 
 @pytest.mark.benchmark(group="simulate_eag_wq")
@@ -82,4 +79,3 @@ def test_benchmark_simulate_wq_loop(benchmark):
     e, wq_params = setup_eag_wq()
     e.use_numba = False
     _ = benchmark(e.simulate_wq, wq_params=wq_params)
-    return

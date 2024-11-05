@@ -642,7 +642,6 @@ class Eag:
                 index=fluxes.index,
                 data=mass_tot[1:],
                 name="mass_tot",
-                fastpath=True,
             )
             mass_out = pd.DataFrame(index=fluxes.index, columns=outcols, data=mass_out)
             if (mass_tot < 0.0).any():

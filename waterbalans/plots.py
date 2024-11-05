@@ -55,7 +55,7 @@ class Eag_Plots:
         fig.tight_layout()
         return axgr
 
-    def bucket(self, name, freq="M", tmin=None, tmax=None):
+    def bucket(self, name, freq="ME", tmin=None, tmax=None):
         bucket = self.eag.buckets[name]
 
         # get tmin, tmax if not defined
@@ -88,7 +88,7 @@ class Eag_Plots:
         ax.legend(ncol=2)
 
         # set ticks (currently only correct for monthly data)
-        if freq == "M":
+        if freq == "ME":
             ax.set_xticklabels(
                 [dt.strftime("%b-%y") for dt in plotdata.index.to_pydatetime()]
             )
