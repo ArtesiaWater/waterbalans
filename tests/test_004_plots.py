@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
-from .test_002_run_eag import test_eag_run, test_calculate_chloride
+
+from .test_002_run_eag import test_calculate_chloride, test_eag_run
 
 
 def test_plot_aggregated():

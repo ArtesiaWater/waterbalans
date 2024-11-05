@@ -150,9 +150,11 @@ class Eag:
     def add_series_from_database(
         self, series, tmin, tmax, freq="D", fillna=False, method="append"
     ):
-        """Method to add timeseries based on a DataFrame containing information
-        about the series. Series are described by one or more rows in the
-        DataFrame with at least the following columns:
+        r"""Method to add timeseries based on a DataFrame containing information
+        about the series. 
+        
+        Time series are described by one or more rows in the DataFrame with at least 
+        the following columns:
 
          - Bucket ID: ID of the bucket the series should be added to
          - SeriesType (unfortunately called ParamType at the moment): Origin or Type
@@ -165,9 +167,6 @@ class Eag:
         tmin: str or pandas.Timestamp, optional
         tmax: str or pandas.Timestamp, optional
         freq: str
-
-        Notes
-        -----
 
         Examples
         --------
@@ -329,9 +328,8 @@ class Eag:
         self.logger.info("Adding timeseries '{0}' to EAG manually".format(name))
         if name in self.series.columns:
             self.logger.warning(
-                "Series {} already present in EAG, overwriting data where not NaN!".format(
-                    name
-                )
+                "Series {} already present in EAG, overwriting "
+                "data where not NaN!".format(name)
             )
             first_valid_index = series.first_valid_index()
             last_valid_index = series.last_valid_index()
@@ -363,7 +361,8 @@ class Eag:
 
     def get_series_from_gaf(self):
         """Load series from the Gaf instance if present and no series are
-        provided."""
+        provided.
+        """
         # create index if empty
         if self.series.index.shape[0] == 0:
             tmin = self.gaf.series.index[0]
@@ -404,7 +403,7 @@ class Eag:
             return bucketlist
 
     def get_parameter_df(self):
-        """get parameter dataframe containing parameter values for each bucket.
+        """Get parameter dataframe containing parameter values for each bucket.
 
         Returns
         -------
@@ -830,7 +829,9 @@ class Eag:
         # Calculate difference between calculated and measured pumped volume
         fluxes["sluitfout"] = fluxes["sluitfout"].subtract(fluxes["maalstaat"])
         # Correct inlet volume with difference between calculated and measured
-        # fluxes["berekende inlaat"] = fluxes["berekende inlaat"] - fluxes.loc[fluxes.sluitfout<0, "sluitfout"]
+        # fluxes["berekende inlaat"] = (
+        #     fluxes["berekende inlaat"] - fluxes.loc[fluxes.sluitfout < 0, "sluitfout"]
+        # )
 
         return fluxes
 
@@ -902,7 +903,6 @@ class Eag:
         frac: pandas.DataFrame
             pandas DataFrame with the fractions.
         """
-
         # TODO: Figure out how to include series with non-default names?
         fluxes = self.aggregate_fluxes()
 

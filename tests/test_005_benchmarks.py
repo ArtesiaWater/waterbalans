@@ -12,10 +12,11 @@ def setup_eag():
 
     # add series
     N = 3650
+    rng = np.random.default_rng()
     e.add_timeseries(
         pd.Series(
             index=pd.date_range("2000", periods=N, freq="D"),
-            data=1e-3 * np.random.rand(N),
+            data=1e-3 * rng.uniform(N),
         ),
         name="Neerslag",
         fillna=True,
@@ -24,7 +25,7 @@ def setup_eag():
     e.add_timeseries(
         pd.Series(
             index=pd.date_range("2000", periods=N, freq="D"),
-            data=0.25e-3 * np.random.rand(N),
+            data=0.25e-3 * rng.uniform(N),
         ),
         name="Verdamping",
         fillna=True,

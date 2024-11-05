@@ -3,16 +3,18 @@ import os
 
 import numpy as np
 import pandas as pd
-import waterbalans as wb
 
+import waterbalans as wb
 
 # %% data dir and test data
 test_data = r"./tests/data"
 
+rng = np.random.default_rng()
+
 index = pd.date_range("2019-01-01", "2019-01-31", freq="D")
-neerslag = pd.Series(index=index, data=np.random.random_sample(31)) * 1e-3
+neerslag = pd.Series(index=index, data=rng.random(31)) * 1e-3
 neerslag.name = "Neerslag"
-verdamping = 0.75 * pd.Series(index=index, data=np.random.random_sample(31)) * 1e-3
+verdamping = 0.75 * pd.Series(index=index, data=rng.random(31)) * 1e-3
 verdamping.name = "Verdamping"
 series = pd.concat([neerslag, verdamping], axis=1)
 

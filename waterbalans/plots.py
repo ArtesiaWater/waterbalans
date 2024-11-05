@@ -153,7 +153,9 @@ class Eag_Plots:
         ax.xaxis.set_major_formatter(mticker.FixedFormatter(ticklabels))
 
         # fixes the tracker: https://matplotlib.org/users/recipes.html
-        def formatter(x, pos=0, max_i=len(ticklabels) - 1):
+        nticklabels = len(ticklabels) - 1
+
+        def formatter(x, pos=0, max_i=nticklabels):
             i = int(x)
             i = 0 if i < 0 else max_i if i > max_i else i
             return plotdata.index[i].strftime(fmt)
@@ -668,7 +670,8 @@ class Eag_Plots:
             mint = np.max([self.eag.water.level.index[0], exceldf.index[0]])
             maxt = np.min([self.eag.water.level.index[-1], exceldf.index[-1]])
 
-            # add check if series are similar (1cm absolute + 1% error on top of value in excel)
+            # add check if series are similar (1cm absolute + 1% error on top
+            # of value in excel)
             check = np.allclose(
                 self.eag.water.level.loc[mint:maxt, "level"].astype(float),
                 exceldf.loc[mint:maxt, "peil"].astype(float),

@@ -1,5 +1,6 @@
 """This file contains practical classes and methods for use throughout the
-"Waterbalans" model."""
+"Waterbalans" model.
+"""
 
 import os
 
@@ -49,7 +50,8 @@ def makkink_to_penman(e, use_excel_factors=False):
     """
     if use_excel_factors:
         # penman = [2.500, 1.071, 0.789, 0.769, 0.769, 0.763, 0.789, 0.838, 0.855,
-        #           1.111, 1.429, np.inf]  # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
+        #           1.111, 1.429, np.inf]  
+        # col E47:E59 in Excel e_r / e_o, with 0 evap in december.
         penman = 1.0 / np.array(
             [
                 0.4,
@@ -110,7 +112,6 @@ def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
     pd.Series
         timeseries of combined sewer overflows (cso)
     """
-
     p_smooth = prec.ewm(alpha=alphasmooth, adjust=False).mean()
     b = p_smooth.copy()
     poc = p_smooth.copy()
@@ -129,7 +130,7 @@ def calculate_cso(prec, Bmax, POCmax, alphasmooth=0.1):
 
 
 def get_model_input_from_excel(excelfile):
-    """get modelstructure, timeseries, and parameters from an excel file. The
+    """Get modelstructure, timeseries, and parameters from an excel file. The
     structure of the excelfile is defined. See example file at
     https://github.com/ArtesiaWater/waterbalans/tree/master/voorbeelden/data.
 
@@ -188,7 +189,6 @@ def get_extra_series_from_excel(excelfile, sheet_name="extra_reeksen"):
     df_series: pandas.DataFrame
         DataFrame containing series to be added to waterbalance
     """
-
     xls = pd.ExcelFile(excelfile, engine="openpyxl")
     df_series = pd.read_excel(
         xls,
@@ -217,7 +217,6 @@ def get_wqparams_from_excel(excelfile, sheet_name="stoffen"):
     df_series: pandas.DataFrame
         DataFrame containing water quality parameters
     """
-
     xls = pd.ExcelFile(excelfile, engine="openpyxl")
     df_series = pd.read_excel(
         xls,
@@ -244,7 +243,6 @@ def get_extra_series_from_pickle(picklefile, compression="zip"):
     df_series: pandas.DataFrame
         DataFrame containing series
     """
-
     df_series = pd.read_pickle(picklefile, compression=compression)
     return df_series
 
@@ -268,7 +266,8 @@ def add_timeseries_to_obj(
         end time for added series (the default is None, which
         attempts to pick up tmax from existing Eag or Gaf object)
     overwrite : bool, optional
-        overwrite series if name already exists in Eag or Gaf object (the default is False)
+        overwrite series if name already exists in Eag or Gaf object 
+        (the default is False)
     data_from_excel: bool, optional
         if True, assumes data source is Excel Balance 'uitgangspunten' sheet.
         Function will make an assumption about the column names and order and
@@ -285,8 +284,8 @@ def add_timeseries_to_obj(
             tmin = o.series.index[0]
         if tmax is None:
             tmax = o.series.index[-1]
-    except IndexError:
-        raise ValueError("tmin/tmax cannot be inferred from EAG/GAF object.")
+    except IndexError as e:
+        raise ValueError("tmin/tmax cannot be inferred from EAG/GAF object.") from e
 
     if data_from_excel:
         columns = [
@@ -320,7 +319,8 @@ def add_timeseries_to_obj(
             True if icol.lower().startswith(inam.lower()) else False for icol in columns
         ]
         series = df.loc[:, colmask]
-        # Water bucket converts outgoing fluxes to negative, so outgoing fluxes can be entered positive
+        # Water bucket converts outgoing fluxes to negative, so outgoing fluxes can
+        # be entered positive
         for jcol in range(series.shape[1]):
             # Check if empty
             if series.iloc[:, jcol].dropna().empty:
@@ -455,7 +455,6 @@ def create_csvfile_table(csvdir):
     pandas.DataFrame
         DataFrame containing each CSV for a specific EAG or GAF
     """
-
     files = [i for i in os.listdir(csvdir) if i.endswith(".csv")]
     eag_df = pd.DataFrame(data=files, columns=["filenames"])
     eag_df["ID"] = eag_df.filenames.apply(

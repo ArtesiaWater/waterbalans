@@ -1,6 +1,6 @@
 """This file contains the different classes for the buckets."""
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -69,7 +69,8 @@ class BucketBase(ABC):
 
     def load_series_from_eag(self):
         """Method to automatically load Precipitation and Evaporation from for
-        the eag if available."""
+        the eag if available.
+        """
         if self.eag is None:
             return
 
@@ -78,6 +79,7 @@ class BucketBase(ABC):
         if "Verdamping" in self.eag.series.columns:
             self.series["Verdamping"] = self.eag.series["Verdamping"]
 
+    @abstractmethod
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
         """Calculate the waterbalance for this bucket.
 
@@ -92,7 +94,6 @@ class BucketBase(ABC):
             float value with the time step used for simulation. Not used
             right now.
         """
-        pass
 
     def __repr__(self):
         return "<{0}: {1} bucket with area {2:.1f}>".format(
@@ -289,9 +290,6 @@ class Onverhard(BucketBase):
         ----------
         params
         dt
-
-        Returns
-        -------
         """
         tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
@@ -454,9 +452,6 @@ class Drain(BucketBase):
         ----------
         params
         dt
-
-        Returns
-        -------
         """
         tmin, tmax = self.initialize(tmin=tmin, tmax=tmax)
 
@@ -665,7 +660,8 @@ class MengRiool(BucketBase):
                     )
                 else:
                     raise NotImplementedError(
-                        "External CSO timeseries file must have extension .pklz or .csv!"
+                        "External CSO timeseries file must have extension "
+                        ".pklz or .csv!"
                     )
                 ts_cso = ts_cso.loc[pd.to_datetime(tmin) : pd.to_datetime(tmax)]
                 self.eag.logger.info("Picked up CSO timeseries from external file.")

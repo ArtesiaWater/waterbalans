@@ -136,4 +136,4 @@ class Gaf:
             eag.simulate(params, tmin=tmin, tmax=tmax)
 
     def get_eags(self):
-        return [e for e in self.eags.values()]
+        return list(self.eags.values())

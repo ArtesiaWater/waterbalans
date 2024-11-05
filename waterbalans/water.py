@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -89,8 +89,9 @@ class WaterBase(ABC):
             self.eag.logger.info(msg.format(name))
             self.series[name] = self.eag.series[name] / self.area
 
+    @abstractmethod
     def simulate(self, params=None, tmin=None, tmax=None, dt=1.0):
-        pass
+        """Simulate water balance for the water bucket."""
 
 
 class Water(WaterBase):
@@ -171,11 +172,13 @@ class Water(WaterBase):
 
         if QInMax_1 == 0.0:
             self.eag.logger.warning(
-                "'QInMax_1' is equal to 0. Assuming this means there is no limit to inflow."
+                "'QInMax_1' is equal to 0. Assuming this means there is no "
+                "limit to inflow."
             )
         if QOutMax_1 == 0.0:
             self.eag.logger.warning(
-                "'QOutMax_1' is equal to 0. Assuming this means there is no limit to outflow."
+                "'QOutMax_1' is equal to 0. Assuming this means there is no "
+                "limit to outflow."
             )
 
         # 1. Add incoming fluxes from other buckets
@@ -247,7 +250,8 @@ class Water(WaterBase):
                 hTargetMin_1 = (
                     self.eag.series.loc[tmin:tmax, "Peil"] - hTargetMin_1 - hBottom_1
                 ) * self.area
-                # This is what Excel does (start with init level instead of first obs Peil)
+                # This is what Excel does (start with init level instead of
+                # first obs Peil)
                 hTargetMin_1.iloc[0] = (hTarget_1 - ht - hBottom_1) * self.area
 
             if hTargetMax_1 <= 0:  # static
@@ -270,7 +274,8 @@ class Water(WaterBase):
                 hTargetMax_1 = (
                     self.eag.series.loc[tmin:tmax, "Peil"] + hTargetMax_1 - hBottom_1
                 ) * self.area
-                # This is what Excel does (start with init level instead of first obs Peil)
+                # This is what Excel does (start with init level instead of first
+                # obs Peil)
                 hTargetMax_1.iloc[0] = (hTarget_1 + ht - hBottom_1) * self.area
 
         if self.eag.use_numba:
@@ -382,6 +387,9 @@ class Water(WaterBase):
 
         Returns
         -------
+        wb : bool or pd.DataFrame
+            boolean whether water balance is met unless return_wb_series is True,
+            in which case a DataFrame with water balance time series is returned.
         """
         if not hasattr(self, "fluxes"):
             raise AttributeError("No attribute 'fluxes'. Run simulate first")

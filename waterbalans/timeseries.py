@@ -24,7 +24,7 @@ from .wsdl_settings import _wsdl
 
 
 def initialize_fews_pi(wsdl=_wsdl):
-    """FEWS Webservice 2017.01:
+    """FEWS Webservice 2017.01.
 
     http://localhost:8081/FewsPiService/fewspiservice?wsdl FEWS Webservice
     2017.02: http://localhost:8080/FewsWebServices/fewspiservice?wsdl.
@@ -70,9 +70,6 @@ def get_series(
     Returns
     -------
     series: pandas.Series
-
-    Notes
-    -----
     """
     # get logger
     if loggername is None:
@@ -429,9 +426,8 @@ def _combine_fews_series(fews_series, name, logger):  # pragma: no cover
             logger.info("Combined multiple FEWS Series with method 'sum'.")
         else:
             logger.error(
-                "No logic defined for combining FEWS series with parameter '{}'!".format(
-                    params[0]
-                )
+                "No logic defined for combining FEWS "
+                "series with parameter '{}'!".format(params[0])
             )
             raise NotImplementedError()
 
