@@ -1,0 +1,83 @@
+[build-system]
+# Minimum requirements for the build system to execute
+requires = ["setuptools>64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "waterbalans"
+dynamic = ["version"]
+description = "Python Package voor het maken van waterbalansen"
+license = { file = "LICENSE" }
+readme = "README.rst"
+authors = [{ name = "D.A. Brakenhoff" }]
+maintainers = [{ name = "D.A. Brakenhoff", email = "d.brakenhoff@artesia-water.nl" }]
+requires-python = ">= 3.9"
+dependencies = ["numpy", "scipy", "matplotlib", "pandas"]
+
+keywords = ["hydrology", "groundwater", "time series", "analysis", "database"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Other Audience",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Hydrology",
+]
+
+[project.urls]
+homepage = "https://github.com/ArtesiaWater/waterbalans"
+repository = "https://github.com/ArtesiaWater/waterbalans"
+documentation = "https://waterbalans.readthedocs.io/en/latest/"
+
+[project.optional-dependencies]
+all = ["waterbalans[fews]", "numba", "dateparser"]
+fews = ["hkvfewspy==0.6.2"]
+ci = [
+    "waterbalans[all]",
+    "pytest",
+    "pytest-benchmark",
+    "codecov",
+    "pytest-cov",
+    "codacy-coverage",
+]
+docs = ["sphinx_rtd_theme"]
+
+[tool.setuptools.packages]
+find = {}
+
+[tool.setuptools.dynamic]
+version = { attr = "waterbalans.version.__version__" }
+
+[tool.ruff]
+line-length = 88
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint]
+# See: https://docs.astral.sh/ruff/rules/
+select = [
+    "C4",  # flake8-comprehensions
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "PT",  # pytest-style
+    "D",   # pydocstyle
+    "B",   # flake8-bugbear
+    "NPY", # numpy
+]
+
+[tool.ruff.format]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.pytest.ini_options]
+addopts = "--durations=0 --cov-report xml:coverage.xml --cov waterbalans -v"
